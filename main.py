@@ -52,9 +52,8 @@ def handle_webhook():
     
     if request.method == 'POST':
         try:
-            
-        # Parse JSON data from request
-        data = request.get_json()
+            # Parse JSON data from request
+            data = request.get_json()
         logger.info(f"Received webhook data: {data}")
 
         from_number = data.get('from')
