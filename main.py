@@ -37,21 +37,21 @@ def requires_auth(f):
     return decorated
 
 @app.route("/", methods=['GET', 'POST'])
-@requires_auth
 def handle_webhook():
     logger.info("=== Webhook Request Start ===")
     logger.info(f"Method: {request.method}")
     logger.info(f"Headers: {dict(request.headers)}")
     logger.info(f"Raw Data: {request.get_data(as_text=True)}")
     logger.info(f"Form Data: {request.form}")
-    logger.info(f"JSON Data: {request.get_json(silent=True)}")
+    try:
+        json_data = request.get_json(force=True, silent=True)
+        logger.info(f"JSON Data: {json_data}")
+    except Exception as e:
+        logger.error(f"JSON parsing error: {e}")
     logger.info("=== Webhook Request End ===")
     
     if request.method == 'POST':
-        signing_secret = request.headers.get('PINNACLE-SIGNING-SECRET')
-        if not signing_secret or signing_secret != 'pss-5e41fc9c-046b-4fb6-a846-a130f45d057b':
-            logger.error("Invalid or missing Pinnacle signing secret")
-            return "Unauthorized", 401
+        try:
             
         # Parse JSON data from request
         data = request.get_json()
