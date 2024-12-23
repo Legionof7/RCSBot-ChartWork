@@ -54,7 +54,7 @@ def handle_webhook():
         try:
             # Parse JSON data from request
             data = request.get_json()
-        logger.info(f"Received webhook data: {data}")
+            logger.info(f"Received webhook data: {data}")
 
         from_number = data.get('from')
         text = data.get('text') if data.get('messageType') == 'text' else None
