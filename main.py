@@ -40,6 +40,11 @@ def requires_auth(f):
 @requires_auth
 def handle_webhook():
     if request.method == 'POST':
+        signing_secret = request.headers.get('PINNACLE-SIGNING-SECRET')
+        if not signing_secret or signing_secret != 'pss-5e41fc9c-046b-4fb6-a846-a130f45d057b':
+            logger.error("Invalid or missing Pinnacle signing secret")
+            return "Unauthorized", 401
+            
         body = request.values.get('Body', None)
         from_number = request.values.get('From', None)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
