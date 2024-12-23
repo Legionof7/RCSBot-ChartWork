@@ -1,6 +1,6 @@
 
 from flask import Flask, request, Response
-from pinnacle import Pinnacle, Card, Action
+from rcs import Pinnacle, Card, Action
 import logging
 import datetime
 from functools import wraps
