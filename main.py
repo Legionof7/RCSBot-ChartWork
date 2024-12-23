@@ -119,7 +119,7 @@ def send_sms():
     try:
         response = client.send.sms(
             to=to_number,
-            from_="test",
+            from_="+18337750778",
             text=message_body
         )
 
