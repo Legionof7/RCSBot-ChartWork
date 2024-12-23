@@ -145,15 +145,26 @@ def send_sms():
         message = client.messages(message.sid).fetch()
 
         return f"""
-        Message Details:
-        SID: {message.sid}
-        Status: {message.status}
-        To: {message.to}
-        From: {message.from_}
-        Body: {message.body}
-        Direction: {message.direction}
-        Error Code: {message.error_code if hasattr(message, 'error_code') else 'None'}
+        <style>
+            details {{ margin: 10px 0; padding: 10px; background: #f5f5f5; }}
+            summary {{ cursor: pointer; }}
+            pre {{ white-space: pre-wrap; word-wrap: break-word; }}
+        </style>
+        <h2>Message Details:</h2>
+        <p>
+        SID: {message.sid}<br>
+        Status: {message.status}<br>
+        To: {message.to}<br>
+        From: {message.from_}<br>
+        Body: {message.body}<br>
+        Direction: {message.direction}<br>
+        Error Code: {message.error_code if hasattr(message, 'error_code') else 'None'}<br>
         Error Message: {message.error_message if hasattr(message, 'error_message') else 'None'}
+        </p>
+        <details>
+            <summary>Show Raw Response</summary>
+            <pre>{message._properties}</pre>
+        </details>
         """
 
     except TwilioRestException as e:
