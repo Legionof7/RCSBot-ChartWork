@@ -117,7 +117,7 @@ def send_sms():
     message_body = request.form['message']
 
     try:
-        response = client.send.sdk(
+        response = client.send.sms(
             to=to_number,
             from_="test",
             cards=[
