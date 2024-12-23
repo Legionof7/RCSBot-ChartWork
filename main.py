@@ -16,6 +16,34 @@ twilio_number = '+16288000018'
 
 client = Client(account_sid, auth_token)
 
+@app.route("/", methods=['GET', 'POST'])
+def handle_webhook():
+    if request.method == 'POST':
+        body = request.values.get('Body', None)
+        from_number = request.values.get('From', None)
+
+        logger.info(f"Received message from {from_number}: {body}")
+
+        resp = MessagingResponse()
+        resp.message(f"Got your message: {body}")
+        return str(resp)
+    else:
+        return '''
+            <h1>SMS Service</h1>
+            <p><a href="/send">Click here to send a message</a></p>
+            <p>SMS Receiver is running!</p>
+        '''
+
+@app.route("/send", methods=['GET'])
+def send_message():
+    return '''
+        <form action="/send_sms" method="post">
+            Phone Number (include +1): <input type="text" name="to_number"><br>
+            Message: <input type="text" name="message"><br>
+            <input type="submit" value="Send SMS">
+        </form>
+    '''
+
 @app.route("/send_sms", methods=['POST'])
 def send_sms():
     to_number = request.form['to_number']
@@ -63,8 +91,6 @@ def send_sms():
     except Exception as e:
         logger.error(f"Unexpected Error: {str(e)}")
         return f"Unexpected Error: {str(e)}"
-
-# Keep your other routes the same...
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
