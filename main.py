@@ -13,7 +13,7 @@ app = Flask(__name__)
 # Twilio configuration
 account_sid = 'AC90b94224510cd211eacdf1ec564bb8e2'
 auth_token = '154bc969e28b26c701c91df9355d7688'
-twilio_number = '+16288000018'
+twilio_number = '+18337750778'
 
 client = Client(account_sid, auth_token)
 
@@ -24,7 +24,7 @@ from functools import wraps
 from flask import request, Response
 
 def check_auth(password):
-    return password == 'SlothMD!123'
+        return password == 'SlothMD!123'
 
 def authenticate():
     return Response(

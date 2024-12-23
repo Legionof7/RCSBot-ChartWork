@@ -1,0 +1,40 @@
+from rcs import Pinnacle, Card, Action
+
+client = Pinnacle(
+    api_key="<YOUR-API-KEY>", 
+)
+
+client.send.rcs(
+    to="<YOUR-TEST-PHONE-NUMBER>",
+    from_="test",
+    cards=[
+        Card(
+            title="Founder Mode T-shirt",
+            subtitle="$32, Available in S, M, L",
+            media_url="https://imgproxy.fourthwall.com/WJ9gup_kEe9z3C6BrRCsUX-ehR1HnskAKqBB3ES0_zw/w:900/sm:1/enc/YWUyMzNjMDlmZDJj/M2QyN2eJD23FK7Ps/8OvDiNKDI5VHWM7a/2hsjHnivj2W5HqmB/ZNzuFvGPa8faV3nz/u_FTkvcrz6HmpBBl/rmYuyVTyqpZ608WX/1dEPN4ErF8xtYy9E/D2hFydkvwLHN_UAN/2mUkGYQRHWrq5fZr/knyhc7tHjVtmIhvp/unz0fyxAjCLSm5J8/rtFAbVatzBMph7-E/wkFzQZxy2rmB5keS/kvVru0Cen8U.webp",
+            buttons=[Action(title="Buy T-Shirt", type="trigger", payload="buy_shirt")],
+        ),
+        Card(
+            title="Founder Mode Hat",
+            subtitle="$23, One size",
+            media_url="https://imgproxy.fourthwall.com/xRtFyKSoddPa5v2UkjCLEty5her_DBHB_kaiCRmvV04/w:900/sm:1/enc/NDdmZTczZmQ1YTEx/Y2U4Ni9gpFFldERG/xKCU7qYf3mYioC_o/AuM0uu8imyJauo0L/cZGIMsVOyKBJla3t/ewmTWdSx1Ga9fOmK/qtIP7dOAP4hTX5ZU/E2ZaaXg94cMJV_qW/yNnTtfs7qwnyHV1o/xJ58rzbKJgHk8r-1/nzDQf9zMRq3aNLtC/Tb_R9p98DhLIKE5i/iRVXyEyCRMCI2PvR/gomBdntq-DRmMHBT/iHGTnok2LGM.webp",
+            buttons=[Action(title="Buy Hat", type="trigger", payload="buy_hat")],
+        ),
+        Card(
+            title="Founder Mode Sticker",
+            subtitle="$9-9.50, 3 sizes",
+            media_url="https://imgproxy.fourthwall.com/oCrDqOZnqyFLe7YaeU4Uyyxit0Ja85lowbrTQdfcTdg/w:900/sm:1/enc/YWNhNDY2MTMyZDAx/NmViN35fHSh-Xa_a/reTEJO6ql52a3Pcw/M9Nr2WF9_HfqafME/nnI22IrI_xqGl-M4/mEpKXG79lo0kT9xQ/uPlni8-pbjIb-q36/E-sO-q4eHu9_7YMT/VLLzXCkCQ6B1LfrI/SxUJGTQ6_YQsNEk5/KlD8AKpMgggBO11I/chrhxnjvrhsHf-OH/GjjUA2A50utyloGE/hvngUNKI24C6JSh-/olM2jfNCmUc.webp",
+            buttons=[
+                Action(title="Buy Sticker", type="trigger", payload="buy_sticker")
+            ],
+        ),
+    ],
+    quick_replies=[
+        Action(title="Call Sean", type="call", payload="+16287261512"),
+        Action(
+            title="Visit Store",
+            type="openUrl",
+            payload="https://shop.trypinnacle.app?ref=text",
+        ),
+    ],
+)
