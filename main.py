@@ -1,5 +1,4 @@
-from flask import Flask, request, render_template
-from datetime import datetime
+from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
@@ -16,24 +15,6 @@ auth_token = '154bc969e28b26c701c91df9355d7688'
 twilio_number = '+16288000018'
 
 client = Client(account_sid, auth_token)
-
-# Store messages in memory (you may want to use a database in production)
-messages = []
-
-@app.route("/incoming", methods=['POST'])
-def incoming_sms():
-    message = {
-        'from': request.form['From'],
-        'body': request.form['Body'],
-        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    messages.append(message)
-    resp = MessagingResponse()
-    return str(resp)
-
-@app.route("/view_messages")
-def view_messages():
-    return render_template('messages.html', messages=messages)
 
 @app.route("/send_sms", methods=['POST'])
 def send_sms():
