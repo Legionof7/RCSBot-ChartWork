@@ -97,7 +97,13 @@ def handle_webhook():
                     <tr>
                         <td>{msg['timestamp']}</td>
                         <td>{msg['from']}</td>
-                        <td>{msg['body']}</td>
+                        <td>
+                            {msg['body']}
+                            <details>
+                                <summary>Show Raw Message</summary>
+                                <pre>{str(msg)}</pre>
+                            </details>
+                        </td>
                     </tr>
                     ''' for msg in reversed(messages)
                 ]) + '''
