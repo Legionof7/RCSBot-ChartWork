@@ -1,0 +1,168 @@
+
+Pinnacle | Documentation
+
+Search...
+/
+Support
+Dashboard
+
+API Reference
+
+Brand Registration
+
+Send a Message
+GET
+Get RCS functionality
+
+Tools
+Upload
+Receive Inbound Messages
+Receive Message Statuses
+Supported SDKs
+On this page
+Add a Webhook
+Receiving Inbound Messages
+Inbound Text Messages
+Inbound Media Messages
+Note for RCS Media Messages
+Inbound Action Messages (RCS only)
+Inbound Location Messages (RCS only)
+Authenticating Requests
+Language-native type definitions
+Python
+Typescript
+Ruby
+Examples
+Receive inbound messages
+
+Receive inbound messages from Pinnacle.
+
+Add a Webhook
+You can add testing webhooks on the testing page. For other webhooks, you can configure them on the webhooks page. Once you add your webhook, you will be provided with a PINNACLE-SIGNING-SECRET that will be sent alongside all inbound requests. Keep this secret safe, as it will be used to authenticate requests.
+
+Receiving Inbound Messages
+All inbound messages (SMS, MMS, and RCS) will be sent as a POST request to your webhook URL. Inbound messages can be categorized into four types:
+
+Inbound Text Messages: Standard text messages sent by users.
+Inbound Media Messages: Messages that contain media (images, audio, video, files).
+Inbound Action Messages (RCS only): Messages when the user interacts with buttons or quick replies.
+Inbound Location Messages (RCS only): Messages that contain location coordinates in latitude and longitude.
+Each message will contain a few common fields, as well as specific fields depending on the message type. The common fields are:
+
+{
+    "from": "Sender's phone number or brand name (i.e. +1234567890 or [[TEST]] Pinnacle Software Development Inc.)",
+    "to": "Recipient's phone number (i.e. +1234567890)",
+    "messageType": "Type of message. One of 'text', 'media', 'action', or 'location'",
+    // Message-type specific fields
+    "metadata": {
+        "sender": {
+            "city": "City or comma-separated cities of the sender",
+            "state": "State or region of the sender",
+            "country": "Country of the sender",
+        },
+        "message": {
+            "timestamp": "Timestamp of when the message was sent in ISO 8601 format (i.e. 2022-01-01T12:00:00Z)",
+        }
+    }
+}
+
+Inbound Text Messages
+Occurs when the user sends a text message. It will contain the following additional text field:
+
+{
+    "messageType": "text",
+    "text": "Text of the message"
+}
+
+Inbound Media Messages
+Occurs when the user sends a media message (i.e. files and/or images sent). It will contain the following additional fields:
+
+{
+    "messageType": "media",
+    "text": "Text in the message if any",
+    "mediaUrls": [
+        {
+            "type": : "MIME type of the media (i.e. image/jpeg).",
+            "url": "URL of media"
+        },
+        ...
+    ]
+}
+
+Note for RCS Media Messages
+If multiple images and text are sent in a single message, they will be received as separate text and media messages.
+The mediaUrls.type field will always be file. MIME types for RCS media messages is coming soon.
+Inbound Action Messages (RCS only)
+Occurs when the user interacts with buttons or quick replies. It will contain the following additional fields:
+
+{
+    "messageType": "action",
+    "actionTitle": "Title of the action button clicked",
+    "payload": "Payload associated with the action. Only for 'trigger' actions.",
+    "actionMetadata": "Additional metadata associated with the action. Only for 'trigger' actions."
+}
+
+Note that for trigger actions, you’ll have access to the payload and actionMetadata fields.
+
+For any other action types, only the actionTitle will be available (in addition to the messageType). This means that that action was tapped on.
+
+Inbound Location Messages (RCS only)
+Occurs when the user sends a location to the bot. It will contain the following additional location fields:
+
+{
+    "messageType": "location",
+    "coordinates": {
+        "lat": "Latitude of the location",
+        "lng": "Longitude of the location",
+    }
+}
+
+Authenticating Requests
+To authenticate inbound requests, you will need to add a webhook to your account. This will give you a PINNACLE-SIGNING-SECRET that will be sent alongside all inbound requests. For example:
+
+PINNACLE-SIGNING-SECRET: <your-signing-secret>
+
+You will need to verify this secret in your application to ensure that the request is coming from Pinnacle. Note that headers are case-insensitive so they may have different casing depending on the language and framework you are using.
+
+Language-native type definitions
+Python
+To type inbound messages, use the Pinnacle.parse_inbound_message(message: dict) static method. This method will return the appropriate inbound message type based on the message type.
+
+from rcs import Pinnacle
+Pinnacle.parse_inbound_message(json_data)
+
+Typescript
+To type inbound messages, use the Pinnacle namespace. For example:
+
+import { Pinnacle } from "rcs-js";
+// Available types: 
+// - InboundMessage
+// - InboundTextMessage
+// - InboundMediaMessage
+// - InboundActionMessage
+// - InboundLocationMessage
+requestBody as Pinnacle.InboundActionMessage;
+
+Ruby
+To type inbound messages, use the Pinnacle::{{INBOUND_MESSAGE_TYPE}}.from_json(json_object: json_body) method where json_body is a JSON string. For example:
+
+# Available types (INBOUND_MESSAGE_TYPE): 
+# - InboundMessage
+# - InboundActionMessage
+# - InboundLocationMessage
+# - InboundMediaMessage
+# - InboundTextMessage
+Pinnacle::InboundTextMessage.from_json(json_object: json_body)
+
+Examples
+See our hackathon projects for examples of how to handle inbound messages. If you have any questions, feel free to reach out to our support team. Happy coding! 🎉
+
+Was this page helpful?
+
+Yes
+
+No
+Receive Message Statuses
+Up Next
+Built with
+Get company's information — Pinnacle | Documentation
