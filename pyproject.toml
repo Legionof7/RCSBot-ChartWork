@@ -6,5 +6,5 @@ authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
 dependencies = [
     "flask>=3.1.0",
-    "twilio>=9.4.1",
+    "pinnacle-sdk>=1.0.0",
 ]
