@@ -53,7 +53,7 @@ def handle_webhook():
         logger.info(f"Received message from {from_number}: {body}")
         
         # Check for START message and send auto-response
-        if body and body.strip().upper() == "START":
+        if body and body.strip().upper() == "hi":
             try:
                 client.send.sms(
                     to=from_number,
