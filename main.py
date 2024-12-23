@@ -20,7 +20,31 @@ client = Client(account_sid, auth_token)
 # Store messages in memory
 messages = []
 
+from functools import wraps
+from flask import request, Response
+
+def check_auth(password):
+    return password == 'SlothMD!123'
+
+def authenticate():
+    return Response(
+        'Could not verify your access level for that URL.\n'
+        'You have to login with proper credentials', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.method == 'POST':
+            return f(*args, **kwargs)
+        auth = request.authorization
+        if not auth or not check_auth(auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route("/", methods=['GET', 'POST'])
+@requires_auth
 def handle_webhook():
     if request.method == 'POST':
         body = request.values.get('Body', None)
