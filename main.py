@@ -1,30 +1,23 @@
-from flask import Flask, request
-from twilio.twiml.messaging_response import MessagingResponse
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+
+from flask import Flask, request, Response
+from pinnacle import Pinnacle, Card, Action
 import logging
 import datetime
+from functools import wraps
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Twilio configuration
-account_sid = 'AC90b94224510cd211eacdf1ec564bb8e2'
-auth_token = '154bc969e28b26c701c91df9355d7688'
-twilio_number = '+18337750778'
-
-client = Client(account_sid, auth_token)
+# Pinnacle configuration
+client = Pinnacle(api_key="75bd3093-6309-448f-969c-37928ab59e84")
 
 # Store messages in memory
 messages = []
 
-from functools import wraps
-from flask import request, Response
-
 def check_auth(password):
-        return password == 'SlothMD!123'
+    return password == 'SlothMD!123'
 
 def authenticate():
     return Response(
@@ -58,10 +51,7 @@ def handle_webhook():
         })
 
         logger.info(f"Received message from {from_number}: {body}")
-
-        resp = MessagingResponse()
-        resp.message(f"Got your message: {body}")
-        return str(resp)
+        return "Message received", 200
     else:
         return '''
             <h1>SMS Service</h1>
@@ -117,7 +107,7 @@ def send_message():
         <form action="/send_sms" method="post">
             Phone Number (include +1): <input type="text" name="to_number"><br>
             Message: <input type="text" name="message"><br>
-            <input type="submit" value="Send SMS">
+            <input type="submit" value="Send Message">
         </form>
     '''
 
@@ -127,28 +117,16 @@ def send_sms():
     message_body = request.form['message']
 
     try:
-        # Check if this is a trial account
-        account = client.api.accounts(account_sid).fetch()
-        if account.type == "Trial":
-            # Get verified numbers
-            verified_numbers = client.outgoing_caller_ids.list()
-            verified_numbers = [number.phone_number for number in verified_numbers]
-
-            if to_number not in verified_numbers:
-                return f"""
-                Error: This appears to be a trial account and {to_number} is not verified.
-                Please verify this number in your Twilio console first.
-                Verified numbers: {', '.join(verified_numbers)}
-                """
-
-        message = client.messages.create(
+        response = client.send.sdk(
             to=to_number,
-            from_=twilio_number,
-            body=message_body
+            from_="test",
+            cards=[
+                Card(
+                    title="Message",
+                    subtitle=message_body,
+                )
+            ]
         )
-
-        # Get detailed message status
-        message = client.messages(message.sid).fetch()
 
         return f"""
         <style>
@@ -158,27 +136,19 @@ def send_sms():
         </style>
         <h2>Message Details:</h2>
         <p>
-        SID: {message.sid}<br>
-        Status: {message.status}<br>
-        To: {message.to}<br>
-        From: {message.from_}<br>
-        Body: {message.body}<br>
-        Direction: {message.direction}<br>
-        Error Code: {message.error_code if hasattr(message, 'error_code') else 'None'}<br>
-        Error Message: {message.error_message if hasattr(message, 'error_message') else 'None'}
+        To: {to_number}<br>
+        Message: {message_body}<br>
+        Status: Sent
         </p>
         <details>
             <summary>Show Raw Response</summary>
-            <pre>{message._properties}</pre>
+            <pre>{str(response)}</pre>
         </details>
         """
 
-    except TwilioRestException as e:
-        logger.error(f"Twilio Error: {str(e)}")
-        return f"Twilio Error: {str(e)}"
     except Exception as e:
-        logger.error(f"Unexpected Error: {str(e)}")
-        return f"Unexpected Error: {str(e)}"
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
