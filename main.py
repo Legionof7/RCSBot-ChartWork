@@ -3,6 +3,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import logging
+import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,11 +17,21 @@ twilio_number = '+16288000018'
 
 client = Client(account_sid, auth_token)
 
+# Store messages in memory
+messages = []
+
 @app.route("/", methods=['GET', 'POST'])
 def handle_webhook():
     if request.method == 'POST':
         body = request.values.get('Body', None)
         from_number = request.values.get('From', None)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        messages.append({
+            'from': from_number,
+            'body': body,
+            'timestamp': timestamp
+        })
 
         logger.info(f"Received message from {from_number}: {body}")
 
@@ -30,7 +41,30 @@ def handle_webhook():
     else:
         return '''
             <h1>SMS Service</h1>
-            <p><a href="/send">Click here to send a message</a></p>
+            <style>
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+            </style>
+            <p><a href="/send">Send Message</a> | <a href="/">Refresh</a></p>
+            <h2>Incoming Messages</h2>
+            <table>
+                <tr>
+                    <th>Time</th>
+                    <th>From</th>
+                    <th>Message</th>
+                </tr>
+                ''' + ''.join([
+                    f'''
+                    <tr>
+                        <td>{msg['timestamp']}</td>
+                        <td>{msg['from']}</td>
+                        <td>{msg['body']}</td>
+                    </tr>
+                    ''' for msg in reversed(messages)
+                ]) + '''
+            </table>
             <p>SMS Receiver is running!</p>
         '''
 
