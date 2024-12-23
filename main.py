@@ -39,26 +39,31 @@ def requires_auth(f):
 @app.route("/", methods=['GET', 'POST'])
 @requires_auth
 def handle_webhook():
+    logger.info(f"Request headers: {dict(request.headers)}")
     if request.method == 'POST':
         signing_secret = request.headers.get('PINNACLE-SIGNING-SECRET')
         if not signing_secret or signing_secret != 'pss-5e41fc9c-046b-4fb6-a846-a130f45d057b':
             logger.error("Invalid or missing Pinnacle signing secret")
             return "Unauthorized", 401
             
-        body = request.values.get('Body', None)
-        from_number = request.values.get('From', None)
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Parse JSON data from request
+        data = request.get_json()
+        logger.info(f"Received webhook data: {data}")
+
+        from_number = data.get('from')
+        text = data.get('text') if data.get('messageType') == 'text' else None
+        timestamp = data.get('metadata', {}).get('message', {}).get('timestamp')
 
         messages.append({
             'from': from_number,
-            'body': body,
+            'body': text,
             'timestamp': timestamp
         })
 
-        logger.info(f"Received message from {from_number}: {body}")
+        logger.info(f"Received message from {from_number}: {text}")
         
         # Check for START message and send auto-response
-        if body and body.strip().upper() == "hi":
+        if text and text.strip().lower() == "hi":
             try:
                 client.send.sms(
                     to=from_number,
