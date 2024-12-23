@@ -65,6 +65,19 @@ def handle_webhook():
     else:
         return '''
             <h1>SMS Service</h1>
+            <meta http-equiv="refresh" content="30">
+            <script>
+                function refreshTable() {
+                    fetch(window.location.href)
+                        .then(response => response.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            document.querySelector('table').outerHTML = doc.querySelector('table').outerHTML;
+                        });
+                }
+                setInterval(refreshTable, 5000);
+            </script>
             <style>
                 table { border-collapse: collapse; width: 100%; }
                 th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
