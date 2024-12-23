@@ -51,6 +51,19 @@ def handle_webhook():
         })
 
         logger.info(f"Received message from {from_number}: {body}")
+        
+        # Check for START message and send auto-response
+        if body and body.strip().upper() == "START":
+            try:
+                client.send.sms(
+                    to=from_number,
+                    from_="+18337750778",
+                    text="TEST_RESPONSE"
+                )
+                logger.info(f"Sent auto-response to {from_number}")
+            except Exception as e:
+                logger.error(f"Failed to send auto-response: {str(e)}")
+        
         return "Message received", 200
     else:
         return '''
