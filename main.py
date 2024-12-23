@@ -60,11 +60,14 @@ def handle_webhook():
             text = data.get('text') if data.get('messageType') == 'text' else None
             timestamp = data.get('metadata', {}).get('message', {}).get('timestamp')
 
-        messages.append({
+            messages.append({
             'from': from_number,
             'body': text,
             'timestamp': timestamp
-        })
+            })
+        except Exception as e:
+            logger.error(f"Error processing webhook: {str(e)}")
+            return "Error processing message", 400
 
         logger.info(f"Received message from {from_number}: {text}")
         
