@@ -56,17 +56,13 @@ def handle_webhook():
             raw_data = request.get_data(as_text=True)
             logger.info(f"Raw POST data: {raw_data}")
             
-            # Try to parse as form data first
-            from_number = request.form.get('From')
-            text = request.form.get('Body')
+            # Parse Pinnacle webhook format
+            data = request.get_json(force=True)
+            from_number = data.get('sourceAddress')
+            text = data.get('message', {}).get('text')
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            # If form data is empty, try JSON
-            if not from_number:
-                data = request.get_json(force=True)
-                from_number = data.get('from')
-                text = data.get('text')
-                timestamp = data.get('timestamp') or timestamp
+            logger.info(f"Parsed webhook data - From: {from_number}, Text: {text}")
 
             if from_number and text:
                 messages.append({
