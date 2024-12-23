@@ -120,12 +120,7 @@ def send_sms():
         response = client.send.sms(
             to=to_number,
             from_="test",
-            cards=[
-                Card(
-                    title="Message",
-                    subtitle=message_body,
-                )
-            ]
+            text=message_body
         )
 
         return f"""
