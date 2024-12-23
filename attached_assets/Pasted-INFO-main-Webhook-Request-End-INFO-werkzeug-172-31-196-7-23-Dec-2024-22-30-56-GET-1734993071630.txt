@@ -1,0 +1,18 @@
+INFO:__main__:=== Webhook Request End ===
+INFO:werkzeug:172.31.196.7 - - [23/Dec/2024 22:30:56] "GET / HTTP/1.1" 200 -
+INFO:__main__:=== Webhook Request Start ===
+INFO:__main__:Method: GET
+INFO:__main__:Headers: {'Host': 'b4f8507d-f23b-40dc-96ad-fb7a68e074ce-00-2aazxenk7aayr.picard.replit.dev', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7', 'Accept-Encoding': 'identity, gzip, deflate, br, zstd', 'Accept-Language': 'en-US,en;q=0.9', 'Authorization': 'Basic OlNsb3RoTUQhMTIz', 'Referer': 'https://b4f8507d-f23b-40dc-96ad-fb7a68e074ce-00-2aazxenk7aayr.picard.replit.dev/', 'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"', 'Sec-Ch-Ua-Mobile': '?0', 'Sec-Ch-Ua-Platform': '"macOS"', 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-User': '?1', 'Upgrade-Insecure-Requests': '1', 'X-Forwarded-For': '107.142.35.87, 10.81.5.55', 'X-Forwarded-Proto': 'https', 'X-Replit-User-Bio': '', 'X-Replit-User-Id': '', 'X-Replit-User-Name': '', 'X-Replit-User-Profile-Image': '', 'X-Replit-User-Roles': '', 'X-Replit-User-Teams': '', 'X-Replit-User-Url': ''}
+INFO:__main__:Raw Data: 
+INFO:__main__:Form Data: ImmutableMultiDict([])
+INFO:__main__:JSON Data: None
+INFO:__main__:=== Webhook Request End ===
+INFO:werkzeug:172.31.196.7 - - [23/Dec/2024 22:31:01] "GET / HTTP/1.1" 200 -
+INFO:__main__:=== Webhook Request Start ===
+INFO:__main__:Method: GET
+INFO:__main__:Headers: {'Host': 'b4f8507d-f23b-40dc-96ad-fb7a68e074ce-00-2aazxenk7aayr.picard.replit.dev', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7', 'Accept-Encoding': 'identity, gzip, deflate, br, zstd', 'Accept-Language': 'en-US,en;q=0.9', 'Authorization': 'Basic OlNsb3RoTUQhMTIz', 'Referer': 'https://b4f8507d-f23b-40dc-96ad-fb7a68e074ce-00-2aazxenk7aayr.picard.replit.dev/', 'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"', 'Sec-Ch-Ua-Mobile': '?0', 'Sec-Ch-Ua-Platform': '"macOS"', 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-User': '?1', 'Upgrade-Insecure-Requests': '1', 'X-Forwarded-For': '107.142.35.87, 10.81.5.55', 'X-Forwarded-Proto': 'https', 'X-Replit-User-Bio': '', 'X-Replit-User-Id': '', 'X-Replit-User-Name': '', 'X-Replit-User-Profile-Image': '', 'X-Replit-User-Roles': '', 'X-Replit-User-Teams': '', 'X-Replit-User-Url': ''}
+INFO:__main__:Raw Data: 
+INFO:__main__:Form Data: ImmutableMultiDict([])
+INFO:__main__:JSON Data: None
+INFO:__main__:=== Webhook Request End ===
+INFO:werkzeug:172.31.196.7 - - [23/Dec/2024 22:31:02] "GET / HTTP/1.1" 200 -
