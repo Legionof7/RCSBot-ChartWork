@@ -51,10 +51,18 @@ def handle_webhook():
         from_number = request.values.get('From', None)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+        # Get phone number info
+        try:
+            number_info = client.lookups.v2.phone_numbers(from_number).fetch(fields=['carrier'])
+            region = f"{number_info.carrier.get('name', 'Unknown')} ({number_info.country_code})"
+        except:
+            region = 'Unknown'
+
         messages.append({
             'from': from_number,
             'body': body,
-            'timestamp': timestamp
+            'timestamp': timestamp,
+            'region': region
         })
 
         logger.info(f"Received message from {from_number}: {body}")
@@ -71,12 +79,18 @@ def handle_webhook():
                 th { background-color: #f2f2f2; }
                 tr:nth-child(even) { background-color: #f9f9f9; }
             </style>
-            <p><a href="/send">Send Message</a> | <a href="/">Refresh</a></p>
+            <script>
+                setTimeout(function() {
+                    window.location.reload();
+                }, 10000);  // Refresh every 10 seconds
+            </script>
+            <p><a href="/send">Send Message</a> | <a href="/">Refresh</a> | Auto-refreshing every 10s</p>
             <h2>Incoming Messages</h2>
             <table>
                 <tr>
                     <th>Time</th>
                     <th>From</th>
+                    <th>Region</th>
                     <th>Message</th>
                 </tr>
                 ''' + ''.join([
@@ -84,6 +98,7 @@ def handle_webhook():
                     <tr>
                         <td>{msg['timestamp']}</td>
                         <td>{msg['from']}</td>
+                        <td>{msg['region']}</td>
                         <td>{msg['body']}</td>
                     </tr>
                     ''' for msg in reversed(messages)
