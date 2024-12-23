@@ -35,7 +35,7 @@ def authenticate():
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if request.method == 'POST':
+        if 'twilio.com' in request.headers.get('User-Agent', ''):
             return f(*args, **kwargs)
         auth = request.authorization
         if not auth or not check_auth(auth.password):
