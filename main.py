@@ -36,7 +36,8 @@ def requires_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-@app.route("/webhook", methods=['GET', 'POST']) 
+@app.route("/", methods=['GET', 'POST'])
+@app.route("/webhook", methods=['GET', 'POST'])
 def handle_webhook():
     logger.info("=== Webhook Request Start ===")
     logger.info(f"Method: {request.method}")
