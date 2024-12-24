@@ -1,7 +1,10 @@
 
 from flask import Flask, request
+from rcs import Pinnacle
 import logging
 import datetime
+
+client = Pinnacle(api_key="75bd3093-6309-448f-969c-37928ab59e84")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +41,34 @@ def handle_webhook():
                 <tr><th>Time</th><th>Data</th></tr>
                 ''' + ''.join([
                     f'''
+
+
+@app.route("/send", methods=['GET'])
+def send_message():
+    return '''
+        <form action="/send_sms" method="post">
+            Phone Number (include +1): <input type="text" name="to_number"><br>
+            Message: <input type="text" name="message"><br>
+            <input type="submit" value="Send Message">
+        </form>
+    '''
+
+@app.route("/send_sms", methods=['POST'])
+def send_sms():
+    to_number = request.form['to_number']
+    message_body = request.form['message']
+
+    try:
+        response = client.send.sms(
+            to=to_number,
+            from_="+18337750778",
+            text=message_body
+        )
+        return f"Message sent to {to_number}"
+    except Exception as e:
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}"
+
                     <tr>
                         <td>{msg['timestamp']}</td>
                         <td><pre>{msg['data']}</pre></td>
