@@ -57,24 +57,15 @@ def handle_webhook():
             raw_data = request.get_data(as_text=True)
             logger.info(f"Raw POST data: {raw_data}")
             
-            # Parse Pinnacle webhook format with fallbacks
+            # Parse Pinnacle webhook format
             data = request.get_json(force=True)
             logger.info(f"Full JSON payload: {data}")
             
-            # Try different possible field names
-            from_number = (
-                data.get('sourceAddress') or 
-                data.get('from') or 
-                data.get('source') or 
-                data.get('sender')
-            )
+            from_number = data.get('from_')  # Pinnacle uses from_ in InboundMessage
+            text = data.get('text') if isinstance(data.get('text'), str) else None
             
-            text = (
-                data.get('message', {}).get('text') or
-                data.get('text') or
-                data.get('body') or
-                data.get('content')
-            )
+            if not text and isinstance(data.get('message'), dict):
+                text = data['message'].get('text')
             
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
