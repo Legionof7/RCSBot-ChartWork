@@ -29,7 +29,7 @@ def handle_webhook():
         return "Webhook received", 200
     
     else:
-        return '''
+        html_content = '''
             <h1>Webhook Receiver</h1>
             <meta http-equiv="refresh" content="30">
             <style>
@@ -39,9 +39,20 @@ def handle_webhook():
             </style>
             <table>
                 <tr><th>Time</th><th>Data</th></tr>
-                ''' + ''.join([
-                    f'''
-
+        '''
+        
+        for msg in reversed(messages):
+            html_content += f'''
+                <tr>
+                    <td>{msg['timestamp']}</td>
+                    <td><pre>{msg['data']}</pre></td>
+                </tr>
+            '''
+        
+        html_content += '''
+            </table>
+        '''
+        return html_content
 
 @app.route("/send", methods=['GET'])
 def send_message():
@@ -68,15 +79,6 @@ def send_sms():
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return f"Error: {str(e)}"
-
-                    <tr>
-                        <td>{msg['timestamp']}</td>
-                        <td><pre>{msg['data']}</pre></td>
-                    </tr>
-                    ''' for msg in reversed(messages)
-                ]) + '''
-            </table>
-        '''
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
