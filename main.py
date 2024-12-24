@@ -1,5 +1,5 @@
 
-from flask import Flask, request, Response
+from flask import Flask, request
 from rcs import Pinnacle, Card, Action
 import logging
 import datetime
@@ -15,26 +15,6 @@ client = Pinnacle(api_key="75bd3093-6309-448f-969c-37928ab59e84")
 
 # Store messages in memory
 messages = []
-
-def check_auth(password):
-    return password == 'SlothMD!123'
-
-def authenticate():
-    return Response(
-        'Could not verify your access level for that URL.\n'
-        'You have to login with proper credentials', 401,
-        {'WWW-Authenticate': 'Basic realm="Login Required"'})
-
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if request.method == 'POST':
-            return f(*args, **kwargs)
-        auth = request.authorization
-        if not auth or not check_auth(auth.password):
-            return authenticate()
-        return f(*args, **kwargs)
-    return decorated
 
 @app.route("/", methods=['GET', 'POST'])
 @app.route("/webhook", methods=['GET', 'POST'])
