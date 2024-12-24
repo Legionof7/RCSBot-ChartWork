@@ -56,13 +56,31 @@ def handle_webhook():
             raw_data = request.get_data(as_text=True)
             logger.info(f"Raw POST data: {raw_data}")
             
-            # Parse Pinnacle webhook format
+            # Parse Pinnacle webhook format with fallbacks
             data = request.get_json(force=True)
-            from_number = data.get('sourceAddress')
-            text = data.get('message', {}).get('text')
+            logger.info(f"Full JSON payload: {data}")
+            
+            # Try different possible field names
+            from_number = (
+                data.get('sourceAddress') or 
+                data.get('from') or 
+                data.get('source') or 
+                data.get('sender')
+            )
+            
+            text = (
+                data.get('message', {}).get('text') or
+                data.get('text') or
+                data.get('body') or
+                data.get('content')
+            )
+            
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             logger.info(f"Parsed webhook data - From: {from_number}, Text: {text}")
+            if not from_number or not text:
+                logger.error("Missing required fields in webhook data")
+                logger.error(f"Available fields: {list(data.keys())}")
 
             if from_number and text:
                 messages.append({
