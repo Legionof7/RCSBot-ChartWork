@@ -23,7 +23,8 @@ def handle_webhook():
         logger.info(f"Raw data: {raw_data}")
         
         try:
-            parsed_data = Pinnacle.parse_inbound_message(raw_data)
+            json_data = request.get_json()
+            parsed_data = Pinnacle.parse_inbound_message(json_data)
             logger.info(f"Parsed data: {parsed_data}")
         except Exception as e:
             logger.error(f"Failed to parse message: {str(e)}")
