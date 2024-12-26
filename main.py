@@ -22,9 +22,17 @@ def handle_webhook():
         logger.info(f"Received webhook at {timestamp}")
         logger.info(f"Raw data: {raw_data}")
         
+        try:
+            parsed_data = Pinnacle.parse_inbound_message(raw_data)
+            logger.info(f"Parsed data: {parsed_data}")
+        except Exception as e:
+            logger.error(f"Failed to parse message: {str(e)}")
+            parsed_data = "Parse error"
+        
         messages.append({
             'timestamp': timestamp,
-            'data': raw_data
+            'data': raw_data,
+            'parsed': parsed_data
         })
         return "Webhook received", 200
     
@@ -38,7 +46,7 @@ def handle_webhook():
                 th { background-color: #f2f2f2; }
             </style>
             <table>
-                <tr><th>Time</th><th>Data</th></tr>
+                <tr><th>Time</th><th>Raw Data</th><th>Parsed Data</th></tr>
         '''
         
         for msg in reversed(messages):
@@ -46,6 +54,7 @@ def handle_webhook():
                 <tr>
                     <td>{msg['timestamp']}</td>
                     <td><pre>{msg['data']}</pre></td>
+                    <td><pre>{msg['parsed']}</pre></td>
                 </tr>
             '''
         
