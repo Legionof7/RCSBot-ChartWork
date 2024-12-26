@@ -4,7 +4,9 @@ from rcs import Pinnacle
 import logging
 import datetime
 
-client = Pinnacle(api_key="75bd3093-6309-448f-969c-37928ab59e84")
+import os
+
+client = Pinnacle(api_key=os.getenv('PINNACLE_API_KEY'))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
