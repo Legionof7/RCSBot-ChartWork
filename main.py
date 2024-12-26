@@ -26,6 +26,19 @@ def handle_webhook():
             json_data = request.get_json()
             parsed_data = Pinnacle.parse_inbound_message(json_data)
             logger.info(f"Parsed data: {parsed_data}")
+            
+            # Check for SlothMD in the message text
+            if hasattr(parsed_data, 'text') and 'slothmd' in parsed_data.text.lower():
+                try:
+                    response = client.send.sms(
+                        to=parsed_data.from_,
+                        from_=parsed_data.to,
+                        text="Welcome to SlothMD! *WAITLIST SIGNUP MESSAGE*"
+                    )
+                    logger.info("Sent SlothMD welcome message")
+                except Exception as e:
+                    logger.error(f"Failed to send SlothMD welcome message: {str(e)}")
+            
         except Exception as e:
             logger.error(f"Failed to parse message: {str(e)}")
             parsed_data = "Parse error"
