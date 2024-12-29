@@ -29,16 +29,27 @@ def handle_webhook():
             parsed_data = Pinnacle.parse_inbound_message(json_data)
             logger.info(f"Parsed data: {parsed_data}")
             
-            # Check for SlothMD in the message text
-            if hasattr(parsed_data, 'text') and 'slothmd' in parsed_data.text.lower():
-                try:
-                    response = client.send.sms(
-                        to=parsed_data.from_,
-                        from_=parsed_data.to,
-                        text="Hey there, it's SlothMD! Great news — sign-ups are now open at www.slothmd.app! We're steadily releasing more SlothMD features through text. Sign up to get early access and updates by replying \"SLOTH\". You'll hear from us less than once a month. Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.")
-                    logger.info("Sent SlothMD welcome message")
-                except Exception as e:
-                    logger.error(f"Failed to send SlothMD welcome message: {str(e)}")
+            # Check for SlothMD or sloth in the message text
+            if hasattr(parsed_data, 'text'):
+                lower_text = parsed_data.text.lower()
+                if 'slothmd' in lower_text:
+                    try:
+                        response = client.send.sms(
+                            to=parsed_data.from_,
+                            from_=parsed_data.to,
+                            text="Hey there, it's SlothMD! Great news — sign-ups are now open at www.slothmd.app! We're steadily releasing more SlothMD features through text. Sign up to get early access and updates by replying \"SLOTH\". You'll hear from us less than once a month. Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.")
+                        logger.info("Sent SlothMD welcome message")
+                    except Exception as e:
+                        logger.error(f"Failed to send SlothMD welcome message: {str(e)}")
+                elif 'sloth' in lower_text:
+                    try:
+                        response = client.send.sms(
+                            to=parsed_data.from_,
+                            from_=parsed_data.to,
+                            text="You're in! Expect access to early texting features and SlothMD updates less than once a month. Standard msg/data rates apply. Reply STOP anytime to unsubscribe.")
+                        logger.info("Sent sloth subscription confirmation")
+                    except Exception as e:
+                        logger.error(f"Failed to send sloth subscription confirmation: {str(e)}")
             
         except Exception as e:
             logger.error(f"Failed to parse message: {str(e)}")
