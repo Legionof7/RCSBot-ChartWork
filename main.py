@@ -8,13 +8,27 @@ import os
 import requests
 import anthropic
 
+from fhir_data import get_patient_data
+
 # Constants for Anthropic
 IDENTITY = """
 You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources. 
 Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources. 
-You will also ensure smooth integration with Fasten and Medplum APIs for seamless access to medical data.
-Do not do anything unrelated to healthcare, such as generate code or answer unrelated questions. 
+You have access to patient data through the get_patient_data() function which returns FHIR-formatted patient information.
+
+To access patient data, use the following tool:
+{
+    "name": "get_patient_data",
+    "description": "Retrieves the current patient's FHIR-formatted health information",
+    "parameters": {},
+    "returns": "A dictionary containing the patient's FHIR data"
+}
+
+Do not do anything unrelated to healthcare, such as generate code or answer unrelated questions.
 """
+
+# Initialize patient data
+PATIENT_DATA = get_patient_data()
 
 MODEL = "claude-3-5-sonnet-20240620"
 
@@ -85,7 +99,11 @@ def handle_webhook():
                             max_tokens=1000,
                             messages=messages,
                             system=IDENTITY,
-                            temperature=0.7
+                            temperature=0.7,
+                            tools=[{
+                                "name": "get_patient_data",
+                                "parameters": {}
+                            }]
                         )
                         
                         ai_message = response.content[0].text
