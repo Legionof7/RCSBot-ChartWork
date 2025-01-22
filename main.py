@@ -74,31 +74,20 @@ def handle_webhook():
                         # Add user message to history
                         app.conversation_history[parsed_data.from_].append({"role": "user", "content": parsed_data.text})
                         
-                        # Call Anthropic API
-                        headers = {
-                            "anthropic-api-key": os.getenv('ANTHROPIC_API_KEY'),
-                            "anthropic-version": "2023-06-01",
-                            "content-type": "application/json"
-                        }
+                        # Initialize Anthropic client
+                        client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
                         
                         messages = [{"role": "system", "content": IDENTITY}]
                         messages.extend(app.conversation_history[parsed_data.from_][-5:])  # Keep last 5 messages
                         
-                        data = {
-                            "model": MODEL,
-                            "messages": messages,
-                            "max_tokens": 1000,
-                            "temperature": 0.7
-                        }
-                        
-                        anthropic_response = requests.post(
-                            "https://api.anthropic.com/v1/messages",
-                            headers=headers,
-                            json=data
+                        response = client.messages.create(
+                            model=MODEL,
+                            max_tokens=1000,
+                            messages=messages,
+                            temperature=0.7
                         )
                         
-                        if anthropic_response.status_code == 200:
-                            ai_message = anthropic_response.json()["content"][0]["text"]
+                        ai_message = response.content[0].text
                             # Add AI response to history
                             app.conversation_history[parsed_data.from_].append({"role": "assistant", "content": ai_message})
                             
