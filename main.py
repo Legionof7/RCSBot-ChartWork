@@ -30,7 +30,7 @@ Do not do anything unrelated to healthcare, such as generate code or answer unre
 # Initialize patient data
 PATIENT_DATA = get_patient_data()
 
-MODEL = "claude-3-5-sonnet-20240620"
+MODEL = "claude-3-5-haiku-latest"
 
 client = Pinnacle(api_key=os.getenv('PINNACLE_API_KEY'))
 
