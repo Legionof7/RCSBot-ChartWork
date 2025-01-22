@@ -111,8 +111,8 @@ def handle_webhook():
                             temperature=0.7,
                             tools=[{
                                 "name": "get_patient_data",
-                                "description": "Retrieves the current patient's FHIR-formatted health information. This tool returns comprehensive patient data including demographics, medical conditions, medications, vital signs, lab results, and care plans. The data is formatted according to FHIR standards. No parameters are required as it returns data for the current patient context.",
-                                "parameters": {
+                                "description": "Retrieves the current patient's FHIR-formatted health information. This tool returns comprehensive patient data including demographics, medical conditions, medications, vital signs, lab results, and care plans. The data is formatted according to FHIR standards.",
+                                "input_schema": {
                                     "type": "object",
                                     "properties": {},
                                     "required": []
