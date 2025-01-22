@@ -78,13 +78,13 @@ def handle_webhook():
                         # Initialize Anthropic client
                         client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
                         
-                        messages = [{"role": "system", "content": IDENTITY}]
-                        messages.extend(app.conversation_history[parsed_data.from_][-5:])  # Keep last 5 messages
+                        messages = app.conversation_history[parsed_data.from_][-5:]  # Keep last 5 messages
                         
                         response = client.messages.create(
                             model=MODEL,
                             max_tokens=1000,
                             messages=messages,
+                            system=IDENTITY,
                             temperature=0.7
                         )
                         
