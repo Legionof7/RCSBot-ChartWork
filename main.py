@@ -94,17 +94,35 @@ def handle_webhook():
                         
                         messages = app.conversation_history[parsed_data.from_][-5:]  # Keep last 5 messages
                         
+                        # Add system message with cache control
+                        system_messages = [
+                            {
+                                "type": "text",
+                                "text": IDENTITY,
+                                "cache_control": {"type": "ephemeral"}
+                            }
+                        ]
+                        
                         response = anthropic_client.messages.create(
                             model=MODEL,
                             max_tokens=1000,
                             messages=messages,
-                            system=IDENTITY,
+                            system=system_messages,
                             temperature=0.7,
                             tools=[{
                                 "name": "get_patient_data",
-                                "parameters": {}
+                                "parameters": {},
+                                "cache_control": {"type": "ephemeral"}
                             }]
                         )
+                        
+                        # Log cache performance metrics
+                        usage = response.usage
+                        if hasattr(usage, 'cache_creation_input_tokens'):
+                            logger.info(f"Cache creation tokens: {usage.cache_creation_input_tokens}")
+                        if hasattr(usage, 'cache_read_input_tokens'):
+                            logger.info(f"Cache read tokens: {usage.cache_read_input_tokens}")
+                        logger.info(f"Input tokens: {usage.input_tokens}")
                         
                         ai_message = response.content[0].text
                         # Add AI response to history
