@@ -111,7 +111,12 @@ def handle_webhook():
                             temperature=0.7,
                             tools=[{
                                 "name": "get_patient_data",
-                                "parameters": {},
+                                "description": "Retrieves the current patient's FHIR-formatted health information",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {},
+                                    "required": []
+                                },
                                 "cache_control": {"type": "ephemeral"}
                             }]
                         )
