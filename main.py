@@ -8,21 +8,15 @@ import time
 import json
 from fhir_data import get_patient_data
 
-from rag_search import create_inverted_index, search_fhir_data
-
-# Load FHIR data and create index
+# Load FHIR data
 FHIR_DATA = get_patient_data()
-FHIR_INDEX = create_inverted_index(FHIR_DATA)
 
 def create_context(query: str) -> str:
-    logger.info(f"Creating context for query: {query}")
-    relevant_data = search_fhir_data(FHIR_DATA, query, FHIR_INDEX)
-    logger.info(f"Found relevant data size: {len(str(relevant_data))} characters")
     return f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources.
 Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources.
 
-Here is the relevant patient FHIR data for your query:
-{json.dumps(relevant_data, indent=2)}
+Here is the complete patient FHIR data:
+{json.dumps(FHIR_DATA, indent=2)}
 
 Do not do anything unrelated to healthcare, such as generate code or answer unrelated questions."""
 
