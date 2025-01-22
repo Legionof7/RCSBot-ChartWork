@@ -8,13 +8,19 @@ import time
 import json
 from fhir_data import get_patient_data
 
-# Load FHIR data into context
+from rag_search import create_inverted_index, search_fhir_data
+
+# Load FHIR data and create index
 FHIR_DATA = get_patient_data()
-FHIR_CONTEXT = f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources.
+FHIR_INDEX = create_inverted_index(FHIR_DATA)
+
+def create_context(query: str) -> str:
+    relevant_data = search_fhir_data(FHIR_DATA, query, FHIR_INDEX)
+    return f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources.
 Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources.
 
-Here is the patient's FHIR data that you have access to:
-{json.dumps(FHIR_DATA, indent=2)}
+Here is the relevant patient FHIR data for your query:
+{json.dumps(relevant_data, indent=2)}
 
 Do not do anything unrelated to healthcare, such as generate code or answer unrelated questions."""
 
@@ -38,10 +44,14 @@ def call_openrouter(messages):
         "Content-Type": "application/json"
     }
 
+    # Get relevant context based on user's message
+    latest_message = messages[-1]["content"] if messages else ""
+    context = create_context(latest_message)
+    
     data = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": FHIR_CONTEXT},
+            {"role": "system", "content": context},
             *messages
         ]
     }
