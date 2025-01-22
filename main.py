@@ -121,13 +121,11 @@ def call_anthropic(messages):
             tool_result_message = [
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_block["id"],  # the ID from Claude’s tool_use
-                            "content": tool_result_data
-                        }
-                    ]
+                    "content": {
+                        "type": "tool_result",
+                        "tool_use_id": tool_block["id"],  # the ID from Claude’s tool_use
+                        "content": tool_result_data
+                    }
                 }
             ]
             # Combine the original conversation with the partial text and the new user message
@@ -219,7 +217,7 @@ def handle_webhook():
                         # Extract message from Anthropic response
                         ai_message = ""
                         logger.info(f"Anthropic response: {anthropic_response}")
-                        
+
                         if hasattr(anthropic_response, 'content'):
                             logger.info(f"Processing response content: {anthropic_response.content}")
                             for content_block in anthropic_response.content:
@@ -232,11 +230,11 @@ def handle_webhook():
                                         ai_message += content_block.text
 
                         logger.info(f"Final AI message: {ai_message}")
-                        
+
                         if not ai_message.strip():
                             logger.error("Empty AI message after processing")
                             raise ValueError("Empty response from Anthropic")
-                            
+
                         # Store in conversation
                         app.conversation_history[parsed_data.from_].append(
                             {"role": "assistant", "content": ai_message}
@@ -245,7 +243,7 @@ def handle_webhook():
                         # Send via SMS with retry logic
                         max_retries = 3
                         retry_delay = 1  # seconds
-                        
+
                         for attempt in range(max_retries):
                             try:
                                 response = client.send.sms(
