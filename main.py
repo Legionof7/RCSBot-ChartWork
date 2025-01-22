@@ -223,11 +223,8 @@ def handle_webhook():
                         if hasattr(anthropic_response, 'content'):
                             logger.info(f"Processing response content: {anthropic_response.content}")
                             for content_block in anthropic_response.content:
-                                # Handle both dict-like and object-like content blocks
-                                if hasattr(content_block, 'type') and content_block.type == 'text':
+                                if hasattr(content_block, 'text'):
                                     ai_message += content_block.text
-                                elif isinstance(content_block, dict) and content_block.get("type") == "text":
-                                    ai_message += content_block.get("text", "")
 
                         logger.info(f"Final AI message: {ai_message}")
                         
