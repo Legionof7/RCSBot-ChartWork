@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-messages = []  # Global messages list
+app.messages = []  # Store messages as app attribute
 
 @app.route("/", methods=['GET', 'POST'])
 @app.route("/webhook", methods=['GET', 'POST'])
@@ -118,7 +118,7 @@ def handle_webhook():
             logger.error(f"Failed to parse message: {str(e)}")
             parsed_data = "Parse error"
         
-        messages.append({
+        app.messages.append({
             'timestamp': timestamp,
             'data': raw_data,
             'parsed': parsed_data
@@ -138,7 +138,7 @@ def handle_webhook():
                 <tr><th>Time</th><th>Raw Data</th><th>Parsed Data</th></tr>
         '''
         
-        for msg in reversed(messages):
+        for msg in reversed(app.messages):
             html_content += f'''
                 <tr>
                     <td>{msg['timestamp']}</td>
