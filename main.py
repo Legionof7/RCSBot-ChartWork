@@ -128,7 +128,14 @@ def handle_webhook():
                             logger.info(f"Cache read tokens: {usage.cache_read_input_tokens}")
                         logger.info(f"Input tokens: {usage.input_tokens}")
                         
-                        ai_message = response.content[0].text
+                        # Extract message content safely
+                        ai_message = ""
+                        for content in response.content:
+                            if hasattr(content, 'text'):
+                                ai_message += content.text
+                            elif isinstance(content, dict) and 'text' in content:
+                                ai_message += content['text']
+                        
                         # Add AI response to history
                         app.conversation_history[parsed_data.from_].append({"role": "assistant", "content": ai_message})
                         
