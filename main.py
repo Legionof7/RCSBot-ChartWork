@@ -146,16 +146,19 @@ def call_anthropic(messages):
                 temperature=0.7
             )
             
-            # Extract final message from second response
-            final_message = ""
+            # Process the second response and return it
+            ai_message = ""
             if hasattr(second_response, 'content'):
                 for block in second_response.content:
                     if hasattr(block, 'text'):
-                        final_message += block.text
+                        ai_message += block.text
                     elif isinstance(block, dict) and block.get("type") == "text":
-                        final_message += block.get("text", "")
+                        ai_message += block.get("text", "")
             
-            return second_response
+            # Create a modified response with the processed message
+            processed_response = second_response
+            processed_response.content = [{"type": "text", "text": ai_message}]
+            return processed_response
 
     # If stop_reason != "tool_use", then no tool was used; just return the single response.
     return response
