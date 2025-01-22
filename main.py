@@ -5,6 +5,17 @@ import logging
 import datetime
 
 import os
+import requests
+
+# Constants for Anthropic
+IDENTITY = """
+You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources. 
+Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources. 
+You will also ensure smooth integration with Fasten and Medplum APIs for seamless access to medical data.
+Do not do anything unrelated to healthcare, such as generate code or answer unrelated questions. 
+"""
+
+MODEL = "claude-3-5-sonnet-20240620"
 
 client = Pinnacle(api_key=os.getenv('PINNACLE_API_KEY'))
 
@@ -50,6 +61,58 @@ def handle_webhook():
                         logger.info("Sent sloth subscription confirmation")
                     except Exception as e:
                         logger.error(f"Failed to send sloth subscription confirmation: {str(e)}")
+                else:
+                    # Handle regular messages with Anthropic
+                    try:
+                        # Maintain conversation history
+                        if not hasattr(app, 'conversation_history'):
+                            app.conversation_history = {}
+                            
+                        if parsed_data.from_ not in app.conversation_history:
+                            app.conversation_history[parsed_data.from_] = []
+                        
+                        # Add user message to history
+                        app.conversation_history[parsed_data.from_].append({"role": "user", "content": parsed_data.text})
+                        
+                        # Call Anthropic API
+                        headers = {
+                            "x-api-key": os.getenv('ANTHROPIC_API_KEY'),
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json"
+                        }
+                        
+                        messages = [{"role": "system", "content": IDENTITY}]
+                        messages.extend(app.conversation_history[parsed_data.from_][-5:])  # Keep last 5 messages
+                        
+                        data = {
+                            "model": MODEL,
+                            "messages": messages,
+                            "max_tokens": 1000,
+                            "temperature": 0.7
+                        }
+                        
+                        anthropic_response = requests.post(
+                            "https://api.anthropic.com/v1/messages",
+                            headers=headers,
+                            json=data
+                        )
+                        
+                        if anthropic_response.status_code == 200:
+                            ai_message = anthropic_response.json()["content"][0]["text"]
+                            # Add AI response to history
+                            app.conversation_history[parsed_data.from_].append({"role": "assistant", "content": ai_message})
+                            
+                            # Send SMS response using Pinnacle
+                            response = client.send.sms(
+                                to=parsed_data.from_,
+                                from_=parsed_data.to,
+                                text=ai_message
+                            )
+                            logger.info("Sent Claude response")
+                        else:
+                            logger.error(f"Claude API error: {anthropic_response.text}")
+                    except Exception as e:
+                        logger.error(f"Failed to process chat message: {str(e)}")
             
         except Exception as e:
             logger.error(f"Failed to parse message: {str(e)}")
