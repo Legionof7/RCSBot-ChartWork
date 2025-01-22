@@ -1,0 +1,44 @@
+2025-01-21 21:54:05.07
+f19e9067
+User
+INFO:__main__:Anthropic response: Message(id='msg_01K3BqLecTeeB9ctHcRb1V7k', content=[TextBlock(text="Hello! Welcome to SlothMD. I'm here to help you manage your health information and answer any questions you might have. Is there something specific I can assist you with today? I can help you review your medical records, understand your health information, or provide guidance on accessing healthcare resources.", type='text')], model='claude-3-5-haiku-20241022', role='assistant', stop_reason='end_turn', stop_sequence=None, type='message', usage=Usage(cache_creation_input_tokens=0, cache_read_input_tokens=0, input_tokens=570, output_tokens=63))
+2025-01-21 21:54:05.07
+f19e9067
+User
+INFO:__main__:Processing response content: [TextBlock(text="Hello! Welcome to SlothMD. I'm here to help you manage your health information and answer any questions you might have. Is there something specific I can assist you with today? I can help you review your medical records, understand your health information, or provide guidance on accessing healthcare resources.", type='text')]
+2025-01-21 21:54:05.07
+f19e9067
+User
+INFO:__main__:Final AI message: Hello! Welcome to SlothMD. I'm here to help you manage your health information and answer any questions you might have. Is there something specific I can assist you with today? I can help you review your medical records, understand your health information, or provide guidance on accessing healthcare resources.
+2025-01-21 21:54:07.31
+f19e9067
+User
+INFO:httpx:HTTP Request: POST https://www.trypinnacle.dev/api/send/sms "HTTP/1.1 200 OK"
+2025-01-21 21:54:07.32
+f19e9067
+User
+INFO:__main__:Sent Claude response successfully
+2025-01-21 21:54:07.32
+f19e9067
+User
+INFO:werkzeug:127.0.0.1 - - [22/Jan/2025 05:54:07] "POST / HTTP/1.1" 200 -
+2025-01-21 21:54:18.68
+f19e9067
+User
+INFO:__main__:Received webhook at 2025-01-22 05:54:18
+2025-01-21 21:54:18.68
+f19e9067
+User
+INFO:__main__:Raw data: {"from":"+16504768700","to":"+18337750778","metadata":{"sender":{"city":"Los Altos","state":"CA","country":"US"},"message":{"timestamp":"2025-01-22T05:54:18.658Z"}},"messageType":"text","text":"Whats my health summary "}
+2025-01-21 21:54:18.68
+f19e9067
+User
+INFO:__main__:Parsed data: message_type='text' text='Whats my health summary ' from_='+16504768700' to='+18337750778' metadata=InboundMessageMetadata(sender=SenderMetadata(city='Los Altos', state='CA', country='US'), message=MessageMetadata(timestamp=datetime.datetime(2025, 1, 22, 5, 54, 18, 658000, tzinfo=TzInfo(UTC))))
+2025-01-21 21:54:20.01
+f19e9067
+User
+INFO:httpx:HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-01-21 21:54:20.01
+f19e9067
+User
+ERROR:__main__:Failed to process chat message: 'TextBlock' object is not subscriptable
