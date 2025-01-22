@@ -228,13 +228,18 @@ def handle_webhook():
                                 {"role": "assistant", "content": ai_message}
                             )
 
-                        # Send via SMS
-                        response = client.send.sms(
-                            to=parsed_data.from_,
-                            from_=parsed_data.to,
-                            text=ai_message
-                        )
-                        logger.info("Sent Claude response")
+                        # Send via SMS with retry
+                        try:
+                            response = client.send.sms(
+                                to=parsed_data.from_,
+                                from_=parsed_data.to,
+                                text=ai_message
+                            )
+                            logger.info("Sent Claude response successfully")
+                        except Exception as sms_error:
+                            logger.error(f"SMS send failed: {str(sms_error)}")
+                            # Could implement retry logic here if needed
+                            raise
                     except Exception as e:
                         logger.error(f"Failed to process chat message: {str(e)}")
 
