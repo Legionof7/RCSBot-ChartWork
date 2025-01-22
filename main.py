@@ -147,15 +147,29 @@ def call_anthropic(messages):
 
             # Process the second response and return it
             ai_message = ""
+            logger.info(f"Processing second response: {second_response}")
+            logger.info(f"Second response content type: {type(second_response.content)}")
+            
             if hasattr(second_response, 'content'):
                 for block in second_response.content:
-                    if isinstance(block, dict):
-                        if block.get("type") == "text":
-                            ai_message += block.get("text", "")
+                    logger.info(f"Processing block: {block}")
+                    logger.info(f"Block type: {type(block)}")
+                    
+                    if hasattr(block, 'text'):
+                        logger.info("Block has text attribute")
+                        ai_message += block.text
+                    elif isinstance(block, dict) and block.get("type") == "text":
+                        logger.info("Block is dict with text type")
+                        ai_message += block.get("text", "")
+                    else:
+                        logger.info(f"Skipping block: {block}")
+            
+            logger.info(f"Final AI message before processing: {ai_message}")
             
             # Create a modified response with the processed message
             processed_response = second_response
             processed_response.content = [{"type": "text", "text": ai_message}]
+            logger.info(f"Final processed response content: {processed_response.content}")
             return processed_response
 
     # If stop_reason != "tool_use", then no tool was used; just return the single response.
