@@ -1,9 +1,7 @@
-
 from flask import Flask, request
 from rcs import Pinnacle
 import logging
 import datetime
-
 import os
 import requests
 import anthropic
@@ -40,30 +38,147 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.messages = []  # Store messages as app attribute
 
+# -----------------------------------------------------------------------------
+# 1) Define your Anthropic "tools" in the format Anthropic expects.
+#    Each "tool" has a name, description, and JSON schema describing the input.
+#    Because get_patient_data() needs no arguments, we can define an empty schema.
+# -----------------------------------------------------------------------------
+anthropic_tools = [
+    {
+        "name": "get_patient_data",
+        "description": (
+            "Use this tool to retrieve the current patient's FHIR-formatted health "
+            "information. This tool returns comprehensive patient data including "
+            "demographics, medical conditions, medications, vital signs, lab results, "
+            "and care plans. The data is formatted according to FHIR standards. "
+            "Call this tool whenever the user requests medical data or it would help "
+            "answer a clinical question about the patient."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    }
+]
+
+# -----------------------------------------------------------------------------
+# 2) This helper function calls Anthropic's "messages.create" endpoint.
+#    - First call: ask Claude the question.
+#    - If Claude requests a "tool_use", we parse out the tool name & input,
+#      run the tool on our back end, then do a second call with "tool_result".
+# -----------------------------------------------------------------------------
+def call_anthropic(messages):
+    anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+
+    # First request to Claude with tools included.
+    # We also pass our "system" prompt in separately if your library usage requires it.
+    response = anthropic_client.messages.create(
+        model=MODEL,
+        max_tokens=1000,
+        messages=messages,              # your conversation so far
+        system=[{"type": "text", "text": IDENTITY}],  # system instructions
+        tools=anthropic_tools,         # define the tools you have
+        temperature=0.7,
+        # By default tool_choice={"type":"auto"} is implied if you omit it.
+        # You could also do tool_choice={"type":"auto"} explicitly:
+        # tool_choice={"type": "auto"}
+    )
+
+    # If Claude decides to use a tool, it sets stop_reason="tool_use" and returns
+    # a "tool_use" content block describing which tool it wants and its JSON input.
+    if response.stop_reason == "tool_use":
+        # We'll gather any final text pieces (in case Claude included partial text).
+        ai_text_so_far = []
+        tool_requests = []
+
+        for block in response.content:
+            if block["type"] == "text":
+                ai_text_so_far.append(block["text"])
+            elif block["type"] == "tool_use":
+                tool_requests.append(block)
+
+        # Typically there's only one tool_use per step, but we’ll loop just in case.
+        final_ai_text = "\n".join(ai_text_so_far).strip()
+
+        for tool_block in tool_requests:
+            tool_name = tool_block["name"]
+            tool_input = tool_block["input"]  # JSON input for that tool
+
+            # Here is where you actually run the tool.
+            # We only have one tool called "get_patient_data" with no required input.
+            if tool_name == "get_patient_data":
+                # In your code, you already have PATIENT_DATA from get_patient_data().
+                # Just return it as a string, or you could do any logic you want here.
+                tool_result_data = str(PATIENT_DATA)
+            else:
+                # Unrecognized tool, or some fallback
+                tool_result_data = "Error: Unknown tool name requested."
+
+            # Now you send a second request that includes a "tool_result" content block
+            # so Claude can finalize the answer with the tool’s output.
+            tool_result_message = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_block["id"],  # the ID from Claude’s tool_use
+                            "content": tool_result_data
+                        }
+                    ]
+                }
+            ]
+            # Combine the original conversation with the partial text and the new user message
+            # containing the tool_result block.
+            second_call_messages = messages[:]
+            if final_ai_text:
+                # Optionally store any partial text from the first call as assistant content
+                second_call_messages.append({"role": "assistant", "content": final_ai_text})
+            second_call_messages.extend(tool_result_message)
+
+            # Now do the second call so Claude can incorporate the tool_result
+            second_response = anthropic_client.messages.create(
+                model=MODEL,
+                max_tokens=1000,
+                messages=second_call_messages,
+                system=[{"type": "text", "text": IDENTITY}],
+                tools=anthropic_tools,
+                temperature=0.7
+            )
+            return second_response
+
+    # If stop_reason != "tool_use", then no tool was used; just return the single response.
+    return response
+
+# -----------------------------------------------------------------------------
+# Now we integrate call_anthropic() into your existing Flask route
+# -----------------------------------------------------------------------------
 @app.route("/", methods=['GET', 'POST'])
 @app.route("/webhook", methods=['GET', 'POST'])
 def handle_webhook():
     if request.method == 'POST':
         raw_data = request.get_data(as_text=True)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
         logger.info(f"Received webhook at {timestamp}")
         logger.info(f"Raw data: {raw_data}")
-        
+
         try:
             json_data = request.get_json()
             parsed_data = Pinnacle.parse_inbound_message(json_data)
             logger.info(f"Parsed data: {parsed_data}")
-            
+
             # Check for SlothMD or sloth in the message text
             if hasattr(parsed_data, 'text'):
-                lower_text = parsed_data.text.lower()
+                lower_text = parsed_data.text.lower().strip()
                 if 'slothmd' in lower_text:
                     try:
                         response = client.send.sms(
                             to=parsed_data.from_,
                             from_=parsed_data.to,
-                            text="Hey there, it's SlothMD! I'll text you at this number as soon as your spot opens up. You won't receive any other marketing information. If you want to sign up for updates that you will receive less than once a month, reply \"SLOTH\". Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.  For support, you can reach us at founders@slothmd.io")
+                            text="Hey there, it's SlothMD! I'll text you at this number as soon as your spot opens up. You won't receive any other marketing information. If you want to sign up for updates that you will receive less than once a month, reply \"SLOTH\". Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.  For support, you can reach us at founders@slothmd.io"
+                        )
                         logger.info("Sent SlothMD welcome message")
                     except Exception as e:
                         logger.error(f"Failed to send SlothMD welcome message: {str(e)}")
@@ -72,74 +187,48 @@ def handle_webhook():
                         response = client.send.sms(
                             to=parsed_data.from_,
                             from_=parsed_data.to,
-                            text="You're in! Expect access to early texting features and SlothMD updates less than once a month. Standard msg/data rates apply. Reply STOP anytime to unsubscribe.")
+                            text="You're in! Expect access to early texting features and SlothMD updates less than once a month. Standard msg/data rates apply. Reply STOP anytime to unsubscribe."
+                        )
                         logger.info("Sent sloth subscription confirmation")
                     except Exception as e:
                         logger.error(f"Failed to send sloth subscription confirmation: {str(e)}")
                 else:
                     # Handle regular messages with Anthropic
                     try:
-                        # Maintain conversation history
                         if not hasattr(app, 'conversation_history'):
                             app.conversation_history = {}
-                            
+
                         if parsed_data.from_ not in app.conversation_history:
                             app.conversation_history[parsed_data.from_] = []
-                        
-                        # Add user message to history
-                        app.conversation_history[parsed_data.from_].append({"role": "user", "content": parsed_data.text})
-                        
-                        # Initialize Anthropic client
-                        anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-                        
-                        messages = app.conversation_history[parsed_data.from_][-5:]  # Keep last 5 messages
-                        
-                        # Add system message with cache control
-                        system_messages = [
-                            {
-                                "type": "text",
-                                "text": IDENTITY,
-                                "cache_control": {"type": "ephemeral"}
-                            }
-                        ]
-                        
-                        response = anthropic_client.messages.create(
-                            model=MODEL,
-                            max_tokens=1000,
-                            messages=messages,
-                            system=system_messages,
-                            temperature=0.7,
-                            tools=[{
-                                "name": "get_patient_data",
-                                "description": "Retrieves the current patient's FHIR-formatted health information. This tool returns comprehensive patient data including demographics, medical conditions, medications, vital signs, lab results, and care plans. The data is formatted according to FHIR standards.",
-                                "input_schema": {
-                                    "type": "object",
-                                    "properties": {},
-                                    "required": []
-                                }
-                            }]
-                        )
-                        
-                        # Log cache performance metrics
-                        usage = response.usage
-                        if hasattr(usage, 'cache_creation_input_tokens'):
-                            logger.info(f"Cache creation tokens: {usage.cache_creation_input_tokens}")
-                        if hasattr(usage, 'cache_read_input_tokens'):
-                            logger.info(f"Cache read tokens: {usage.cache_read_input_tokens}")
-                        logger.info(f"Input tokens: {usage.input_tokens}")
-                        
-                        # Extract message content safely
+
+                        # Add the user message, ignoring empty content
+                        user_text = parsed_data.text.strip()
+                        if user_text:
+                            app.conversation_history[parsed_data.from_].append(
+                                {"role": "user", "content": user_text}
+                            )
+
+                        # Slice and filter out any empty messages
+                        conversation_slice = app.conversation_history[parsed_data.from_][-6:]
+                        conversation_slice = [m for m in conversation_slice if m.get("content")]
+
+                        # 3) Make the call to our helper that does two-step tool usage if needed
+                        anthropic_response = call_anthropic(conversation_slice)
+
+                        # Pull text from anthropic_response
                         ai_message = ""
-                        for content in response.content:
-                            if hasattr(content, 'text'):
-                                ai_message += content.text
-                            elif isinstance(content, dict) and 'text' in content:
-                                ai_message += content['text']
-                        
-                        # Add AI response to history
-                        app.conversation_history[parsed_data.from_].append({"role": "assistant", "content": ai_message})
-                        
-                        # Send SMS response using Pinnacle
+                        # anthropic_response.content is a list of blocks
+                        for block in anthropic_response.content:
+                            if block["type"] == "text":
+                                ai_message += block["text"]
+
+                        if ai_message.strip():
+                            # Store in conversation
+                            app.conversation_history[parsed_data.from_].append(
+                                {"role": "assistant", "content": ai_message}
+                            )
+
+                        # Send via SMS
                         response = client.send.sms(
                             to=parsed_data.from_,
                             from_=parsed_data.to,
@@ -148,18 +237,18 @@ def handle_webhook():
                         logger.info("Sent Claude response")
                     except Exception as e:
                         logger.error(f"Failed to process chat message: {str(e)}")
-            
+
         except Exception as e:
             logger.error(f"Failed to parse message: {str(e)}")
             parsed_data = "Parse error"
-        
+
         app.messages.append({
             'timestamp': timestamp,
             'data': raw_data,
             'parsed': parsed_data
         })
         return "Webhook received", 200
-    
+
     else:
         html_content = '''
             <h1>Webhook Receiver</h1>
@@ -172,7 +261,7 @@ def handle_webhook():
             <table>
                 <tr><th>Time</th><th>Raw Data</th><th>Parsed Data</th></tr>
         '''
-        
+
         for msg in reversed(app.messages):
             html_content += f'''
                 <tr>
@@ -181,7 +270,7 @@ def handle_webhook():
                     <td><pre>{msg['parsed']}</pre></td>
                 </tr>
             '''
-        
+
         html_content += '''
             </table>
         '''
