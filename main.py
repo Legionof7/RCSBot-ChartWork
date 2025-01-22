@@ -130,13 +130,13 @@ def call_anthropic(messages):
             ]
             # Combine the original conversation with the partial text and the new user message
             # containing the tool_result block.
-            second_call_messages = messages[:]
+            # Create new messages array with original messages and tool result
+            second_call_messages = messages[:]  # Original conversation
             if final_ai_text:
-                # Optionally store any partial text from the first call as assistant content
                 second_call_messages.append({"role": "assistant", "content": final_ai_text})
             second_call_messages.extend(tool_result_message)
 
-            # Now do the second call so Claude can incorporate the tool_result
+            # Make second call with tool results
             second_response = anthropic_client.messages.create(
                 model=MODEL,
                 max_tokens=1000,
@@ -145,6 +145,16 @@ def call_anthropic(messages):
                 tools=anthropic_tools,
                 temperature=0.7
             )
+            
+            # Extract final message from second response
+            final_message = ""
+            if hasattr(second_response, 'content'):
+                for block in second_response.content:
+                    if hasattr(block, 'text'):
+                        final_message += block.text
+                    elif isinstance(block, dict) and block.get("type") == "text":
+                        final_message += block.get("text", "")
+            
             return second_response
 
     # If stop_reason != "tool_use", then no tool was used; just return the single response.
