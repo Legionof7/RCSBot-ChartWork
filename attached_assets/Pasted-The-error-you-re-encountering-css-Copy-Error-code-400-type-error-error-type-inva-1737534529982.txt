@@ -1,0 +1,639 @@
+The error you're encountering:
+
+css
+Copy
+Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages.2: `tool_result` block(s) provided when previous message does not contain any `tool_use` blocks'}}
+indicates that the tool_result block is being sent without a corresponding tool_use block in the previous message. This typically happens when the structure of the messages sent to Anthropic's API doesn't align with the expected format.
+
+Let's break down the issues and provide a comprehensive solution to resolve them.
+
+1. Root Causes
+a. Incorrect content Structure in tool_result_message
+In your current implementation, you're setting the content field of the tool_result_message as a list of dictionaries:
+
+python
+Copy
+tool_result_message = [
+    {
+        "role": "user",
+        "content": [{
+            "type": "tool_result",
+            "tool_use_id": tool_block.id,  # the ID from Claude’s tool_use
+            "content": tool_result_data
+        }]
+    }
+]
+However, Anthropic's API expects the content field to be a string, not a list or a dictionary. Sending a list instead of a string causes the API to misinterpret the message structure, leading to the error.
+
+b. Incorrect system Parameter Structure
+You're passing the system parameter as a list of dictionaries:
+
+python
+Copy
+system=[{"type": "text", "text": IDENTITY}]
+Depending on Anthropic's API specifications, the system parameter should typically be a single string containing the system prompt, not a list. This mismatch can cause unexpected behavior.
+
+2. Comprehensive Solution
+To address the issues, we'll make the following adjustments:
+
+Serialize the tool_result content as a JSON string.
+Pass the system prompt as a single string.
+Ensure that tool_result messages are only sent when a corresponding tool_use is present.
+a. Update the call_anthropic Function
+Here's the revised call_anthropic function with detailed comments explaining each change:
+
+python
+Copy
+import json  # Ensure this is imported at the top of your file
+
+def call_anthropic(messages):
+    anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+
+    # First request to Claude with tools included.
+    response = anthropic_client.messages.create(
+        model=MODEL,
+        max_tokens=1000,
+        messages=messages,      # Your conversation so far
+        system=IDENTITY,        # Pass system as a single string
+        tools=anthropic_tools,  # Define the tools you have
+        temperature=0.7,
+    )
+
+    # If Claude decides to use a tool, it sets stop_reason="tool_use" and returns
+    # a "tool_use" content block describing which tool it wants and its JSON input.
+    if response.stop_reason == "tool_use":
+        ai_text_so_far = []
+        tool_requests = []
+
+        for block in response.content:
+            if block.type == "text":
+                ai_text_so_far.append(block.text)
+            elif block.type == "tool_use":
+                tool_requests.append(block)
+
+        # Combine any partial AI-generated text
+        final_ai_text = "\n".join(ai_text_so_far).strip()
+
+        for tool_block in tool_requests:
+            tool_name = tool_block.name
+            tool_input = tool_block.input  # JSON input for that tool
+
+            # Execute the requested tool
+            if tool_name == "get_patient_data":
+                tool_result_data = json.dumps(PATIENT_DATA)  # Serialize to JSON string
+            else:
+                tool_result_data = "Error: Unknown tool name requested."
+
+            # Construct the tool result message as a JSON string
+            tool_result_content = json.dumps({
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,  # Use attribute access, not dictionary access
+                "content": tool_result_data
+            })
+
+            tool_result_message = {
+                "role": "user",
+                "content": tool_result_content  # Now a JSON string
+            }
+
+            # Prepare the messages for the second API call
+            second_call_messages = messages[:]  # Original conversation
+            if final_ai_text:
+                second_call_messages.append({"role": "assistant", "content": final_ai_text})
+            second_call_messages.append(tool_result_message)  # Append as a single dict
+
+            # Make the second API call with the tool result
+            second_response = anthropic_client.messages.create(
+                model=MODEL,
+                max_tokens=1000,
+                messages=second_call_messages,
+                system=IDENTITY,  # Pass system as a single string
+                tools=anthropic_tools,
+                temperature=0.7
+            )
+
+            # Process the second response to extract the AI message
+            ai_message = ""
+            logger.info(f"Processing second response: {second_response}")
+            logger.info(f"Second response content type: {type(second_response.content)}")
+            logger.info(f"Second response dir: {dir(second_response)}")
+
+            if hasattr(second_response, 'content'):
+                for block in second_response.content:
+                    logger.info(f"Processing block: {block}")
+                    logger.info(f"Block type: {type(block)}")
+                    logger.info(f"Block dir: {dir(block)}")
+
+                    try:
+                        if hasattr(block, 'text'):
+                            logger.info(f"Block text: {block.text}")
+                            ai_message += block.text
+                        elif hasattr(block, 'type') and block.type == 'text':
+                            logger.info(f"Block value: {block.value}")
+                            ai_message += block.value
+                        elif isinstance(block, dict) and block.get("type") == "text":
+                            logger.info(f"Block dict text: {block.get('text')}")
+                            ai_message += block.get("text", "")
+                        else:
+                            logger.info(f"Unhandled block type: {type(block)} with attributes: {dir(block)}")
+                    except Exception as e:
+                        logger.error(f"Error processing block: {str(e)}", exc_info=True)
+
+            logger.info(f"Final AI message before processing: {ai_message}")
+
+            if not ai_message.strip():
+                raise ValueError("Empty AI message after processing blocks")
+
+            # Optionally, you can process the AI message further or store it as needed
+            processed_response = second_response
+            processed_response.content = [{"type": "text", "text": ai_message}]
+            logger.info(f"Final processed response content: {processed_response.content}")
+            return processed_response
+
+    # If stop_reason != "tool_use", then no tool was used; just return the single response.
+    return response
+Key Changes Explained:
+
+Serialized tool_result_content as a JSON String:
+
+python
+Copy
+tool_result_content = json.dumps({
+    "type": "tool_result",
+    "tool_use_id": tool_block.id,
+    "content": tool_result_data
+})
+This ensures that the content field is a string, adhering to Anthropic's API expectations.
+
+Passed system as a Single String:
+
+python
+Copy
+system=IDENTITY
+Instead of passing a list of dictionaries, the system prompt is now a single string.
+
+Appended tool_result_message Correctly:
+
+python
+Copy
+second_call_messages.append(tool_result_message)  # Append as a single dict
+Ensures that the messages list contains properly structured dictionaries with role and content as strings.
+
+Removed the List Wrapping Around tool_result_message: Previously, tool_result_message was a list containing a dictionary. Now, it's a single dictionary, which is correctly appended to second_call_messages.
+
+b. Validate Message Structures Before Sending
+To prevent similar issues in the future, it's prudent to implement a validation function that ensures all messages conform to the expected structure before sending them to Anthropic's API.
+
+python
+Copy
+def validate_messages(messages):
+    for idx, message in enumerate(messages):
+        if 'role' not in message or 'content' not in message:
+            raise ValueError(f"Message at index {idx} is missing 'role' or 'content'")
+        if not isinstance(message['role'], str):
+            raise TypeError(f"Message role at index {idx} should be a string")
+        if not isinstance(message['content'], str):
+            raise TypeError(f"Message content at index {idx} should be a string")
+Usage:
+
+Call this function before making any API requests:
+
+python
+Copy
+validate_messages(second_call_messages)
+This ensures that all messages have the required fields and correct data types, preventing malformed requests.
+
+c. Ensure Proper Flow of Tool Usage
+The error message suggests that a tool_result block is being sent without a corresponding tool_use. Ensure that tool_result messages are only sent after a tool_use has been acknowledged by Anthropic.
+
+In the call_anthropic function, since you're only sending tool_result_message after detecting a tool_use, this should be inherently handled. However, it's essential to maintain this flow and ensure that no tool_result messages are sent independently.
+
+3. Revised Full Code
+Integrating the above changes, here's the complete revised code for your Flask application:
+
+python
+Copy
+from flask import Flask, request
+from rcs import Pinnacle
+import logging
+import datetime
+import os
+import requests
+import anthropic
+import time
+import json  # Import JSON module
+
+from fhir_data import get_patient_data
+
+# Constants for Anthropic
+IDENTITY = """
+You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources. 
+Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources. 
+You have access to patient data through the get_patient_data() function which returns FHIR-formatted patient information.
+
+To access patient data, use the following tool:
+{
+    "name": "get_patient_data",
+    "description": "Retrieves the current patient's FHIR-formatted health information",
+    "parameters": {},
+    "returns": "A dictionary containing the patient's FHIR data"
+}
+
+Do not do anything unrelated to healthcare, such as generate code or answer unrelated questions.
+"""
+
+# Initialize patient data
+PATIENT_DATA = get_patient_data()
+
+MODEL = "claude-3-5-haiku-latest"
+
+client = Pinnacle(api_key=os.getenv('PINNACLE_API_KEY'))
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+app.messages = []  # Store messages as app attribute
+
+# -----------------------------------------------------------------------------
+# 1) Define your Anthropic "tools" in the format Anthropic expects.
+#    Each "tool" has a name, description, and JSON schema describing the input.
+#    Because get_patient_data() needs no arguments, we can define an empty schema.
+# -----------------------------------------------------------------------------
+anthropic_tools = [
+    {
+        "name": "get_patient_data",
+        "description": (
+            "Use this tool to retrieve the current patient's FHIR-formatted health "
+            "information. This tool returns comprehensive patient data including "
+            "demographics, medical conditions, medications, vital signs, lab results, "
+            "and care plans. The data is formatted according to FHIR standards. "
+            "Call this tool whenever the user requests medical data or it would help "
+            "answer a clinical question about the patient."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    }
+]
+
+# -----------------------------------------------------------------------------
+# 2) Helper Functions
+# -----------------------------------------------------------------------------
+
+def validate_messages(messages):
+    for idx, message in enumerate(messages):
+        if 'role' not in message or 'content' not in message:
+            raise ValueError(f"Message at index {idx} is missing 'role' or 'content'")
+        if not isinstance(message['role'], str):
+            raise TypeError(f"Message role at index {idx} should be a string")
+        if not isinstance(message['content'], str):
+            raise TypeError(f"Message content at index {idx} should be a string")
+
+def call_anthropic(messages):
+    anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+
+    # Validate messages before sending
+    validate_messages(messages)
+
+    # First request to Claude with tools included.
+    response = anthropic_client.messages.create(
+        model=MODEL,
+        max_tokens=1000,
+        messages=messages,      # Your conversation so far
+        system=IDENTITY,        # Pass system as a single string
+        tools=anthropic_tools,  # Define the tools you have
+        temperature=0.7,
+    )
+
+    # If Claude decides to use a tool, it sets stop_reason="tool_use" and returns
+    # a "tool_use" content block describing which tool it wants and its JSON input.
+    if response.stop_reason == "tool_use":
+        ai_text_so_far = []
+        tool_requests = []
+
+        for block in response.content:
+            if block.type == "text":
+                ai_text_so_far.append(block.text)
+            elif block.type == "tool_use":
+                tool_requests.append(block)
+
+        # Combine any partial AI-generated text
+        final_ai_text = "\n".join(ai_text_so_far).strip()
+
+        for tool_block in tool_requests:
+            tool_name = tool_block.name
+            tool_input = tool_block.input  # JSON input for that tool
+
+            # Execute the requested tool
+            if tool_name == "get_patient_data":
+                tool_result_data = json.dumps(PATIENT_DATA)  # Serialize to JSON string
+            else:
+                tool_result_data = "Error: Unknown tool name requested."
+
+            # Construct the tool result message as a JSON string
+            tool_result_content = json.dumps({
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,  # Use attribute access, not dictionary access
+                "content": tool_result_data
+            })
+
+            tool_result_message = {
+                "role": "user",
+                "content": tool_result_content  # Now a JSON string
+            }
+
+            # Prepare the messages for the second API call
+            second_call_messages = messages[:]  # Original conversation
+            if final_ai_text:
+                second_call_messages.append({"role": "assistant", "content": final_ai_text})
+            second_call_messages.append(tool_result_message)  # Append as a single dict
+
+            # Validate messages before sending
+            validate_messages(second_call_messages)
+
+            # Make the second API call with the tool result
+            second_response = anthropic_client.messages.create(
+                model=MODEL,
+                max_tokens=1000,
+                messages=second_call_messages,
+                system=IDENTITY,  # Pass system as a single string
+                tools=anthropic_tools,
+                temperature=0.7
+            )
+
+            # Process the second response to extract the AI message
+            ai_message = ""
+            logger.info(f"Processing second response: {second_response}")
+            logger.info(f"Second response content type: {type(second_response.content)}")
+            logger.info(f"Second response dir: {dir(second_response)}")
+
+            if hasattr(second_response, 'content'):
+                for block in second_response.content:
+                    logger.info(f"Processing block: {block}")
+                    logger.info(f"Block type: {type(block)}")
+                    logger.info(f"Block dir: {dir(block)}")
+
+                    try:
+                        if hasattr(block, 'text'):
+                            logger.info(f"Block text: {block.text}")
+                            ai_message += block.text
+                        elif hasattr(block, 'type') and block.type == 'text':
+                            logger.info(f"Block value: {block.value}")
+                            ai_message += block.value
+                        elif isinstance(block, dict) and block.get("type") == "text":
+                            logger.info(f"Block dict text: {block.get('text')}")
+                            ai_message += block.get("text", "")
+                        else:
+                            logger.info(f"Unhandled block type: {type(block)} with attributes: {dir(block)}")
+                    except Exception as e:
+                        logger.error(f"Error processing block: {str(e)}", exc_info=True)
+
+            logger.info(f"Final AI message before processing: {ai_message}")
+
+            if not ai_message.strip():
+                raise ValueError("Empty AI message after processing blocks")
+
+            # Optionally, you can process the AI message further or store it as needed
+            processed_response = second_response
+            processed_response.content = [{"type": "text", "text": ai_message}]
+            logger.info(f"Final processed response content: {processed_response.content}")
+            return processed_response
+
+    # If stop_reason != "tool_use", then no tool was used; just return the single response.
+    return response
+
+# -----------------------------------------------------------------------------
+# 3) Flask Routes
+# -----------------------------------------------------------------------------
+@app.route("/", methods=['GET', 'POST'])
+@app.route("/webhook", methods=['GET', 'POST'])
+def handle_webhook():
+    if request.method == 'POST':
+        raw_data = request.get_data(as_text=True)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        logger.info(f"Received webhook at {timestamp}")
+        logger.info(f"Raw data: {raw_data}")
+
+        try:
+            json_data = request.get_json()
+            parsed_data = Pinnacle.parse_inbound_message(json_data)
+            logger.info(f"Parsed data: {parsed_data}")
+
+            # Check for SlothMD or sloth in the message text
+            if hasattr(parsed_data, 'text'):
+                lower_text = parsed_data.text.lower().strip()
+                if 'slothmd' in lower_text:
+                    try:
+                        response = client.send.sms(
+                            to=parsed_data.from_,
+                            from_=parsed_data.to,
+                            text="Hey there, it's SlothMD! I'll text you at this number as soon as your spot opens up. You won't receive any other marketing information. If you want to sign up for updates that you will receive less than once a month, reply \"SLOTH\". Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.  For support, you can reach us at founders@slothmd.io"
+                        )
+                        logger.info("Sent SlothMD welcome message")
+                    except Exception as e:
+                        logger.error(f"Failed to send SlothMD welcome message: {str(e)}")
+                elif 'sloth' in lower_text:
+                    try:
+                        response = client.send.sms(
+                            to=parsed_data.from_,
+                            from_=parsed_data.to,
+                            text="You're in! Expect access to early texting features and SlothMD updates less than once a month. Standard msg/data rates apply. Reply STOP anytime to unsubscribe."
+                        )
+                        logger.info("Sent sloth subscription confirmation")
+                    except Exception as e:
+                        logger.error(f"Failed to send sloth subscription confirmation: {str(e)}")
+                else:
+                    # Handle regular messages with Anthropic
+                    try:
+                        if not hasattr(app, 'conversation_history'):
+                            app.conversation_history = {}
+
+                        if parsed_data.from_ not in app.conversation_history:
+                            app.conversation_history[parsed_data.from_] = []
+
+                        # Add the user message, ignoring empty content
+                        user_text = parsed_data.text.strip()
+                        if user_text:
+                            app.conversation_history[parsed_data.from_].append(
+                                {"role": "user", "content": user_text}
+                            )
+
+                        # Slice and filter out any empty messages
+                        conversation_slice = app.conversation_history[parsed_data.from_][-6:]
+                        conversation_slice = [m for m in conversation_slice if m.get("content")]
+
+                        # Validate messages before sending
+                        validate_messages(conversation_slice)
+
+                        # 3) Make the call to our helper that does two-step tool usage if needed
+                        anthropic_response = call_anthropic(conversation_slice)
+
+                        # Extract message from Anthropic response
+                        ai_message = ""
+                        logger.info(f"Anthropic response type: {type(anthropic_response)}")
+                        logger.info(f"Anthropic response: {anthropic_response}")
+
+                        if hasattr(anthropic_response, 'content'):
+                            logger.info(f"Content type: {type(anthropic_response.content)}")
+                            logger.info(f"Content: {anthropic_response.content}")
+
+                            for content_block in anthropic_response.content:
+                                logger.info(f"Block type: {type(content_block)}")
+                                logger.info(f"Block content: {content_block}")
+
+                                try:
+                                    if hasattr(content_block, 'text'):
+                                        logger.info("Processing text attribute")
+                                        ai_message += content_block.text
+                                    elif hasattr(content_block, 'value'):
+                                        logger.info("Processing value attribute")
+                                        ai_message += content_block.value
+                                    elif isinstance(content_block, dict) and content_block.get("type") == "text":
+                                        logger.info("Processing dict with text type")
+                                        ai_message += content_block.get("text", "")
+                                    else:
+                                        logger.info(f"Unhandled content block type: {type(content_block)}")
+                                except Exception as block_error:
+                                    logger.error(f"Error processing block: {str(block_error)}")
+
+                        logger.info(f"Final AI message: {ai_message}")
+
+                        if not ai_message.strip():
+                            logger.error("Empty AI message after processing")
+                            raise ValueError("Empty response from Anthropic")
+
+                        # Store in conversation
+                        app.conversation_history[parsed_data.from_].append(
+                            {"role": "assistant", "content": ai_message}
+                        )
+
+                        # Send via SMS with retry logic
+                        max_retries = 3
+                        retry_delay = 1  # seconds
+
+                        for attempt in range(max_retries):
+                            try:
+                                response = client.send.sms(
+                                    to=parsed_data.from_,
+                                    from_=parsed_data.to,
+                                    text=ai_message
+                                )
+                                logger.info("Sent Claude response successfully")
+                                break
+                            except Exception as sms_error:
+                                logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
+                                if attempt < max_retries - 1:
+                                    time.sleep(retry_delay)
+                                    retry_delay *= 2  # Exponential backoff
+                                else:
+                                    logger.error("Max retries reached, SMS send failed")
+                                    raise
+                    except Exception as e:
+                        logger.error(f"Failed to process chat message: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"Failed to parse message: {str(e)}")
+            parsed_data = "Parse error"
+
+        app.messages.append({
+            'timestamp': timestamp,
+            'data': raw_data,
+            'parsed': parsed_data
+        })
+        return "Webhook received", 200
+
+    else:
+        html_content = '''
+            <h1>Webhook Receiver</h1>
+            <meta http-equiv="refresh" content="30">
+            <style>
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+            </style>
+            <table>
+                <tr><th>Time</th><th>Raw Data</th><th>Parsed Data</th></tr>
+        '''
+
+        for msg in reversed(app.messages):
+            html_content += f'''
+                <tr>
+                    <td>{msg['timestamp']}</td>
+                    <td><pre>{msg['data']}</pre></td>
+                    <td><pre>{msg['parsed']}</pre></td>
+                </tr>
+            '''
+
+        html_content += '''
+            </table>
+        '''
+        return html_content
+
+@app.route("/send", methods=['GET'])
+def send_message():
+    return '''
+        <form action="/send_sms" method="post">
+            Phone Number (include +1): <input type="text" name="to_number"><br>
+            Message: <input type="text" name="message"><br>
+            <input type="submit" value="Send Message">
+        </form>
+    '''
+
+@app.route("/send_sms", methods=['POST'])
+def send_sms():
+    to_number = request.form['to_number']
+    message_body = request.form['message']
+
+    try:
+        response = client.send.sms(
+            to=to_number,
+            from_="+18337750778",
+            text=message_body
+        )
+        return f"Message sent to {to_number}"
+    except Exception as e:
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}"
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)
+Key Highlights of the Revised Code:
+
+Validation of Messages:
+
+Before sending any messages to Anthropic's API, the validate_messages function ensures that each message has the required role and content fields, and that they are of type str.
+Correct tool_result_message Structure:
+
+The content field is serialized as a JSON string using json.dumps.
+The system parameter is passed as a single string (IDENTITY) instead of a list of dictionaries.
+Proper Handling of tool_use and tool_result:
+
+The tool_result message is only appended after a corresponding tool_use has been identified.
+This ensures that the API receives tool_result blocks only when appropriate, preventing the 400 Bad Request error.
+Comprehensive Logging:
+
+Enhanced logging provides better visibility into each step of the process, aiding in debugging and monitoring.
+4. Additional Recommendations
+a. Consult Anthropic's API Documentation
+Ensure you're referring to the latest Anthropic API documentation to understand the expected structures and parameters. APIs can evolve, and staying updated will help prevent such issues.
+
+b. Implement Robust Error Handling
+While the current error handling captures and logs exceptions, consider implementing more granular error responses or fallback mechanisms to enhance resilience.
+
+c. Test Incrementally
+After making these changes, test the application incrementally:
+
+Test Tool Usage:
+
+Send a message that should trigger the get_patient_data tool.
+Verify that the tool is invoked correctly and that the response is as expected.
+Test Regular Conversations:
+
+Engage in standard interactions to ensure that the conversation flow remains unaffected.
+Monitor Logs:
+
+Continuously monitor the logs to catch any unforeseen issues early.
