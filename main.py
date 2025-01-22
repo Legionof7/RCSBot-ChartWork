@@ -5,6 +5,7 @@ import datetime
 import os
 import requests
 import anthropic
+import time
 
 from fhir_data import get_patient_data
 
@@ -228,18 +229,27 @@ def handle_webhook():
                                 {"role": "assistant", "content": ai_message}
                             )
 
-                        # Send via SMS with retry
-                        try:
-                            response = client.send.sms(
-                                to=parsed_data.from_,
-                                from_=parsed_data.to,
-                                text=ai_message
-                            )
-                            logger.info("Sent Claude response successfully")
-                        except Exception as sms_error:
-                            logger.error(f"SMS send failed: {str(sms_error)}")
-                            # Could implement retry logic here if needed
-                            raise
+                        # Send via SMS with retry logic
+                        max_retries = 3
+                        retry_delay = 1  # seconds
+                        
+                        for attempt in range(max_retries):
+                            try:
+                                response = client.send.sms(
+                                    to=parsed_data.from_,
+                                    from_=parsed_data.to,
+                                    text=ai_message
+                                )
+                                logger.info("Sent Claude response successfully")
+                                break
+                            except Exception as sms_error:
+                                logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
+                                if attempt < max_retries - 1:
+                                    time.sleep(retry_delay)
+                                    retry_delay *= 2  # Exponential backoff
+                                else:
+                                    logger.error("Max retries reached, SMS send failed")
+                                    raise
                     except Exception as e:
                         logger.error(f"Failed to process chat message: {str(e)}")
 
