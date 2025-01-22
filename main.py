@@ -218,11 +218,9 @@ def handle_webhook():
                         # Extract message from Anthropic response
                         ai_message = ""
                         if hasattr(anthropic_response, 'content'):
-                            for block in anthropic_response.content:
-                                if hasattr(block, 'text'):
-                                    ai_message += block.text
-                                elif isinstance(block, dict) and block.get("type") == "text":
-                                    ai_message += block.get("text", "")
+                            for content_block in anthropic_response.content:
+                                if isinstance(content_block, dict) and content_block.get("type") == "text":
+                                    ai_message += content_block.get("text", "")
 
                         if ai_message.strip():
                             # Store in conversation
