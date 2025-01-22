@@ -28,12 +28,16 @@ app.messages = []  # Store messages as app attribute
 @app.route("/", methods=['GET', 'POST'])
 @app.route("/webhook", methods=['GET', 'POST'])
 def handle_webhook():
+    logger.info(f"Request received - Method: {request.method}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    
     if request.method == 'POST':
         raw_data = request.get_data(as_text=True)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         logger.info(f"Received webhook at {timestamp}")
         logger.info(f"Raw data: {raw_data}")
+        logger.info(f"Content-Type: {request.content_type}")
         
         try:
             json_data = request.get_json()
