@@ -37,7 +37,7 @@ def handle_webhook():
                         response = client.send.sms(
                             to=parsed_data.from_,
                             from_=parsed_data.to,
-                            text="Hey there, it's SlothMD! Great news — sign-ups are now open at www.slothmd.app! We're steadily releasing more SlothMD features through text. Sign up to get early access and updates by replying \"SLOTH\". You'll hear from us less than once a month. Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.")
+                            text="Hey there, it's SlothMD! I'll text you at this number as soon as your spot opens up. You won't receive any other marketing information. If you want to sign up for updates that you will receive less than once a month, reply \"SLOTH\". Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.  For support, you can reach us at founders@slothmd.io")
                         logger.info("Sent SlothMD welcome message")
                     except Exception as e:
                         logger.error(f"Failed to send SlothMD welcome message: {str(e)}")
