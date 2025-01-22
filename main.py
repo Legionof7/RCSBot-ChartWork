@@ -218,16 +218,26 @@ def handle_webhook():
 
                         # Extract message from Anthropic response
                         ai_message = ""
+                        logger.info(f"Anthropic response: {anthropic_response}")
+                        
                         if hasattr(anthropic_response, 'content'):
+                            logger.info(f"Processing response content: {anthropic_response.content}")
                             for content_block in anthropic_response.content:
                                 if isinstance(content_block, dict) and content_block.get("type") == "text":
-                                    ai_message += content_block.get("text", "")
+                                    text_content = content_block.get("text", "")
+                                    logger.info(f"Adding text content: {text_content}")
+                                    ai_message += text_content
 
-                        if ai_message.strip():
-                            # Store in conversation
-                            app.conversation_history[parsed_data.from_].append(
-                                {"role": "assistant", "content": ai_message}
-                            )
+                        logger.info(f"Final AI message: {ai_message}")
+                        
+                        if not ai_message.strip():
+                            logger.error("Empty AI message after processing")
+                            raise ValueError("Empty response from Anthropic")
+                            
+                        # Store in conversation
+                        app.conversation_history[parsed_data.from_].append(
+                            {"role": "assistant", "content": ai_message}
+                        )
 
                         # Send via SMS with retry logic
                         max_retries = 3
