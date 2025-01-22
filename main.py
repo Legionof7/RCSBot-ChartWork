@@ -121,11 +121,11 @@ def call_anthropic(messages):
             tool_result_message = [
                 {
                     "role": "user",
-                    "content": {
+                    "content": [{
                         "type": "tool_result",
                         "tool_use_id": tool_block.id,  # the ID from Claude’s tool_use
                         "content": tool_result_data
-                    }
+                    }]
                 }
             ]
             # Combine the original conversation with the partial text and the new user message
