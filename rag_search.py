@@ -1,6 +1,7 @@
 
 from typing import Dict, List, Any
 import re
+import logging
 
 def tokenize(text: str) -> List[str]:
     return re.findall(r'\w+', text.lower())
