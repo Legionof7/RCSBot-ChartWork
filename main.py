@@ -6,6 +6,7 @@ import os
 import requests
 import anthropic
 import time
+import json
 
 from fhir_data import get_patient_data
 
@@ -118,23 +119,21 @@ def call_anthropic(messages):
 
             # Now you send a second request that includes a "tool_result" content block
             # so Claude can finalize the answer with the tool’s output.
-            tool_result_message = [
-                {
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": tool_block.id,  # the ID from Claude’s tool_use
-                        "content": tool_result_data
-                    }]
-                }
-            ]
+            tool_result_message = {
+                "role": "user",
+                "content": json.dumps({
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,  # the ID from Claude’s tool_use
+                    "content": tool_result_data
+                })
+            }
             # Combine the original conversation with the partial text and the new user message
             # containing the tool_result block.
             # Create new messages array with original messages and tool result
             second_call_messages = messages[:]  # Original conversation
             if final_ai_text:
                 second_call_messages.append({"role": "assistant", "content": final_ai_text})
-            second_call_messages.extend(tool_result_message)
+            second_call_messages.extend([tool_result_message])
 
             second_response = anthropic_client.messages.create(
                 model=MODEL,
