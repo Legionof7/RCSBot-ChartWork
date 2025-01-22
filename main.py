@@ -94,17 +94,17 @@ def call_anthropic(messages):
         tool_requests = []
 
         for block in response.content:
-            if block["type"] == "text":
-                ai_text_so_far.append(block["text"])
-            elif block["type"] == "tool_use":
+            if block.type == "text":
+                ai_text_so_far.append(block.text)
+            elif block.type == "tool_use":
                 tool_requests.append(block)
 
         # Typically there's only one tool_use per step, but we’ll loop just in case.
         final_ai_text = "\n".join(ai_text_so_far).strip()
 
         for tool_block in tool_requests:
-            tool_name = tool_block["name"]
-            tool_input = tool_block["input"]  # JSON input for that tool
+            tool_name = tool_block.name
+            tool_input = tool_block.input  # JSON input for that tool
 
             # Here is where you actually run the tool.
             # We only have one tool called "get_patient_data" with no required input.
@@ -123,7 +123,7 @@ def call_anthropic(messages):
                     "role": "user",
                     "content": {
                         "type": "tool_result",
-                        "tool_use_id": tool_block["id"],  # the ID from Claude’s tool_use
+                        "tool_use_id": tool_block.id,  # the ID from Claude’s tool_use
                         "content": tool_result_data
                     }
                 }
@@ -150,13 +150,13 @@ def call_anthropic(messages):
             logger.info(f"Processing second response: {second_response}")
             logger.info(f"Second response content type: {type(second_response.content)}")
             logger.info(f"Second response dir: {dir(second_response)}")
-            
+
             if hasattr(second_response, 'content'):
                 for block in second_response.content:
                     logger.info(f"Processing block: {block}")
                     logger.info(f"Block type: {type(block)}")
                     logger.info(f"Block dir: {dir(block)}")
-                    
+
                     try:
                         if hasattr(block, 'text'):
                             logger.info(f"Block text: {block.text}")
@@ -171,12 +171,12 @@ def call_anthropic(messages):
                             logger.info(f"Unhandled block type: {type(block)} with attributes: {dir(block)}")
                     except Exception as e:
                         logger.error(f"Error processing block: {str(e)}", exc_info=True)
-            
+
             logger.info(f"Final AI message before processing: {ai_message}")
-            
+
             if not ai_message.strip():
                 raise ValueError("Empty AI message after processing blocks")
-            
+
             # Create a modified response with the processed message
             processed_response = second_response
             processed_response.content = [{"type": "text", "text": ai_message}]
@@ -258,11 +258,11 @@ def handle_webhook():
                         if hasattr(anthropic_response, 'content'):
                             logger.info(f"Content type: {type(anthropic_response.content)}")
                             logger.info(f"Content: {anthropic_response.content}")
-                            
+
                             for content_block in anthropic_response.content:
                                 logger.info(f"Block type: {type(content_block)}")
                                 logger.info(f"Block content: {content_block}")
-                                
+
                                 try:
                                     if hasattr(content_block, 'text'):
                                         logger.info("Processing text attribute")
