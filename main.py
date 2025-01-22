@@ -6,6 +6,7 @@ import datetime
 
 import os
 import requests
+import anthropic
 
 # Constants for Anthropic
 IDENTITY = """
