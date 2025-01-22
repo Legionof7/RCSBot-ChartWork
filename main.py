@@ -288,19 +288,24 @@ def handle_webhook():
                             {"role": "assistant", "content": ai_message}
                         )
 
-                        # Send via SMS with retry logic
+                        # Split message if needed and send via SMS with retry logic
                         max_retries = 3
                         retry_delay = 1  # seconds
-
-                        for attempt in range(max_retries):
-                            try:
-                                response = client.send.sms(
-                                    to=parsed_data.from_,
-                                    from_=parsed_data.to,
-                                    text=ai_message
-                                )
-                                logger.info("Sent Claude response successfully")
-                                break
+                        max_length = 1600
+                        
+                        # Split message into chunks
+                        messages_to_send = [ai_message[i:i + max_length] for i in range(0, len(ai_message), max_length)]
+                        
+                        for message_part in messages_to_send:
+                            for attempt in range(max_retries):
+                                try:
+                                    response = client.send.sms(
+                                        to=parsed_data.from_,
+                                        from_=parsed_data.to,
+                                        text=message_part
+                                    )
+                                    logger.info(f"Sent message part successfully")
+                                    break
                             except Exception as sms_error:
                                 logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
                                 if attempt < max_retries - 1:
