@@ -15,7 +15,9 @@ FHIR_DATA = get_patient_data()
 FHIR_INDEX = create_inverted_index(FHIR_DATA)
 
 def create_context(query: str) -> str:
+    logger.info(f"Creating context for query: {query}")
     relevant_data = search_fhir_data(FHIR_DATA, query, FHIR_INDEX)
+    logger.info(f"Found relevant data size: {len(str(relevant_data))} characters")
     return f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources.
 Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources.
 
