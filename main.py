@@ -149,22 +149,33 @@ def call_anthropic(messages):
             ai_message = ""
             logger.info(f"Processing second response: {second_response}")
             logger.info(f"Second response content type: {type(second_response.content)}")
+            logger.info(f"Second response dir: {dir(second_response)}")
             
             if hasattr(second_response, 'content'):
                 for block in second_response.content:
                     logger.info(f"Processing block: {block}")
                     logger.info(f"Block type: {type(block)}")
+                    logger.info(f"Block dir: {dir(block)}")
                     
-                    if hasattr(block, 'text'):
-                        logger.info("Block has text attribute")
-                        ai_message += block.text
-                    elif isinstance(block, dict) and block.get("type") == "text":
-                        logger.info("Block is dict with text type")
-                        ai_message += block.get("text", "")
-                    else:
-                        logger.info(f"Skipping block: {block}")
+                    try:
+                        if hasattr(block, 'text'):
+                            logger.info(f"Block text: {block.text}")
+                            ai_message += block.text
+                        elif hasattr(block, 'type') and block.type == 'text':
+                            logger.info(f"Block value: {block.value}")
+                            ai_message += block.value
+                        elif isinstance(block, dict) and block.get("type") == "text":
+                            logger.info(f"Block dict text: {block.get('text')}")
+                            ai_message += block.get("text", "")
+                        else:
+                            logger.info(f"Unhandled block type: {type(block)} with attributes: {dir(block)}")
+                    except Exception as e:
+                        logger.error(f"Error processing block: {str(e)}", exc_info=True)
             
             logger.info(f"Final AI message before processing: {ai_message}")
+            
+            if not ai_message.strip():
+                raise ValueError("Empty AI message after processing blocks")
             
             # Create a modified response with the processed message
             processed_response = second_response
