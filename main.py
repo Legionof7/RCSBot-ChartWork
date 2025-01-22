@@ -241,15 +241,31 @@ def handle_webhook():
 
                         # Extract message from Anthropic response
                         ai_message = ""
+                        logger.info(f"Anthropic response type: {type(anthropic_response)}")
                         logger.info(f"Anthropic response: {anthropic_response}")
 
                         if hasattr(anthropic_response, 'content'):
-                            logger.info(f"Processing response content: {anthropic_response.content}")
+                            logger.info(f"Content type: {type(anthropic_response.content)}")
+                            logger.info(f"Content: {anthropic_response.content}")
+                            
                             for content_block in anthropic_response.content:
-                                if hasattr(content_block, 'text'):
-                                    ai_message += content_block.text
-                                elif isinstance(content_block, dict) and content_block.get("type") == "text":
-                                    ai_message += content_block.get("text", "")
+                                logger.info(f"Block type: {type(content_block)}")
+                                logger.info(f"Block content: {content_block}")
+                                
+                                try:
+                                    if hasattr(content_block, 'text'):
+                                        logger.info("Processing text attribute")
+                                        ai_message += content_block.text
+                                    elif hasattr(content_block, 'value'):
+                                        logger.info("Processing value attribute")
+                                        ai_message += content_block.value
+                                    elif isinstance(content_block, dict) and content_block.get("type") == "text":
+                                        logger.info("Processing dict with text type")
+                                        ai_message += content_block.get("text", "")
+                                    else:
+                                        logger.info(f"Unhandled content block type: {type(content_block)}")
+                                except Exception as block_error:
+                                    logger.error(f"Error processing block: {str(block_error)}")
 
                         logger.info(f"Final AI message: {ai_message}")
 
