@@ -219,7 +219,9 @@ def handle_webhook():
                         ai_message = ""
                         if hasattr(anthropic_response, 'content'):
                             for block in anthropic_response.content:
-                                if isinstance(block, dict) and block.get("type") == "text":
+                                if hasattr(block, 'text'):
+                                    ai_message += block.text
+                                elif isinstance(block, dict) and block.get("type") == "text":
                                     ai_message += block.get("text", "")
 
                         if ai_message.strip():
