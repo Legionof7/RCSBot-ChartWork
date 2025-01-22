@@ -29,7 +29,10 @@ def create_inverted_index(data: Dict[str, Any], parent_key: str = '') -> Dict[st
     return index
 
 def search_fhir_data(data: Dict[str, Any], query: str, index: Dict[str, List[str]]) -> Dict[str, Any]:
+    logging.info(f"RAG Search - Query: {query}")
+    logging.info(f"RAG Search - Index size: {len(index)}")
     query_tokens = tokenize(query)
+    logging.info(f"RAG Search - Tokenized query: {query_tokens}")
     relevant_paths = set()
     
     for token in query_tokens:

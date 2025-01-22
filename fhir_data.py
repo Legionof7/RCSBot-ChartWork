@@ -206,5 +206,9 @@ SAMPLE_PATIENT = {
     }
 }
 
+import logging
+
 def get_patient_data():
+    logging.info("Retrieving FHIR patient data")
+    logging.info(f"FHIR data size: {len(str(SAMPLE_PATIENT))} characters")
     return SAMPLE_PATIENT
