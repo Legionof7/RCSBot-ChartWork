@@ -306,14 +306,14 @@ def handle_webhook():
                                     )
                                     logger.info(f"Sent message part successfully")
                                     break
-                            except Exception as sms_error:
-                                logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
-                                if attempt < max_retries - 1:
-                                    time.sleep(retry_delay)
-                                    retry_delay *= 2  # Exponential backoff
-                                else:
-                                    logger.error("Max retries reached, SMS send failed")
-                                    raise
+                                except Exception as sms_error:
+                                    logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
+                                    if attempt < max_retries - 1:
+                                        time.sleep(retry_delay)
+                                        retry_delay *= 2  # Exponential backoff
+                                    else:
+                                        logger.error("Max retries reached, SMS send failed")
+                                        raise
                     except Exception as e:
                         logger.error(f"Failed to process chat message: {str(e)}")
 
