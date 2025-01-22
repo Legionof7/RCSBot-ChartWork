@@ -215,12 +215,12 @@ def handle_webhook():
                         # 3) Make the call to our helper that does two-step tool usage if needed
                         anthropic_response = call_anthropic(conversation_slice)
 
-                        # Pull text from anthropic_response
+                        # Extract message from Anthropic response
                         ai_message = ""
-                        # anthropic_response.content is a list of blocks
-                        for block in anthropic_response.content:
-                            if block["type"] == "text":
-                                ai_message += block["text"]
+                        if hasattr(anthropic_response, 'content'):
+                            for block in anthropic_response.content:
+                                if isinstance(block, dict) and block.get("type") == "text":
+                                    ai_message += block.get("text", "")
 
                         if ai_message.strip():
                             # Store in conversation
