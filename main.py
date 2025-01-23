@@ -204,18 +204,24 @@ def handle_webhook():
                                     graph_data
                                 )
                                 
-                                # Create data URL for the image
-                                data_url = f"data:image/png;base64,{img_b64}"
-
-                                # Send MMS with graph
+                                # Save graph as temporary file
+                                temp_path = f"/tmp/graph_{int(time.time())}.png"
                                 try:
+                                    with open(temp_path, "wb") as f:
+                                        f.write(base64.b64decode(img_b64))
+                                    logger.info(f"Saved graph to temporary file: {temp_path}")
+
+                                    # Send MMS with graph
                                     response = client.send.mms(
                                         to=parsed_data.from_,
                                         from_=parsed_data.to,
                                         text=graph_part.strip(),
-                                        media_urls=[data_url]
+                                        media_urls=[temp_path]
                                     )
                                     logger.info("Successfully sent MMS with graph")
+                                    
+                                    # Clean up temp file
+                                    os.remove(temp_path)
                                 except Exception as mms_error:
                                     logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
                                     raise
