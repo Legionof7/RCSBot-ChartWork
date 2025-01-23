@@ -192,9 +192,10 @@ def handle_webhook():
                                 remaining_message = message_part.split("END_GRAPH_DATA")[1]
 
                                 # Generate graph
+                                graph_data = graph_info.get("data", graph_info)
                                 img_b64 = generate_graph(
                                     graph_info["type"],
-                                    graph_info["data"]
+                                    graph_data
                                 )
                                 
                                 # Create data URL for the image
