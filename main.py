@@ -47,7 +47,25 @@ OPENROUTER_API_KEY = "sk-or-v1-1e20ce76446f9836406629a1c537e3e0b5dd4c6af563d14d7
 
 client = Pinnacle(api_key=os.getenv('PINNACLE_API_KEY'))
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging with a custom handler to store logs
+class MemoryLogHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.logs = []
+        
+    def emit(self, record):
+        log_entry = {
+            'timestamp': datetime.datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
+            'level': record.levelname,
+            'message': record.getMessage()
+        }
+        self.logs.append(log_entry)
+
+memory_handler = MemoryLogHandler()
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[memory_handler, logging.StreamHandler()]
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -288,6 +306,35 @@ def send_sms():
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return f"Error: {str(e)}"
+
+@app.route("/logs")
+def view_logs():
+    html_content = '''
+        <h1>Application Logs</h1>
+        <meta http-equiv="refresh" content="5">
+        <style>
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .INFO { color: black; }
+            .ERROR { color: red; }
+            .WARNING { color: orange; }
+        </style>
+        <table>
+            <tr><th>Timestamp</th><th>Level</th><th>Message</th></tr>
+    '''
+    
+    for log in reversed(memory_handler.logs):
+        html_content += f'''
+            <tr>
+                <td>{log['timestamp']}</td>
+                <td class="{log['level']}">{log['level']}</td>
+                <td>{log['message']}</td>
+            </tr>
+        '''
+    
+    html_content += '</table>'
+    return html_content
 
 @app.route("/send_mms", methods=['POST'])
 def send_mms():
