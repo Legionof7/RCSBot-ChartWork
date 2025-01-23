@@ -155,17 +155,15 @@ def handle_webhook():
                                     graph_info["data"]
                                 )
                                 
-                                # Create temporary file for the image
-                                temp_path = f"/tmp/graph_{int(time.time())}.png"
-                                with open(temp_path, "wb") as f:
-                                    f.write(base64.b64decode(img_b64))
+                                # Create data URL for the image
+                                data_url = f"data:image/png;base64,{img_b64}"
 
                                 # Send MMS with graph
                                 response = client.send.mms(
                                     to=parsed_data.from_,
                                     from_=parsed_data.to,
                                     text=graph_part.strip(),
-                                    media_urls=[temp_path]
+                                    media_urls=[data_url]
                                 )
                                 
                                 # Send remaining message if any
