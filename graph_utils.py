@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import io
 import base64
+import logging
 from typing import List, Dict, Any
 
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:

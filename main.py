@@ -54,12 +54,16 @@ class MemoryLogHandler(logging.Handler):
         self.logs = []
         
     def emit(self, record):
-        log_entry = {
-            'timestamp': datetime.datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
-            'level': record.levelname,
-            'message': record.getMessage()
-        }
-        self.logs.append(log_entry)
+        try:
+            log_entry = {
+                'timestamp': datetime.datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
+                'level': record.levelname,
+                'message': record.getMessage(),
+                'exc_info': record.exc_info[1] if record.exc_info else None
+            }
+            self.logs.append(log_entry)
+        except Exception as e:
+            print(f"Logging error: {str(e)}")
 
 memory_handler = MemoryLogHandler()
 logging.basicConfig(
