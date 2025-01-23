@@ -8,6 +8,26 @@ from typing import List, Dict, Any
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     """Generate a graph based on type and data, return base64 image"""
     logging.info(f"Generating {graph_type} graph with data: {data}")
+    
+    if not isinstance(data, dict):
+        logging.error(f"Invalid data type: {type(data)}. Expected dict.")
+        raise ValueError("Data must be a dictionary")
+        
+    required_fields = {
+        "line": ["x", "y"],
+        "bar": ["labels", "values"],
+        "scatter": ["x", "y"]
+    }
+    
+    if graph_type not in required_fields:
+        logging.error(f"Invalid graph type: {graph_type}")
+        raise ValueError(f"Invalid graph type. Must be one of: {list(required_fields.keys())}")
+        
+    missing_fields = [field for field in required_fields[graph_type] if field not in data]
+    if missing_fields:
+        logging.error(f"Missing required fields: {missing_fields}")
+        raise ValueError(f"Missing required fields for {graph_type} graph: {missing_fields}")
+    
     plt.figure(figsize=(10, 6))
     
     if graph_type == "line":
