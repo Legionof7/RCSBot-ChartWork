@@ -8,11 +8,16 @@ from typing import List, Dict, Any
 
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     """Generate a graph based on type and data, return base64 image"""
-    logging.info(f"Generating {graph_type} graph with data: {data}")
+    logging.info(f"Generating {graph_type} graph with data type: {type(data)}")
+    logging.info(f"Data content: {data}")
     
+    if data is None:
+        logging.error("Data is None")
+        raise ValueError("Data cannot be None")
+        
     if not isinstance(data, dict):
-        logging.error(f"Invalid data type: {type(data)}. Expected dict.")
-        raise ValueError("Data must be a dictionary")
+        logging.error(f"Invalid data type: {type(data)}. Expected dict. Data: {str(data)}")
+        raise ValueError(f"Data must be a dictionary, got {type(data)}")
         
     required_fields = {
         "line": ["x", "y"],
