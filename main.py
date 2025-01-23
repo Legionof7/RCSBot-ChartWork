@@ -21,9 +21,9 @@ When visualizing data, you can generate graphs by including a special marker in 
 GRAPH_DATA:{{"type": "<graph_type>", "data": <data_object>}}END_GRAPH_DATA
 
 Supported graph types and their data formats:
-1. "line" - requires: {"x": [x_values], "y": [y_values], "title": "string", "xlabel": "string", "ylabel": "string"}
-2. "bar" - requires: {"labels": [labels], "values": [values], "title": "string", "xlabel": "string", "ylabel": "string"}
-3. "scatter" - requires: {"x": [x_values], "y": [y_values], "title": "string", "xlabel": "string", "ylabel": "string"}
+1. "line" - requires: {{"x": [x_values], "y": [y_values], "title": "string", "xlabel": "string", "ylabel": "string"}}
+2. "bar" - requires: {{"labels": [labels], "values": [values], "title": "string", "xlabel": "string", "ylabel": "string"}}
+3. "scatter" - requires: {{"x": [x_values], "y": [y_values], "title": "string", "xlabel": "string", "ylabel": "string"}}
 
 When asked for insights, generate at least 3 insights. Each insight should follow these guidelines:
 * Start with relevant data points that prompted this insight
