@@ -203,10 +203,20 @@ def handle_webhook():
 @app.route("/send", methods=['GET'])
 def send_message():
     return '''
+        <h2>Send SMS</h2>
         <form action="/send_sms" method="post">
             Phone Number (include +1): <input type="text" name="to_number"><br>
             Message: <input type="text" name="message"><br>
-            <input type="submit" value="Send Message">
+            <input type="submit" value="Send SMS">
+        </form>
+        
+        <h2>Send MMS</h2>
+        <form action="/send_mms" method="post">
+            Phone Number (include +1): <input type="text" name="to_number"><br>
+            Message (optional): <input type="text" name="message"><br>
+            Media URL: <input type="text" name="media_urls[]"><br>
+            Media URL: <input type="text" name="media_urls[]"><br>
+            <input type="submit" value="Send MMS">
         </form>
     '''
 
@@ -225,6 +235,27 @@ def send_sms():
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return f"Error: {str(e)}"
+
+@app.route("/send_mms", methods=['POST'])
+def send_mms():
+    to_number = request.form['to_number']
+    message_body = request.form.get('message', '')
+    media_urls = request.form.getlist('media_urls[]')
+
+    if not media_urls:
+        return "Error: At least one media URL is required", 400
+
+    try:
+        response = client.send.mms(
+            to=to_number,
+            from_="+18337750778",
+            text=message_body if message_body else None,
+            media_urls=media_urls
+        )
+        return f"MMS sent to {to_number}"
+    except Exception as e:
+        logger.error(f"Error sending MMS: {str(e)}")
+        return f"Error: {str(e)}", 400
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
