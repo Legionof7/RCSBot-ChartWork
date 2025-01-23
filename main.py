@@ -204,24 +204,28 @@ def handle_webhook():
                                     graph_data
                                 )
                                 
-                                # Save graph as temporary file
-                                temp_path = f"/tmp/graph_{int(time.time())}.png"
+                                # Upload image to imgbb
                                 try:
-                                    with open(temp_path, "wb") as f:
-                                        f.write(base64.b64decode(img_b64))
-                                    logger.info(f"Saved graph to temporary file: {temp_path}")
+                                    imgbb_key = os.getenv('IMGBB_API_KEY', '2bd1b74e46388e67a3b24b9f4cdb1529')
+                                    upload_url = 'https://api.imgbb.com/1/upload'
+                                    payload = {
+                                        'key': imgbb_key,
+                                        'image': img_b64,
+                                    }
+                                    upload_response = requests.post(upload_url, data=payload)
+                                    upload_response.raise_for_status()
+                                    
+                                    image_url = upload_response.json()['data']['url']
+                                    logger.info(f"Image uploaded successfully: {image_url}")
 
-                                    # Send MMS with graph
+                                    # Send MMS with graph URL
                                     response = client.send.mms(
                                         to=parsed_data.from_,
                                         from_=parsed_data.to,
                                         text=graph_part.strip(),
-                                        media_urls=[temp_path]
+                                        media_urls=[image_url]
                                     )
                                     logger.info("Successfully sent MMS with graph")
-                                    
-                                    # Clean up temp file
-                                    os.remove(temp_path)
                                 except Exception as mms_error:
                                     logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
                                     raise
