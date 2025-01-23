@@ -7,6 +7,8 @@ import requests
 import time
 import json
 from fhir_data import get_patient_data
+from graph_utils import generate_graph
+import base64
 
 # Load FHIR data
 FHIR_DATA = get_patient_data()
@@ -127,11 +129,47 @@ def handle_webhook():
                         conversation_slice = app.conversation_history[parsed_data.from_][-6:]
                         ai_response = call_openrouter(conversation_slice)
 
-                        if not ai_response.get("content", "").strip():
+                        response_content = ai_response.get("content", "").strip()
+                        if not response_content:
                             raise ValueError("Empty response from OpenRouter")
 
+                        # Check if response contains graph data
+                        if "GRAPH_DATA:" in response_content:
+                            try:
+                                # Extract graph data and remaining message
+                                graph_part, message_part = response_content.split("GRAPH_DATA:", 1)
+                                graph_info = json.loads(message_part.split("END_GRAPH_DATA")[0])
+                                remaining_message = message_part.split("END_GRAPH_DATA")[1]
+
+                                # Generate graph
+                                img_b64 = generate_graph(
+                                    graph_info["type"],
+                                    graph_info["data"]
+                                )
+                                
+                                # Create temporary file for the image
+                                temp_path = f"/tmp/graph_{int(time.time())}.png"
+                                with open(temp_path, "wb") as f:
+                                    f.write(base64.b64decode(img_b64))
+
+                                # Send MMS with graph
+                                response = client.send.mms(
+                                    to=parsed_data.from_,
+                                    from_=parsed_data.to,
+                                    text=graph_part.strip(),
+                                    media_urls=[temp_path]
+                                )
+                                
+                                # Send remaining message if any
+                                if remaining_message.strip():
+                                    response_content = remaining_message
+
+                            except Exception as graph_error:
+                                logger.error(f"Failed to generate graph: {str(graph_error)}")
+                                response_content = "Sorry, I couldn't generate the graph. " + response_content
+
                         app.conversation_history[parsed_data.from_].append(
-                            {"role": "assistant", "content": ai_response["content"]}
+                            {"role": "assistant", "content": response_content}
                         )
 
                         max_retries = 3
