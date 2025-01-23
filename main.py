@@ -206,7 +206,7 @@ def handle_webhook():
                                 
                                 # Upload image to imgbb
                                 try:
-                                    imgbb_key = os.getenv('IMGBB_API_KEY', '2bd1b74e46388e67a3b24b9f4cdb1529')
+                                    imgbb_key = os.getenv('IMGBB_API_KEY', 'dc9385b3e6c2b601de1361a53e98e869')
                                     upload_url = 'https://api.imgbb.com/1/upload'
                                     payload = {
                                         'key': imgbb_key,
