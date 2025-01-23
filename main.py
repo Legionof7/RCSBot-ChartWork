@@ -241,15 +241,32 @@ def send_mms():
     to_number = request.form['to_number']
     message_body = request.form.get('message', '')
     media_urls = [url.strip() for url in request.form.getlist('media_urls[]') if url.strip()]
+    graph_data = request.form.get('graph_data', '')
 
-    if not media_urls:
-        return "Error: At least one media URL is required", 400
+    if not media_urls and not graph_data:
+        return "Error: Either media URLs or graph data is required", 400
+
+    if graph_data:
+        try:
+            graph_info = json.loads(graph_data)
+            img_b64 = generate_graph(
+                graph_info["type"],
+                graph_info["data"]
+            )
+            # Create temporary file for the image
+            temp_path = f"/tmp/graph_{int(time.time())}.png"
+            with open(temp_path, "wb") as f:
+                f.write(base64.b64decode(img_b64))
+            media_urls.append(temp_path)
+        except Exception as e:
+            logger.error(f"Failed to generate graph: {str(e)}")
+            return f"Error generating graph: {str(e)}", 400
 
     # Basic URL validation
     valid_urls = [url for url in media_urls if url.strip()]
     
     if not valid_urls:
-        return "Error: At least one media URL is required", 400
+        return "Error: No valid media URLs", 400
 
     try:
         response = client.send.mms(
