@@ -245,21 +245,11 @@ def send_mms():
     if not media_urls:
         return "Error: At least one media URL is required", 400
 
-    # Validate URLs
-    valid_urls = []
-    for url in media_urls:
-        try:
-            # Check if URL is accessible
-            response = requests.head(url, timeout=5, allow_redirects=True)
-            if response.status_code == 200:
-                content_type = response.headers.get('content-type', '')
-                if any(img_type in content_type.lower() for img_type in ['jpeg', 'jpg', 'png', 'gif']):
-                    valid_urls.append(url)
-        except:
-            continue
-
+    # Basic URL validation
+    valid_urls = [url for url in media_urls if url.strip()]
+    
     if not valid_urls:
-        return "Error: No valid image URLs found. URLs must be publicly accessible images (jpg, png, gif).", 400
+        return "Error: At least one media URL is required", 400
 
     try:
         response = client.send.mms(
