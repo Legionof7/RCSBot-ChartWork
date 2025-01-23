@@ -4,12 +4,15 @@ import numpy as np
 import io
 import base64
 import logging
+import traceback
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     """Generate a graph based on type and data, return base64 image"""
-    logging.info(f"Generating {graph_type} graph with data type: {type(data)}")
-    logging.info(f"Data content: {data}")
+    logger.info(f"Generating {graph_type} graph with data type: {type(data)}")
+    logger.debug(f"Full data content: {data}")
     
     if data is None:
         logging.error("Data is None")
@@ -73,7 +76,9 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
         return img_b64
     except Exception as e:
         plt.close()  # Ensure figure is closed even on error
-        logging.error(f"Failed to generate graph image: {str(e)}", exc_info=True)
+        logger.error(f"Failed to generate graph image: {str(e)}")
+        logger.error(f"Graph generation traceback: {traceback.format_exc()}")
+        logger.error(f"Graph data that caused error: {data}")
         raise ValueError(f"Graph generation failed: {str(e)}")
 
 def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> str:
