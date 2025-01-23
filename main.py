@@ -21,7 +21,7 @@ When visualizing data, you can generate graphs by including a special marker in 
 GRAPH_DATA:{{"type": "<graph_type>", "data": <data_object>}}END_GRAPH_DATA
 
 Example graph:
-GRAPH_DATA:{{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}}END_GRAPH_DATA
+GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
 
 Supported graph types and their data formats:
 1. "line" - requires: {{"x": [x_values], "y": [y_values], "title": "string", "xlabel": "string", "ylabel": "string"}}
