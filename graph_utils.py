@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     """Generate a graph based on type and data, return base64 image"""
+    logging.info(f"Generating {graph_type} graph with data: {data}")
     plt.figure(figsize=(10, 6))
     
     if graph_type == "line":
