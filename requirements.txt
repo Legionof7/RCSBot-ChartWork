@@ -4,3 +4,5 @@ rcs>=1.0.0
 requests
 anthropic
 requests
+matplotlib
+numpy
