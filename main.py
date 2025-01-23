@@ -58,19 +58,31 @@ class MemoryLogHandler(logging.Handler):
             log_entry = {
                 'timestamp': datetime.datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
                 'level': record.levelname,
-                'message': record.getMessage(),
+                'message': self.format(record),
                 'exc_info': record.exc_info[1] if record.exc_info else None
             }
             self.logs.append(log_entry)
+            print(f"Log stored: {log_entry['timestamp']} - {log_entry['level']} - {log_entry['message']}")  # Debug print
         except Exception as e:
-            print(f"Logging error: {str(e)}")
+            print(f"Logging error in MemoryHandler: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
 
 memory_handler = MemoryLogHandler()
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[memory_handler, logging.StreamHandler()]
-)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+memory_handler.setFormatter(formatter)
+stream_handler.setFormatter(formatter)
+
+# Configure root logger
+logging.basicConfig(level=logging.INFO)
+root_logger = logging.getLogger()
+root_logger.handlers = []  # Remove any existing handlers
+root_logger.addHandler(memory_handler)
+root_logger.addHandler(stream_handler)
+
 logger = logging.getLogger(__name__)
+logger.info("Logging system initialized")
 
 app = Flask(__name__)
 app.messages = []
