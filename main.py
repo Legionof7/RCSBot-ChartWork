@@ -12,8 +12,8 @@ from fhir_data import get_patient_data
 FHIR_DATA = get_patient_data()
 
 def create_context(query: str) -> str:
-    return f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by connecting them to appropriate resources.
-Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources.
+    return f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by offering insights and analysis. 
+Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources. Keep answers short and concise, you are answering over SMS, remember that when formatting. Be human, conversational, and friendly.
 
 Here is the complete patient FHIR data:
 {json.dumps(FHIR_DATA, indent=2)}
