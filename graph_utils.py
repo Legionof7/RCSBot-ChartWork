@@ -44,6 +44,14 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
         plt.bar(data["labels"], data["values"])
         plt.title(data.get("title", "Bar Graph"))
         
+        # Add reference lines if provided
+        if "referenceLines" in data:
+            for label, ref_value in data["referenceLines"].items():
+                if label in data["labels"]:
+                    idx = data["labels"].index(label)
+                    plt.hlines(y=ref_value, xmin=idx-0.4, xmax=idx+0.4, 
+                             colors='red', linestyles='dashed', label=f'{label} Target')
+        
     elif graph_type == "scatter":
         plt.scatter(data["x"], data["y"])
         plt.title(data.get("title", "Scatter Plot"))
