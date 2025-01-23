@@ -144,6 +144,46 @@ SAMPLE_PATIENT = {
             "unit": "mg/dL",
             "referenceRange": "125-200",
             "interpretation": "Normal"
+        },
+        {
+            "date": "2024-01-15",
+            "test": "HDL",
+            "value": 55,
+            "unit": "mg/dL",
+            "referenceRange": "40-60",
+            "interpretation": "Normal"
+        },
+        {
+            "date": "2024-01-15",
+            "test": "LDL",
+            "value": 110,
+            "unit": "mg/dL",
+            "referenceRange": "0-100",
+            "interpretation": "Borderline High"
+        },
+        {
+            "date": "2024-01-15",
+            "test": "Triglycerides",
+            "value": 150,
+            "unit": "mg/dL",
+            "referenceRange": "0-150",
+            "interpretation": "Normal"
+        },
+        {
+            "date": "2024-01-15",
+            "test": "Fasting Glucose",
+            "value": 110,
+            "unit": "mg/dL",
+            "referenceRange": "70-100",
+            "interpretation": "High"
+        },
+        {
+            "date": "2024-01-15",
+            "test": "Creatinine",
+            "value": 1.1,
+            "unit": "mg/dL",
+            "referenceRange": "0.7-1.3",
+            "interpretation": "Normal"
         }
     ],
     "carePlan": {
@@ -166,5 +206,9 @@ SAMPLE_PATIENT = {
     }
 }
 
+import logging
+
 def get_patient_data():
+    logging.info("Retrieving FHIR patient data")
+    logging.info(f"FHIR data size: {len(str(SAMPLE_PATIENT))} characters")
     return SAMPLE_PATIENT
