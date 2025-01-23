@@ -52,15 +52,21 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     plt.ylabel(data.get("ylabel", "Y Axis"))
     plt.grid(True)
     
-    # Save to bytes buffer
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close()
-    
-    # Convert to base64
-    buf.seek(0)
-    img_b64 = base64.b64encode(buf.getvalue()).decode()
-    return img_b64
+    try:
+        # Save to bytes buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        plt.close()
+        
+        # Convert to base64
+        buf.seek(0)
+        img_b64 = base64.b64encode(buf.getvalue()).decode()
+        logging.info("Successfully generated graph image")
+        return img_b64
+    except Exception as e:
+        plt.close()  # Ensure figure is closed even on error
+        logging.error(f"Failed to generate graph image: {str(e)}", exc_info=True)
+        raise ValueError(f"Graph generation failed: {str(e)}")
 
 def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> str:
     """Generate specific health metric graphs"""

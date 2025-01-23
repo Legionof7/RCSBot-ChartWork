@@ -201,12 +201,17 @@ def handle_webhook():
                                 data_url = f"data:image/png;base64,{img_b64}"
 
                                 # Send MMS with graph
-                                response = client.send.mms(
-                                    to=parsed_data.from_,
-                                    from_=parsed_data.to,
-                                    text=graph_part.strip(),
-                                    media_urls=[data_url]
-                                )
+                                try:
+                                    response = client.send.mms(
+                                        to=parsed_data.from_,
+                                        from_=parsed_data.to,
+                                        text=graph_part.strip(),
+                                        media_urls=[data_url]
+                                    )
+                                    logger.info("Successfully sent MMS with graph")
+                                except Exception as mms_error:
+                                    logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
+                                    raise
                                 
                                 # Send remaining message if any
                                 if remaining_message.strip():
