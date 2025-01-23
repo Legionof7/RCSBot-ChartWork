@@ -75,13 +75,16 @@ def call_openrouter(messages):
     }
 
     try:
+        logger.info(f"Sending request to OpenRouter: {data}")
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers=headers,
             json=data
         )
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]
+        response_json = response.json()
+        logger.info(f"Received OpenRouter response: {response_json}")
+        return response_json["choices"][0]["message"]
     except Exception as e:
         logger.error(f"OpenRouter API error: {str(e)}")
         raise
@@ -98,8 +101,9 @@ def handle_webhook():
 
         try:
             json_data = request.get_json()
+            logger.info(f"Processing JSON data: {json_data}")
             parsed_data = Pinnacle.parse_inbound_message(json_data)
-            logger.info(f"Parsed data: {parsed_data}")
+            logger.info(f"Parsed message data: {parsed_data}")
 
             if hasattr(parsed_data, 'text'):
                 lower_text = parsed_data.text.lower().strip()
@@ -145,8 +149,12 @@ def handle_webhook():
                         if "GRAPH_DATA:" in response_content:
                             try:
                                 # Extract graph data and remaining message
+                                logger.info("Detected graph data in response")
                                 graph_part, message_part = response_content.split("GRAPH_DATA:", 1)
-                                graph_info = json.loads(message_part.split("END_GRAPH_DATA")[0])
+                                graph_data = message_part.split("END_GRAPH_DATA")[0]
+                                logger.info(f"Raw graph data: {graph_data}")
+                                graph_info = json.loads(graph_data)
+                                logger.info(f"Parsed graph info: {graph_info}")
                                 remaining_message = message_part.split("END_GRAPH_DATA")[1]
 
                                 # Generate graph
@@ -188,12 +196,13 @@ def handle_webhook():
                         for message_part in messages_to_send:
                             for attempt in range(max_retries):
                                 try:
+                                    logger.info(f"Attempting to send message part: {message_part[:100]}...")
                                     response = client.send.sms(
                                         to=parsed_data.from_,
                                         from_=parsed_data.to,
                                         text=message_part
                                     )
-                                    logger.info(f"Sent message part successfully")
+                                    logger.info(f"Message sent successfully. Response: {response}")
                                     break
                                 except Exception as sms_error:
                                     logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
