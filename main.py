@@ -209,10 +209,10 @@ def handle_webhook():
                                     imgbb_key = os.getenv('IMGBB_API_KEY', 'dc9385b3e6c2b601de1361a53e98e869')
                                     upload_url = 'https://api.imgbb.com/1/upload'
                                     # Add data:image/png;base64, prefix required by imgbb
-                                    img_data = f"data:image/png;base64,{img_b64}"
                                     payload = {
                                         'key': imgbb_key,
-                                        'image': img_data,
+                                        'image': img_b64,  # Send raw base64 data
+                                        'name': f'graph_{int(time.time())}.png'
                                     }
                                     upload_response = requests.post(upload_url, data=payload)
                                     upload_response.raise_for_status()
