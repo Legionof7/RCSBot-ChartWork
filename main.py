@@ -184,18 +184,28 @@ def send_rcs_message(to_number: str, response_data: dict):
     quick_replies = response_data.get("quick_replies", [])
     image_url = None
 
+    logger.info("Checking for graph data...")
     if "graph" in response_data and response_data["graph"]:
         try:
+            logger.info(f"Found graph data: {json.dumps(response_data['graph'], indent=2)}")
             g_type = response_data["graph"]["type"]
             g_data = response_data["graph"]["data"]
+            logger.info(f"Generating graph of type {g_type}")
             img_b64 = generate_graph(g_type, g_data)
+            logger.info("Graph generated successfully, uploading to ImgBB")
             image_url = upload_base64_to_imgbb(img_b64)
+            logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
-            logger.error(f"Graph generation/upload failed: {str(e)}")
+            logger.error(f"Graph generation/upload failed:")
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error message: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
     # Clean and validate cards
     valid_cards = []
-    for card in cards:
+    logger.info(f"Processing {len(cards)} cards")
+    for idx, card in enumerate(cards):
+        logger.info(f"Processing card {idx + 1}")
         clean_card = {
             "title": card.get("title", "Information"),
             "subtitle": card.get("subtitle", ""),
@@ -203,12 +213,15 @@ def send_rcs_message(to_number: str, response_data: dict):
             "media_url": "",  # Default empty string
             "buttons": card.get("buttons", [])
         }
+        logger.info(f"Card {idx + 1} initial mediaUrl: {card.get('media_url')}")
 
         # Handle graph URL placeholder
         media_url = card.get("media_url")
+        logger.info(f"Processing media_url: {media_url}, image_url available: {bool(image_url)}")
         if image_url and media_url and isinstance(media_url, str) and media_url.startswith("{GRAPH_URL_"):
+            logger.info(f"Setting media_url to image_url: {image_url}")
             clean_card["media_url"] = image_url
-
+        logger.info(f"Final card {idx + 1} media_url: {clean_card['media_url']}")
         valid_cards.append(clean_card)
 
     # Send final RCS message
