@@ -1,0 +1,161 @@
+=== AI Model Response ===
+```json
+{
+  "text": "Your HbA1c is 6.8%.",
+  "cards": [
+    {
+      "title": "Lab Results",
+      "subtitle": "Jan 15, 2024",
+      "description": "Here's a summary of your recent lab results.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": []
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "More Details",
+      "type": "trigger",
+      "payload": "more_details"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {
+      "labels":["HbA1c", "Glucose", "LDL"],
+      "values":[6.8, 110, 110],
+      "title": "Lab Results",
+      "xlabel": "Test",
+      "ylabel": "Value",
+      "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}
+    }
+  }
+}
+```
+
+=====================
+
+2025-01-26 18:44:24,803 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:44:24] "POST / HTTP/1.1" 200 -
+2025-01-26 18:44:31,551 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:44:31] "GET / HTTP/1.1" 200 -
+2025-01-26 18:44:41,422 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:44:41] "GET / HTTP/1.1" 200 -
+
+=== AI Model Response ===
+```json
+{
+  "text": "Here's a summary of your health based on your latest records:",
+  "cards": [
+    {
+      "title": "Vitals",
+      "subtitle": "January 15, 2024",
+      "description": "Blood Pressure: 128/82 mmHg\nHeart Rate: 72 bpm\nWeight: 80.5 kg\nHeight: 180 cm",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Conditions",
+      "subtitle": null,
+      "description": "Type 2 Diabetes\nHypertension",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Medications",
+      "subtitle": null,
+      "description": "Metformin 500mg twice daily\nLisinopril 10mg once daily",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Next Appointment",
+      "subtitle": null,
+      "description": "February 15, 2024",
+      "media_url": null,
+      "buttons": []
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "See Lab Results",
+      "type": "trigger",
+      "payload": "lab_results"
+    },
+    {
+      "title": "View Care Plan",
+      "type": "trigger",
+      "payload": "care_plan"
+    }
+  ],
+  "graph": null
+}
+```
+
+=====================
+
+2025-01-26 18:44:43,077 - __main__ - ERROR - Graph generation/upload failed: 'NoneType' object is not subscriptable
+2025-01-26 18:44:43,608 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.0.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.subtitle\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.2.subtitle\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.2.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.3.subtitle\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.3.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n']}
+2025-01-26 18:44:43,609 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.0.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.subtitle\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.2.subtitle\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.2.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.3.subtitle\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.3.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n']}
+2025-01-26 18:44:43,609 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:44:43] "POST / HTTP/1.1" 200 -
+2025-01-26 18:44:51,864 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:44:51] "GET / HTTP/1.1" 200 -
+2025-01-26 18:45:01,670 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:45:01] "GET / HTTP/1.1" 200 -
+
+=== AI Model Response ===
+```json
+{
+  "text": "Here's a summary of your health based on your recent records.",
+  "cards": [
+    {
+      "title": "Overall Health",
+      "subtitle": "As of Jan 15, 2024",
+      "description": "You have type 2 diabetes and hypertension.  Your recent lab results show your HbA1c is elevated, and your fasting glucose and LDL cholesterol are high, requiring attention.  Your blood pressure and other lab values are within normal range.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": []
+    },
+    {
+      "title": "Next Steps",
+      "subtitle": "Recommendations",
+      "description": "Please see the recommendations in your care plan to manage your conditions better. Your next appointment is scheduled for February 15, 2024.",
+      "media_url": null,
+      "buttons": [
+        {
+          "title": "View Care Plan",
+          "type": "trigger",
+          "payload": "view_care_plan"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "Schedule Appointment",
+      "type": "trigger",
+      "payload": "schedule_appointment"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {
+      "labels": ["HbA1c", "Glucose", "LDL", "BP"],      
+      "values": [6.8, 110, 110, 128],
+      "title": "Vitals Summary",
+      "xlabel": "Test",
+      "ylabel": "Value",
+      "referenceLines": {
+        "HbA1c": 7.0,
+        "Glucose": 100,
+        "LDL": 100,
+        "BP": 130
+      }
+    }
+  }
+}
+```
+
+=====================
+
+2025-01-26 18:45:08,167 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n']}
+2025-01-26 18:45:08,167 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n']}
+2025-01-26 18:45:08,168 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:45:08] "POST / HTTP/1.1" 200 -
+2025-01-26 18:45:12,253 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:45:12] "GET / HTTP/1.1" 200 -
+2025-01-26 18:45:21,920 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 18:45:21] "GET / HTTP/1.1" 200 -
+
+=== AI Model Response ===
+```json
