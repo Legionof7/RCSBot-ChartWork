@@ -1,5 +1,6 @@
+# main.py
 from flask import Flask, request
-from rcs import Pinnacle, Messaging
+from rcs import Pinnacle
 import logging
 import datetime
 import os
@@ -17,8 +18,8 @@ from graph_utils import generate_graph
 
 FHIR_DATA = get_patient_data()  # Patient data
 MODEL = "deepseek/deepseek-r1"
-OPENROUTER_API_KEY = "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"  # Example placeholder key
-IMGBB_API_KEY = "dc9385b3e6c2b601de1361a53e98e869"       # Example placeholder key
+OPENROUTER_API_KEY = "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"
+IMGBB_API_KEY = "dc9385b3e6c2b601de1361a53e98e869"
 
 app = Flask(__name__)
 app.messages = []
@@ -57,115 +58,83 @@ logger = logging.getLogger(__name__)
 logger.info("Logging system initialized")
 
 # -----------------------------
-#  PINNACLE & MESSAGING SETUP
+#  PINNACLE RCS CLIENT SETUP
 # -----------------------------
 
-# Initialize RCS client
-api_key = "2d327443-23ea-436e-be88-2eba46e15550"  
+api_key = "2d327443-23ea-436e-be88-2eba46e15550"  # Example
 client = Pinnacle(
     api_key=api_key,
     timeout=60.0
-)
-
-messaging = Messaging(
-    opt_in="Hey there, it's SlothMD! ... Reply 'STOP' anytime to end communication.",
-    opt_out="Reply STOP to unsubscribe. ...",
-    opt_out_keywords=["STOP", "UNSUBSCRIBE"],
-    agent_use_case="SlothMD's agent assists with health management...",
-    expected_agent_responses="General Inquiry: ... Escalation: ..."
 )
 
 # -----------------------------
 #        HELPER FUNCTIONS
 # -----------------------------
 
-def create_context(query: str, can_use_rcs: bool = False) -> str:
+def create_context(query: str) -> str:
+    """
+    Builds a system prompt that explains how to format the JSON for an RCS message
+    and includes relevant instructions plus the patient's FHIR data.
+    """
     graph_formats = '''
 GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
 
-Example graph:
+Example:
 GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
-
-Supported graph types and their data formats:
-1. "line" - {"x": [...], "y": [...], "title": "...", "xlabel": "...", "ylabel": "..."}
-2. "bar"  - {"labels": [...], "values": [...], "title": "...", "xlabel": "...", "ylabel": "..."}
-3. "scatter" - {"x": [...], "y": [...], "title": "...", "xlabel": "...", "ylabel": "..."}
 '''
 
-    base_context = {
-        "rcs_enabled": f"""
-You are an AI assistant for SlothMD. Return responses in the following JSON format:
+    rcs_instructions = f"""
+You are an AI assistant for SlothMD. Return responses in JSON for RCS:
+
 {{
-    "text": "Main message text",
-    "cards": [
+  "text": "Main message text",
+  "cards": [
+    {{
+      "title": "Card title",
+      "subtitle": "Optional subtitle",
+      "description": "Card description",
+      "media_url": "Optional media URL",
+      "buttons": [
         {{
-            "title": "Card title",
-            "subtitle": "Optional subtitle",
-            "description": "Card description",
-            "media_url": "Optional media URL",
-            "buttons": [
-                {{
-                    "title": "Button text",
-                    "type": "trigger",
-                    "payload": "button_action"
-                }}
-            ]
+          "title": "Button text",
+          "type": "trigger",
+          "payload": "button_action"
         }}
-    ],
-    "quick_replies": [
-        {{
-            "title": "Quick reply text",
-            "type": "trigger",
-            "payload": "quick_reply_action"
-        }}
-    ],
-    "graph": {{
-        "type": "bar|line|scatter",
-        "data": {{}}
+      ]
     }}
+  ],
+  "quick_replies": [
+    {{
+      "title": "Quick reply text",
+      "type": "trigger",
+      "payload": "quick_reply_action"
+    }}
+  ],
+  "graph": {{
+    "type": "bar|line|scatter",
+    "data": {{}}
+  }}
 }}
 
-All fields except "text" are optional. Focus on healthcare insights with visual elements.
-""",
-        "rcs_disabled": f"""
-You are an AI assistant for SlothMD. Return responses in JSON format:
-{{
-    "text": "Main message text in clear, concise format suitable for SMS",
-    "graph": {{
-        "type": "bar|line|scatter",
-        "data": {{}}
-    }}
-}}
-Keep messages brief and focused on essential health guidance.
-"""
-    }
-
-    return f"""
-{base_context['rcs_enabled'] if can_use_rcs else base_context['rcs_disabled']}
-
-When you need to visualize data, embed the following marker in your response:
+When including a graph, embed data using:
 {graph_formats}
 
 When providing insights, generate at least 3. Each insight:
-• References relevant data points
-• Offers a clear problem-to-solution flow
-• Includes actionable steps with timelines
-• Draws connections among multiple health metrics
-• Suggests concrete ways to track progress
-• Stays succinct: ~3-4 sentences each
-• Highlights tangible markers of success
+- References relevant data points
+- Includes actionable steps
+- Draws connections among metrics
+- ~3-4 sentences each
+- Highlights tangible markers of success
 
-Below is the patient's FHIR data:
+Below is the patient's FHIR data (only address relevant healthcare questions):
 {json.dumps(FHIR_DATA, indent=2)}
-
-Only address healthcare-related questions. Do not generate code or answer unrelated queries.
 """
+    return rcs_instructions
 
-
-def call_openrouter(messages, to_number: str) -> dict:
+def call_openrouter(messages) -> dict:
     """
-    Calls the OpenRouter API with the conversation history plus relevant context.
-    Returns a dict with at least {"content": "..."}.
+    Calls the Deepseek model via OpenRouter with the conversation plus RCS context.
+    Returns a dict with the JSON we expect for RCS.
     """
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -174,23 +143,15 @@ def call_openrouter(messages, to_number: str) -> dict:
         "Content-Type": "application/json"
     }
     latest_message = messages[-1]["content"] if messages else ""
+    context = create_context(latest_message)
 
-    # Check RCS capability
-    try:
-        rcs_functionality = client.get_rcs_functionality(phone_number=to_number)
-        can_use_rcs = bool(getattr(rcs_functionality, 'is_enabled', False))
-    except Exception as e:
-        logger.error(f"Failed to check RCS functionality: {e}")
-        can_use_rcs = False
-
-    context = create_context(latest_message, can_use_rcs)
     data = {
         "model": MODEL,
-        "messages": [{"role": "system", "content": context}, *messages],
+        "messages": [{"role": "system", "content": context}] + messages,
     }
 
+    logger.info(f"Sending request to Deepseek (OpenRouter): {data}")
     try:
-        logger.info(f"Sending request to OpenRouter: {data}")
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers=headers,
@@ -198,10 +159,10 @@ def call_openrouter(messages, to_number: str) -> dict:
         )
         response.raise_for_status()
         response_json = response.json()
-        logger.info(f"Received OpenRouter response: {response_json}")
+        logger.info(f"Deepseek response: {response_json}")
         return response_json["choices"][0]["message"]
     except Exception as e:
-        logger.error(f"OpenRouter API error: {str(e)}")
+        logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
         raise
 
 def upload_base64_to_imgbb(img_b64: str) -> str:
@@ -218,101 +179,38 @@ def upload_base64_to_imgbb(img_b64: str) -> str:
     resp.raise_for_status()
     return resp.json()['data']['url']
 
-def send_message_with_retry(to_number: str, text: str = "", media_urls=None) -> None:
+def send_rcs_message(to_number: str, response_data: dict):
     """
-    Send a text or media message to 'to_number' via RCS if possible, otherwise SMS/MMS.
-    Automatically chunks very long messages into multiple parts.
-    Retries up to 3 times with exponential backoff.
+    Takes JSON from Deepseek (text/cards/quick_replies/graph),
+    generates a graph if needed, then sends an RCS message via Pinnacle.
     """
-    if media_urls is None:
-        media_urls = []
+    text = response_data.get("text", "")
+    cards = response_data.get("cards", [])
+    quick_replies = response_data.get("quick_replies", [])
 
-    # Check RCS capability once
-    try:
-        rcs_func = client.get_rcs_functionality(phone_number=to_number)
-        can_use_rcs = bool(getattr(rcs_func, 'is_enabled', False))
-    except Exception:
-        can_use_rcs = False
+    if "graph" in response_data:
+        try:
+            g_type = response_data["graph"]["type"]
+            g_data = response_data["graph"]["data"]
+            img_b64 = generate_graph(g_type, g_data)
+            image_url = upload_base64_to_imgbb(img_b64)
+            # Insert a card with the graph
+            cards.insert(0, {
+                "title": "Health Data Visualization",
+                "media_url": image_url
+            })
+        except Exception as e:
+            logger.error(f"Graph generation/upload failed: {str(e)}")
 
-    # Break text into chunks
-    max_length = 1600
-    chunks = [text[i:i + max_length] for i in range(0, len(text), max_length)] or [""]
-
-    for chunk in chunks:
-        for attempt in range(3):
-            try:
-                if can_use_rcs:
-                    if media_urls:
-                        # Minimal example of sending RCS with media
-                        response = client.send.rcs(
-                            to=to_number,
-                            from_="test",
-                            text=chunk,  # or using RCS cards
-                        )
-                    else:
-                        response = client.send.rcs(
-                            to=to_number,
-                            from_="test",
-                            text=chunk
-                        )
-                else:
-                    # If not RCS, fallback to MMS if we have media, else SMS
-                    if media_urls:
-                        response = client.send.mms(
-                            to=to_number,
-                            from_="+18337750778",
-                            text=chunk if chunk.strip() else None,
-                            media_urls=media_urls
-                        )
-                    else:
-                        response = client.send.sms(
-                            to=to_number,
-                            from_="+18337750778",
-                            text=chunk
-                        )
-                logger.info(f"Message sent successfully (attempt {attempt+1}): {response}")
-                break
-            except Exception as e:
-                logger.error(f"Send attempt {attempt+1} failed: {e}")
-                if attempt < 2:
-                    time.sleep(1 << attempt)  # exponential backoff: 1s, 2s
-                else:
-                    logger.error("Max retries reached, message send failed")
-
-def extract_and_send_graph(response_content: str, to_number: str) -> str:
-    """
-    Detect graph data in response_content, generate/upload the graph, then send it.
-    Returns the text content after extracting the graph section (if any).
-    """
-    if "GRAPH_DATA:" not in response_content:
-        return response_content  # No graph data, do nothing
-
-    try:
-        # Split out the portion before "GRAPH_DATA:" (graph_part) just for leading text
-        graph_part, remainder = response_content.split("GRAPH_DATA:", 1)
-        graph_data_str = remainder.split("END_GRAPH_DATA")[0].strip()
-        after_graph = remainder.split("END_GRAPH_DATA", 1)[1]
-
-        graph_info = json.loads(graph_data_str)
-        img_b64 = generate_graph(
-            graph_info["type"],
-            graph_info.get("data", {})
-        )
-
-        # Upload to imgbb and send
-        image_url = upload_base64_to_imgbb(img_b64)
-        # Send leading text + the graph image
-        if graph_part.strip():
-            send_message_with_retry(to_number, graph_part.strip(), media_urls=[image_url])
-        else:
-            send_message_with_retry(to_number, media_urls=[image_url])
-
-        # Return whatever text remains after the graph
-        return after_graph.strip()
-
-    except Exception as e:
-        logger.error(f"Failed to generate or send graph: {e}")
-        return "Sorry, I couldn't generate the graph.\n" + response_content
+    # Send final RCS message
+    rcs_response = client.send.rcs(
+        to=to_number,
+        from_="test",
+        text=text,
+        cards=cards,
+        quick_replies=quick_replies
+    )
+    logger.info(f"RCS send response: {rcs_response}")
 
 # -----------------------------
 #         FLASK ROUTES
@@ -324,143 +222,73 @@ def handle_webhook():
     if request.method == 'POST':
         raw_data = request.get_data(as_text=True)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        logger.info(f"Received webhook at {timestamp} - Raw data: {raw_data}")
+        logger.info(f"Received webhook @ {timestamp}, raw data: {raw_data}")
 
         try:
             json_data = request.get_json()
             parsed_data = Pinnacle.parse_inbound_message(json_data)
-            logger.info(f"Parsed inbound message: {parsed_data}")
+            from_number = parsed_data.from_
+            user_text = parsed_data.text.strip()
         except Exception as e:
-            logger.error(f"Failed to parse message: {str(e)}")
-            parsed_data = None
+            logger.error(f"Failed to parse inbound message: {str(e)}")
+            return "Webhook received", 200
 
-        # Always store for debug
+        # Store for debugging
         app.messages.append({
             'timestamp': timestamp,
             'data': raw_data,
-            'parsed': parsed_data if parsed_data else "Parse error"
+            'parsed': parsed_data.__dict__ if parsed_data else "Parse error"
         })
 
-        if not parsed_data or not hasattr(parsed_data, 'text'):
-            return "Webhook received", 200
+        # Conversation logic
+        app.conversation_history.setdefault(from_number, [])
+        app.conversation_history[from_number].append({"role": "user", "content": user_text})
+        conversation_slice = app.conversation_history[from_number][-6:]
 
-        from_number = parsed_data.from_
-        user_text = parsed_data.text.lower().strip()
-
-        # Simple subscription flows
-        if 'slothmd' in user_text:
-            send_message_with_retry(
-                from_number,
-                "Hey there, it's SlothMD! ... Standard message & data rates may apply. Reply 'STOP' anytime."
-            )
-        elif 'sloth' in user_text:
-            send_message_with_retry(
-                from_number,
-                "You're in! Expect access to early texting features..."
-            )
-        else:
-            # General conversation logic
-            app.conversation_history.setdefault(from_number, [])
-            app.conversation_history[from_number].append({"role": "user", "content": parsed_data.text})
-
-            # Limit to last 6 messages
-            conversation_slice = app.conversation_history[from_number][-6:]
+        # Call Deepseek
+        try:
+            ai_response = call_openrouter(conversation_slice)
+            # Must be valid JSON
             try:
-                ai_response = call_openrouter(conversation_slice, from_number)
-                try:
-                    response_data = json.loads(ai_response.get("content", "{}"))
-                except json.JSONDecodeError:
-                    raise ValueError("Invalid JSON response from AI")
+                response_data = json.loads(ai_response.get("content", "{}"))
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON response from Deepseek")
 
-                if "graph" in response_data:
-                    img_b64 = generate_graph(
-                        response_data["graph"]["type"],
-                        response_data["graph"]["data"]
-                    )
-                    image_url = upload_base64_to_imgbb(img_b64)
-                    response_data.setdefault("cards", []).insert(0, {
-                        "title": "Health Data Visualization",
-                        "media_url": image_url
-                    })
+            # Send RCS
+            send_rcs_message(from_number, response_data)
 
-                if can_use_rcs:
-                    response = client.send.rcs(
-                        to=from_number,
-                        from_="test",
-                        text=response_data.get("text", ""),
-                        cards=response_data.get("cards"),
-                        quick_replies=response_data.get("quick_replies")
-                    )
-                else:
-                    # For SMS/MMS, just send text and graph if available
-                    media_urls = []
-                    if "graph" in response_data:
-                        media_urls.append(image_url)
-                    send_message_with_retry(from_number, response_data.get("text", ""), media_urls)
-
-                # Save assistant response
-                app.conversation_history[from_number].append({"role": "assistant", "content": response_text})
-
-            except Exception as e:
-                logger.error(f"Failed to process chat message: {e}")
+            # Save assistant response
+            app.conversation_history[from_number].append(
+                {"role": "assistant", "content": json.dumps(response_data)}
+            )
+        except Exception as e:
+            logger.error(f"Error processing user message: {e}")
 
         return "Webhook received", 200
-
     else:
-        # GET request: show last inbound messages
+        # On GET, display a simple table of recent inbound messages
         html_content = '''
-            <h1>Webhook Receiver</h1>
-            <meta http-equiv="refresh" content="30">
-            <style>
-                table { border-collapse: collapse; width: 100%; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-            </style>
-            <table>
-                <tr><th>Time</th><th>Raw Data</th><th>Parsed Data</th></tr>
+            <h1>RCS Webhook Receiver</h1>
+            <meta http-equiv="refresh" content="20">
+            <table border="1" cellspacing="0" cellpadding="5">
+              <tr><th>Time</th><th>Raw Data</th><th>Parsed Data</th></tr>
         '''
         for msg in reversed(app.messages):
             html_content += f'''
-                <tr>
-                    <td>{msg['timestamp']}</td>
-                    <td><pre>{msg['data']}</pre></td>
-                    <td><pre>{msg['parsed']}</pre></td>
-                </tr>
+              <tr>
+                <td>{msg['timestamp']}</td>
+                <td><pre>{msg['data']}</pre></td>
+                <td><pre>{msg['parsed']}</pre></td>
+              </tr>
             '''
         html_content += '</table>'
         return html_content
 
-@app.route("/send", methods=['GET'])
-def send_message():
-    return '''
-        <h2>Send Message</h2>
-        <form action="/send_message" method="post">
-            Phone Number (include +1): <input type="text" name="to_number"><br>
-            Message: <input type="text" name="message"><br>
-            Media URL (optional): <input type="text" name="media_urls[]"><br>
-            Media URL (optional): <input type="text" name="media_urls[]"><br>
-            <input type="submit" value="Send Message">
-        </form>
-    '''
-
-@app.route("/send_message", methods=['POST'])
-def send_unified_message():
-    to_number = request.form['to_number']
-    message_body = request.form['message']
-    media_urls = [url.strip() for url in request.form.getlist('media_urls[]') if url.strip()]
-
-    try:
-        send_message_with_retry(to_number, message_body, media_urls)
-        return f"Message sent to {to_number}"
-    except Exception as e:
-        logger.error(f"Error sending message: {e}")
-        return f"Error: {str(e)}"
-
-@app.route("/logs")
+@app.route("/logs", methods=["GET"])
 def view_logs():
     html_content = '''
         <h1>Application Logs</h1>
-        <meta http-equiv="refresh" content="5">
+        <meta http-equiv="refresh" content="10">
         <style>
             table { border-collapse: collapse; width: 100%; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -482,34 +310,6 @@ def view_logs():
         '''
     html_content += '</table>'
     return html_content
-
-@app.route("/send_mms", methods=['POST'])
-def send_mms():
-    to_number = request.form['to_number']
-    message_body = request.form.get('message', '')
-    media_urls = [url.strip() for url in request.form.getlist('media_urls[]') if url.strip()]
-    graph_data = request.form.get('graph_data', '')
-
-    # If graph_data is provided, generate it
-    if graph_data:
-        try:
-            graph_info = json.loads(graph_data)
-            img_b64 = generate_graph(graph_info["type"], graph_info["data"])
-            temp_url = upload_base64_to_imgbb(img_b64)
-            media_urls.append(temp_url)
-        except Exception as e:
-            logger.error(f"Failed to generate graph: {str(e)}")
-            return f"Error generating graph: {str(e)}", 400
-
-    if not media_urls:
-        return "Error: No valid media URLs", 400
-
-    try:
-        send_message_with_retry(to_number, message_body, media_urls)
-        return f"MMS sent to {to_number}"
-    except Exception as e:
-        logger.error(f"Error sending MMS: {str(e)}")
-        return f"Error: {str(e)}", 400
 
 if __name__ == "__main__":
     port = int(os.getenv('PORT', 3000))
