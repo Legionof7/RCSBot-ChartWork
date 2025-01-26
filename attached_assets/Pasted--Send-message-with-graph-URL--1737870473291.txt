@@ -1,0 +1,74 @@
+
+                                    # Send message with graph URL
+                                    if can_use_rcs:
+                                        response = client.send.rcs(
+                                            to=parsed_data.from_,
+                                            from_="test",  # Using test agent
+                                            cards=[
+                                                Card(
+                                                    title="Health Data Visualization",
+                                                    subtitle=graph_part.strip(),
+                                                    media_url=image_url
+                                                )
+                                            ]
+                                        )
+                                        logger.info("Successfully sent RCS with graph")
+                                    else:
+                                        response = client.send.mms(
+                                            to=parsed_data.from_,
+                                            from_="+18337750778",
+                                            text=graph_part.strip(),
+                                            media_urls=[image_url]
+                                        )
+                                        logger.info("Successfully sent MMS with graph")
+                                except Exception as mms_error:
+                                    logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
+                                    raise
+
+                                # Send remaining message if any
+                                if remaining_message.strip():
+                                    response_content = remaining_message
+
+                            except Exception as graph_error:
+                                logger.error(f"Failed to generate graph: {str(graph_error)}")
+                                response_content = "Sorry, I couldn't generate the graph. " + response_content
+
+                        app.conversation_history[parsed_data.from_].append(
+                            {"role": "assistant", "content": response_content}
+                        )
+
+                        max_retries = 3
+                        retry_delay = 1
+                        max_length = 1600
+
+                        messages_to_send = [ai_response["content"][i:i + max_length] 
+                                          for i in range(0, len(ai_response["content"]), max_length)]
+
+                        for message_part in messages_to_send:
+                            for attempt in range(max_retries):
+                                try:
+                                    logger.info(f"Attempting to send message part: {message_part[:100]}...")
+                                    if can_use_rcs:
+                                        response = client.send.rcs(
+                                            to=parsed_data.from_,
+                                            from_="test",
+                                            text=message_part
+                                        )
+                                    else:
+                                        response = client.send.sms(
+                                            to=parsed_data.from_,
+                                            from_="+18337750778",
+                                            text=message_part
+                                        )
+                                    logger.info(f"Message sent successfully. Response: {response}")
+                                    break
+                                except Exception as sms_error:
+                                    logger.error(f"SMS send attempt {attempt + 1} failed: {str(sms_error)}")
+                                    if attempt < max_retries - 1:
+                                        time.sleep(retry_delay)
+                                        retry_delay *= 2
+                                    else:
+                                        logger.error("Max retries reached, SMS send failed")
+                                        raise
+                    except Exception as e:
+                        logger.error(f"Failed to process chat message: {str(e)}")
