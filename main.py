@@ -249,11 +249,15 @@ def handle_webhook():
         # Call Deepseek
         try:
             ai_response = call_openrouter(conversation_slice)
+            content = ai_response.get("content", "{}")
+            logger.info(f"Raw Deepseek response content: {content}")
             # Must be valid JSON
             try:
-                response_data = json.loads(ai_response.get("content", "{}"))
-            except json.JSONDecodeError:
-                raise ValueError("Invalid JSON response from Deepseek")
+                response_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse Deepseek JSON response. Raw content: {content}")
+                logger.error(f"JSON parse error: {str(e)}")
+                raise ValueError(f"Invalid JSON response from Deepseek: {str(e)}")
 
             # Send RCS
             send_rcs_message(from_number, response_data)
