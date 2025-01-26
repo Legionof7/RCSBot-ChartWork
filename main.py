@@ -69,11 +69,11 @@ messaging = Messaging(
 client.company.register(
     company=CompanyDetails(
         name="SlothMD",
-        category="Healthcare",
+        category="Health",
         address="123 Health St",
-        ein="12-3456789",
+        ein="123456789",
         description="AI-powered health management platform",
-        brand_color="#4CAF50",
+        brand_color="#2E7D32",  # Darker green for better contrast
         logo_url="https://slothmd.com/logo.png",
         hero_url="https://slothmd.com/hero.png"
     ),
@@ -88,9 +88,10 @@ client.company.register(
         tos_url="https://slothmd.com/terms"
     ),
     point_of_contact={
-        "name": "John Smith",
-        "email": "founders@slothmd.io",
-        "phone": "+18337750778"
+        "pocName": "John Smith",
+        "pocTitle": "Chief Medical Officer",
+        "pocEmail": "founders@slothmd.io",
+        "pocPhone": "+18337750778"
     },
     messaging=messaging
 )
