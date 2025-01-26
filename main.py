@@ -84,7 +84,7 @@ class MemoryLogHandler(logging.Handler):
     def __init__(self):
         super().__init__()
         self.logs = []
-        
+
     def emit(self, record):
         try:
             log_entry = {
@@ -131,7 +131,7 @@ def call_openrouter(messages):
     # Get relevant context based on user's message
     latest_message = messages[-1]["content"] if messages else ""
     context = create_context(latest_message)
-    
+
     data = {
         "model": MODEL,
         "messages": [
@@ -214,7 +214,7 @@ def handle_webhook():
                         # Check if response contains graph data
                         # Check RCS functionality first
                         try:
-                            rcs_functionality = client.get_rcs_functionality(parsed_data.from_)
+                            rcs_functionality = client.get_rcs_functionality(phone_number=parsed_data.from_)
                             logger.info(f"RCS functionality for {parsed_data.from_}: {rcs_functionality}")
                             can_use_rcs = rcs_functionality.get("is_enabled", False)
                         except Exception as e:
@@ -238,7 +238,7 @@ def handle_webhook():
                                     graph_info["type"],
                                     graph_data
                                 )
-                                
+
                                 # Upload image to imgbb
                                 try:
                                     imgbb_key = os.getenv('IMGBB_API_KEY', 'dc9385b3e6c2b601de1361a53e98e869')
@@ -251,7 +251,7 @@ def handle_webhook():
                                     }
                                     upload_response = requests.post(upload_url, data=payload)
                                     upload_response.raise_for_status()
-                                    
+
                                     image_url = upload_response.json()['data']['url']
                                     logger.info(f"Image uploaded successfully: {image_url}")
 
@@ -280,7 +280,7 @@ def handle_webhook():
                                 except Exception as mms_error:
                                     logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
                                     raise
-                                
+
                                 # Send remaining message if any
                                 if remaining_message.strip():
                                     response_content = remaining_message
@@ -376,7 +376,7 @@ def send_message():
             Message: <input type="text" name="message"><br>
             <input type="submit" value="Send SMS">
         </form>
-        
+
         <h2>Send MMS</h2>
         <form action="/send_mms" method="post">
             Phone Number (include +1): <input type="text" name="to_number"><br>
@@ -419,7 +419,7 @@ def view_logs():
         <table>
             <tr><th>Timestamp</th><th>Level</th><th>Message</th></tr>
     '''
-    
+
     for log in reversed(memory_handler.logs):
         html_content += f'''
             <tr>
@@ -428,7 +428,7 @@ def view_logs():
                 <td>{log['message']}</td>
             </tr>
         '''
-    
+
     html_content += '</table>'
     return html_content
 
@@ -460,7 +460,7 @@ def send_mms():
 
     # Basic URL validation
     valid_urls = [url for url in media_urls if url.strip()]
-    
+
     if not valid_urls:
         return "Error: No valid media URLs", 400
 
