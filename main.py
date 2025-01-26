@@ -203,11 +203,11 @@ def send_rcs_message(to_number: str, response_data: dict):
             "media_url": "",  # Default empty string
             "buttons": card.get("buttons", [])
         }
-        
+
         # Handle graph URL placeholder
         if image_url and card.get("media_url", "").startswith("{GRAPH_URL_"):
             clean_card["media_url"] = image_url
-            
+
         valid_cards.append(clean_card)
 
     # Send final RCS message
@@ -216,17 +216,17 @@ def send_rcs_message(to_number: str, response_data: dict):
             "to": to_number,
             "from_": "test"
         }
-        
+
         if quick_replies:
             rcs_params["quick_replies"] = quick_replies
-            
+
         if valid_cards:
             rcs_params["cards"] = valid_cards
         elif text:
             rcs_params["text"] = text
         else:
             rcs_params["text"] = "No content available"
-            
+
         rcs_response = client.send.rcs(**rcs_params)
         logger.info(f"RCS send response: {rcs_response}")
     except Exception as e:
@@ -249,7 +249,7 @@ def handle_webhook():
             json_data = request.get_json()
             parsed_data = Pinnacle.parse_inbound_message(json_data)
             from_number = parsed_data.from_
-            
+
             # Handle different types of inbound messages
             if hasattr(parsed_data, 'text'):
                 user_text = parsed_data.text.strip()
@@ -282,7 +282,7 @@ def handle_webhook():
             print(content)
             print("=====================\n")
             logger.info(f"Raw Deepseek response content: {content}")
-            
+
             # Extract JSON content between code fences
             json_start = content.find('```json')
             if json_start != -1:
@@ -309,7 +309,7 @@ def handle_webhook():
                         json_content = "{}"
                 else:
                     json_content = "{}"
-                    
+
             try:
                 # Ensure we're working with valid JSON
                 json_content = json_content.strip()
@@ -318,13 +318,21 @@ def handle_webhook():
                 response_data = json.loads(json_content)
                 if not isinstance(response_data, dict):
                     response_data = {"text": "I apologize, but I encountered an error. How else can I help you today?"}
-                
+
                 # Extract graph data if present
                 if 'GRAPH_DATA:' in content:
-                    graph_data = content.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
-                    graph_json = json.loads(graph_data)
-                    response_data['graph'] = graph_json
-                    
+                    try:
+                        graph_data = content.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
+                        graph_json = json.loads(graph_data)
+                        if isinstance(graph_json, dict) and 'type' in graph_json and 'data' in graph_json:
+                            response_data['graph'] = graph_json
+                        else:
+                            logger.error(f"Invalid graph data structure: {graph_json}")
+                            response_data['graph'] = None
+                    except Exception as e:
+                        logger.error(f"Failed to parse graph data: {str(e)}")
+                        response_data['graph'] = None
+
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse Deepseek JSON response. Content: {json_content}")
                 logger.error(f"JSON parse error: {str(e)}")
