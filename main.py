@@ -185,11 +185,15 @@ def send_rcs_message(to_number: str, response_data: dict):
     image_url = None
 
     logger.info("Checking for graph data...")
+    print("\n=== Graph Generation Debug ===")
+    print(f"Response data keys: {response_data.keys()}")
     if "graph" in response_data and response_data["graph"]:
         try:
-            logger.info(f"Found graph data: {json.dumps(response_data['graph'], indent=2)}")
+            print(f"Graph data found: {json.dumps(response_data['graph'], indent=2)}")
             g_type = response_data["graph"]["type"]
             g_data = response_data["graph"]["data"]
+            print(f"Attempting to generate {g_type} graph with data:")
+            print(json.dumps(g_data, indent=2))
             logger.info(f"Generating graph of type {g_type}")
             img_b64 = generate_graph(g_type, g_data)
             logger.info("Graph generated successfully, uploading to ImgBB")
@@ -203,9 +207,15 @@ def send_rcs_message(to_number: str, response_data: dict):
 
     # Clean and validate cards
     valid_cards = []
+    print("\n=== Card Processing Debug ===")
+    print(f"Number of cards: {len(cards)}")
+    print(f"Image URL available: {image_url}")
+    
     logger.info(f"Processing {len(cards)} cards")
     for idx, card in enumerate(cards):
-        logger.info(f"Processing card {idx + 1}")
+        print(f"\nCard {idx + 1}:")
+        print(f"Raw card data: {json.dumps(card, indent=2)}")
+        
         clean_card = {
             "title": card.get("title", "Information"),
             "subtitle": card.get("subtitle", ""),
@@ -213,7 +223,7 @@ def send_rcs_message(to_number: str, response_data: dict):
             "media_url": "",  # Default empty string
             "buttons": card.get("buttons", [])
         }
-        logger.info(f"Card {idx + 1} initial mediaUrl: {card.get('media_url')}")
+        print(f"Initial media_url: {card.get('media_url')}")
 
         # Handle graph URL placeholder
         media_url = card.get("media_url")
@@ -241,6 +251,9 @@ def send_rcs_message(to_number: str, response_data: dict):
         else:
             rcs_params["text"] = "No content available"
 
+        print("\n=== Final RCS Parameters ===")
+        print(json.dumps(rcs_params, indent=2))
+        
         rcs_response = client.send.rcs(**rcs_params)
         logger.info(f"RCS send response: {rcs_response}")
     except Exception as e:
