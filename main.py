@@ -8,6 +8,7 @@ import requests
 import time
 import json
 import base64
+import traceback
 
 from fhir_data import get_patient_data
 from graph_utils import generate_graph
@@ -117,8 +118,14 @@ You are an AI assistant for SlothMD. Generate JSON in this format to make your r
 
 Important:
 1. All health information cards MUST include a "See More" button
-2. All broad metric-related queries asking about levels/numbers MUST include a graph visualization
-3. Use appropriate graph types:
+2. All metric-related queries MUST include a graph visualization
+3. Always include these quick reply actions:
+   - "Schedule Appointment" (payload: schedule_appointment)
+   - "View Care Plan" (payload: view_care_plan)
+   - "Contact Doctor" (payload: contact_doctor)
+   - "View Medications" (payload: view_medications)
+   - "Check Lab Results" (payload: check_labs)
+4. Use appropriate graph types:
    - bar: for comparing values
    - line: for trends over time
    - scatter: for correlation analysis
@@ -217,12 +224,12 @@ def send_rcs_message(to_number: str, response_data: dict):
     print("\n=== Card Processing Debug ===")
     print(f"Number of cards: {len(cards)}")
     print(f"Image URL available: {image_url}")
-    
+
     logger.info(f"Processing {len(cards)} cards")
     for idx, card in enumerate(cards):
         print(f"\nCard {idx + 1}:")
         print(f"Raw card data: {json.dumps(card, indent=2)}")
-        
+
         clean_card = {
             "title": card.get("title", "Information"),
             "subtitle": card.get("description", "") or card.get("subtitle", ""),  # Use description as subtitle, fallback to subtitle
@@ -258,7 +265,7 @@ def send_rcs_message(to_number: str, response_data: dict):
 
         print("\n=== Final RCS Parameters ===")
         print(json.dumps(rcs_params, indent=2))
-        
+
         rcs_response = client.send.rcs(**rcs_params)
         logger.info(f"RCS send response: {rcs_response}")
     except Exception as e:
