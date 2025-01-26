@@ -220,7 +220,6 @@ def send_rcs_message(to_number: str, response_data: dict):
             "title": card.get("title", "Information"),
             "subtitle": card.get("subtitle", ""),
             "description": card.get("description", ""),
-            "media_url": "",  # Default to empty string since API requires string
             "buttons": card.get("buttons", [])
         }
         print(f"Initial media_url: {card.get('media_url')}")
@@ -231,7 +230,7 @@ def send_rcs_message(to_number: str, response_data: dict):
         if image_url and media_url and isinstance(media_url, str) and media_url.startswith("{GRAPH_URL_"):
             logger.info(f"Setting media_url to image_url: {image_url}")
             clean_card["media_url"] = image_url
-        logger.info(f"Final card {idx + 1} media_url: {clean_card['media_url']}")
+        logger.info(f"Final card {idx + 1} media_url: {clean_card.get('media_url', 'not set')}")
         valid_cards.append(clean_card)
 
     # Send final RCS message
