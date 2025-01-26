@@ -1,0 +1,137 @@
+
+=== Graph Generation Debug ===
+Response data keys: dict_keys(['text', 'cards', 'quick_replies', 'graph'])
+Graph data found: {
+  "type": "bar",
+  "data": {
+    "labels": [
+      "HbA1c",
+      "Glucose",
+      "LDL"
+    ],
+    "values": [
+      6.8,
+      110,
+      110
+    ],
+    "title": "Lab Results",
+    "xlabel": "Test",
+    "ylabel": "Value",
+    "referenceLines": {
+      "HbA1c": 7.0,
+      "Glucose": 100,
+      "LDL": 100
+    }
+  }
+}
+Attempting to generate bar graph with data:
+{
+  "labels": [
+    "HbA1c",
+    "Glucose",
+    "LDL"
+  ],
+  "values": [
+    6.8,
+    110,
+    110
+  ],
+  "title": "Lab Results",
+  "xlabel": "Test",
+  "ylabel": "Value",
+  "referenceLines": {
+    "HbA1c": 7.0,
+    "Glucose": 100,
+    "LDL": 100
+  }
+}
+
+=== Card Processing Debug ===
+Number of cards: 5
+Image URL available: https://i.ibb.co/HDf3rmv/graph-1737916530-png.png
+
+Card 1:
+Raw card data: {
+  "title": "Medical Conditions",
+  "description": "Type 2 Diabetes (since 2020), Hypertension (since 2019)",
+  "buttons": []
+}
+Initial media_url: None
+
+Card 2:
+Raw card data: {
+  "title": "Medications",
+  "description": "Metformin 500mg twice daily, Lisinopril 10mg once daily",
+  "buttons": []
+}
+Initial media_url: None
+
+Card 3:
+Raw card data: {
+  "title": "Vitals (Jan 15, 2024)",
+  "description": "BP: 128/82 mmHg, HR: 72 bpm, Weight: 80.5 kg, Height: 180 cm",
+  "buttons": []
+}
+Initial media_url: None
+
+Card 4:
+Raw card data: {
+  "title": "Lab Results (Jan 15, 2024)",
+  "description": "HbA1c: 6.8% (High), Fasting Glucose: 110 mg/dL (High), LDL: 110 mg/dL (Borderline High), Other results within normal range.",
+  "media_url": "{GRAPH_URL_0}",
+  "buttons": []
+}
+Initial media_url: {GRAPH_URL_0}
+
+Card 5:
+Raw card data: {
+  "title": "Care Plan",
+  "description": "Maintain HbA1c <7%, BP <130/80, Regular exercise, Diabetic diet. Next review: Apr 15, 2024",
+  "buttons": []
+}
+Initial media_url: None
+
+=== Final RCS Parameters ===
+{
+  "to": "+16282798511",
+  "from_": "test",
+  "cards": [
+    {
+      "title": "Medical Conditions",
+      "subtitle": "",
+      "description": "Type 2 Diabetes (since 2020), Hypertension (since 2019)",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Medications",
+      "subtitle": "",
+      "description": "Metformin 500mg twice daily, Lisinopril 10mg once daily",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Vitals (Jan 15, 2024)",
+      "subtitle": "",
+      "description": "BP: 128/82 mmHg, HR: 72 bpm, Weight: 80.5 kg, Height: 180 cm",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Lab Results (Jan 15, 2024)",
+      "subtitle": "",
+      "description": "HbA1c: 6.8% (High), Fasting Glucose: 110 mg/dL (High), LDL: 110 mg/dL (Borderline High), Other results within normal range.",
+      "media_url": "https://i.ibb.co/HDf3rmv/graph-1737916530-png.png",
+      "buttons": []
+    },
+    {
+      "title": "Care Plan",
+      "subtitle": "",
+      "description": "Maintain HbA1c <7%, BP <130/80, Regular exercise, Diabetic diet. Next review: Apr 15, 2024",
+      "media_url": "",
+      "buttons": []
+    }
+  ]
+}
+2025-01-26 18:59:53,620 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.0.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.1.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.2.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.4.mediaUrl\nAdditional Info: {"validation":"url"}\n']}
+2025-01-26 18:59:53,620 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.0.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.1.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.2.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.4.mediaUrl\nAdditional Info: {"validation":"url"}\n']}
