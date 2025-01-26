@@ -1,0 +1,59 @@
+2025-01-26 18:00:12,861 - __main__ - ERROR - Failed to parse Deepseek JSON response. Raw content: ```json
+{
+  "text": "Hi John! Here's your current health summary and insights based on your latest data:",
+  "cards": [
+    {
+      "title": "Diabetes Management",
+      "subtitle": "HbA1c: 6.8% | Glucose: 110 mg/dL",
+      "description": "Your HbA1c remains slightly elevated. Combined with fasting glucose of 110 mg/dL, this suggests we should focus on evening carbohydrate intake. Try swapping 1 refined carb serving/day with high-fiber alternatives. Success: HbA1c <7% and fasting glucose <100 mg/dL.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "View Meal Ideas",
+          "type": "trigger",
+          "payload": "diet_resources"
+        }
+      ]
+    },
+    {
+      "title": "Blood Pressure Control",
+      "subtitle": "128/82 mmHg",
+      "description": "Your BP is near target (130/80). The Lisinopril appears effective. Let's add 10 mins of daily breathing exercises to help lower diastolic pressure. Success: Consistent readings ≤125/80.",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Cholesterol Profile",
+      "subtitle": "LDL: 110 mg/dL (Borderline High)",
+      "description": "Your LDL could improve despite normal total cholesterol. Adding 30g of walnuts/day and increasing walking by 15 mins may help. Success: LDL <100 mg/dL while maintaining HDL >40 mg/dL.",
+      "media_url": "",
+      "buttons": []
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "Log Food",
+      "type": "trigger",
+      "payload": "log_food"
+    },
+    {
+      "title": "BP Reading",
+      "type": "trigger",
+      "payload": "log_bp"
+    },
+    {
+      "title": "Ask Question",
+      "type": "trigger",
+      "payload": "contact_provider"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {}
+  }
+}
+
+GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Fasting Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Key Metrics vs Targets", "xlabel": "Biomarker", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Fasting Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
+```
+2025-01-26 18:00:12,861 - __main__ - ERROR - JSON parse error: Expecting value: line 1 column 1 (char 0)
+2025-01-26 18:00:12,861 - __main__ - ERROR - Error processing user message: Invalid JSON response from Deepseek: Expecting value: line 1 column 1 (char 0)
