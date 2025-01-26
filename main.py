@@ -94,20 +94,49 @@ Supported graph types and their data formats:
 
     base_context = {
         "rcs_enabled": f"""
-You are an AI assistant for SlothMD with RCS capabilities. Leverage rich formatting and interactive elements:
-• Use suggested replies for common responses
-• Include carousels for multiple data points
-• Incorporate rich cards for lab results
-• Use structured message layouts
-Focus on providing concise, empathetic health guidance with enhanced visual presentation.
+You are an AI assistant for SlothMD. Return responses in the following JSON format:
+{{
+    "text": "Main message text",
+    "cards": [
+        {{
+            "title": "Card title",
+            "subtitle": "Optional subtitle",
+            "description": "Card description",
+            "media_url": "Optional media URL",
+            "buttons": [
+                {{
+                    "title": "Button text",
+                    "type": "trigger",
+                    "payload": "button_action"
+                }}
+            ]
+        }}
+    ],
+    "quick_replies": [
+        {{
+            "title": "Quick reply text",
+            "type": "trigger",
+            "payload": "quick_reply_action"
+        }}
+    ],
+    "graph": {{
+        "type": "bar|line|scatter",
+        "data": {{}}
+    }}
+}}
+
+All fields except "text" are optional. Focus on healthcare insights with visual elements.
 """,
         "rcs_disabled": f"""
-You are an AI assistant for SlothMD using SMS/MMS only. Keep messages clear and concise:
-• Use plain text formatting
-• Break complex information into multiple messages
-• Include simple, clear action items
-• Use bullet points sparingly
-Focus on providing essential health guidance that's easy to read on basic devices.
+You are an AI assistant for SlothMD. Return responses in JSON format:
+{{
+    "text": "Main message text in clear, concise format suitable for SMS",
+    "graph": {{
+        "type": "bar|line|scatter",
+        "data": {{}}
+    }}
+}}
+Keep messages brief and focused on essential health guidance.
 """
     }
 
@@ -338,17 +367,36 @@ def handle_webhook():
             conversation_slice = app.conversation_history[from_number][-6:]
             try:
                 ai_response = call_openrouter(conversation_slice, from_number)
-                response_text = ai_response.get("content", "").strip()
+                try:
+                    response_data = json.loads(ai_response.get("content", "{}"))
+                except json.JSONDecodeError:
+                    raise ValueError("Invalid JSON response from AI")
 
-                if not response_text:
-                    raise ValueError("Empty AI response")
+                if "graph" in response_data:
+                    img_b64 = generate_graph(
+                        response_data["graph"]["type"],
+                        response_data["graph"]["data"]
+                    )
+                    image_url = upload_base64_to_imgbb(img_b64)
+                    response_data.setdefault("cards", []).insert(0, {
+                        "title": "Health Data Visualization",
+                        "media_url": image_url
+                    })
 
-                # If there's a GRAPH_DATA section, handle it first
-                remainder_text = extract_and_send_graph(response_text, from_number)
-
-                # Send the rest of the text
-                if remainder_text:
-                    send_message_with_retry(from_number, remainder_text)
+                if can_use_rcs:
+                    response = client.send.rcs(
+                        to=from_number,
+                        from_="test",
+                        text=response_data.get("text", ""),
+                        cards=response_data.get("cards"),
+                        quick_replies=response_data.get("quick_replies")
+                    )
+                else:
+                    # For SMS/MMS, just send text and graph if available
+                    media_urls = []
+                    if "graph" in response_data:
+                        media_urls.append(image_url)
+                    send_message_with_retry(from_number, response_data.get("text", ""), media_urls)
 
                 # Save assistant response
                 app.conversation_history[from_number].append({"role": "assistant", "content": response_text})
