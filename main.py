@@ -66,35 +66,6 @@ messaging = Messaging(
     expected_agent_responses="General Inquiry: \"How can I help with your health today?\"\nHealth Data: \"Here's your latest health metrics.\"\nOpt-In: \"You're subscribed to SlothMD!\"\nOpt-Out: \"You've been unsubscribed.\"\nEscalation: \"Connecting you to support.\""
 )
 
-client.company.register(
-    company=CompanyDetails(
-        name="SlothMD",
-        category="Health",
-        address="123 Health St",
-        ein="123456789",
-        description="AI-powered health management platform",
-        brand_color="#2E7D32",  # Darker green for better contrast
-        logo_url="https://slothmd.com/logo.png",
-        hero_url="https://slothmd.com/hero.png"
-    ),
-    company_contact=CompanyContact(
-        primary_website_url="https://slothmd.com",
-        primary_website_label="SlothMD Website",
-        primary_phone="+18337750778",
-        primary_phone_label="Support",
-        primary_email="founders@slothmd.io",
-        primary_email_label="Support Email",
-        privacy_policy_url="https://slothmd.com/privacy",
-        tos_url="https://slothmd.com/terms"
-    ),
-    point_of_contact={
-        "pocName": "John Smith",
-        "pocTitle": "Chief Medical Officer",
-        "pocEmail": "founders@slothmd.io",
-        "pocPhone": "+18337750778"
-    },
-    messaging=messaging
-)
 
 # Store messaging config for reference
 messaging_config = {
