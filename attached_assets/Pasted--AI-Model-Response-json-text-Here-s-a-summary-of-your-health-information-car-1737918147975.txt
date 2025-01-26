@@ -1,0 +1,198 @@
+=== AI Model Response ===
+```json
+{
+  "text": "Here's a summary of your health information:",
+  "cards": [
+    {
+      "title": "Conditions",
+      "description": "Type 2 Diabetes (since 2020), Hypertension (since 2019)",
+      "buttons": []
+    },
+    {
+      "title": "Medications",
+      "description": "Metformin 500mg twice daily (since 2020), Lisinopril 10mg once daily (since 2019)",
+      "buttons": []
+    },
+    {
+      "title": "Vitals (1/15/24)",
+      "description": "BP: 128/82 mmHg, HR: 72 bpm, Weight: 80.5kg, Height: 180cm",
+      "buttons": []
+    },
+    {
+      "title": "Lab Results (1/15/24)",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": []
+    }
+  ],
+  "quick_replies": [],
+  "graph": {
+    "type": "bar",
+    "data": {
+      "labels": ["HbA1c", "Glucose", "LDL", "Cholesterol", "HDL", "Triglycerides", "Creatinine"],
+      "values": [6.8, 110, 110, 185, 55, 150, 1.1],
+      "title": "Lab Results",
+      "xlabel": "Test",
+      "ylabel": "Value",
+      "referenceLines": {
+        "HbA1c": 7.0,
+        "Glucose": 100,
+        "LDL": 100,
+        "Cholesterol": 200,
+        "HDL": 40,
+        "Triglycerides": 150,
+        "Creatinine": 1.3
+      }
+    }
+  }
+}
+```
+
+=====================
+
+
+=== Graph Generation Debug ===
+Response data keys: dict_keys(['text', 'cards', 'quick_replies', 'graph'])
+Graph data found: {
+  "type": "bar",
+  "data": {
+    "labels": [
+      "HbA1c",
+      "Glucose",
+      "LDL",
+      "Cholesterol",
+      "HDL",
+      "Triglycerides",
+      "Creatinine"
+    ],
+    "values": [
+      6.8,
+      110,
+      110,
+      185,
+      55,
+      150,
+      1.1
+    ],
+    "title": "Lab Results",
+    "xlabel": "Test",
+    "ylabel": "Value",
+    "referenceLines": {
+      "HbA1c": 7.0,
+      "Glucose": 100,
+      "LDL": 100,
+      "Cholesterol": 200,
+      "HDL": 40,
+      "Triglycerides": 150,
+      "Creatinine": 1.3
+    }
+  }
+}
+Attempting to generate bar graph with data:
+{
+  "labels": [
+    "HbA1c",
+    "Glucose",
+    "LDL",
+    "Cholesterol",
+    "HDL",
+    "Triglycerides",
+    "Creatinine"
+  ],
+  "values": [
+    6.8,
+    110,
+    110,
+    185,
+    55,
+    150,
+    1.1
+  ],
+  "title": "Lab Results",
+  "xlabel": "Test",
+  "ylabel": "Value",
+  "referenceLines": {
+    "HbA1c": 7.0,
+    "Glucose": 100,
+    "LDL": 100,
+    "Cholesterol": 200,
+    "HDL": 40,
+    "Triglycerides": 150,
+    "Creatinine": 1.3
+  }
+}
+
+=== Card Processing Debug ===
+Number of cards: 4
+Image URL available: https://i.ibb.co/XtDhpwD/graph-1737917580-png.png
+
+Card 1:
+Raw card data: {
+  "title": "Conditions",
+  "description": "Type 2 Diabetes (since 2020), Hypertension (since 2019)",
+  "buttons": []
+}
+Initial media_url: None
+
+Card 2:
+Raw card data: {
+  "title": "Medications",
+  "description": "Metformin 500mg twice daily (since 2020), Lisinopril 10mg once daily (since 2019)",
+  "buttons": []
+}
+Initial media_url: None
+
+Card 3:
+Raw card data: {
+  "title": "Vitals (1/15/24)",
+  "description": "BP: 128/82 mmHg, HR: 72 bpm, Weight: 80.5kg, Height: 180cm",
+  "buttons": []
+}
+Initial media_url: None
+
+Card 4:
+Raw card data: {
+  "title": "Lab Results (1/15/24)",
+  "media_url": "{GRAPH_URL_0}",
+  "buttons": []
+}
+Initial media_url: {GRAPH_URL_0}
+
+=== Final RCS Parameters ===
+{
+  "to": "+16282798511",
+  "from_": "test",
+  "cards": [
+    {
+      "title": "Conditions",
+      "subtitle": "",
+      "description": "Type 2 Diabetes (since 2020), Hypertension (since 2019)",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Medications",
+      "subtitle": "",
+      "description": "Metformin 500mg twice daily (since 2020), Lisinopril 10mg once daily (since 2019)",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Vitals (1/15/24)",
+      "subtitle": "",
+      "description": "BP: 128/82 mmHg, HR: 72 bpm, Weight: 80.5kg, Height: 180cm",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Lab Results (1/15/24)",
+      "subtitle": "",
+      "description": "",
+      "media_url": "https://i.ibb.co/XtDhpwD/graph-1737917580-png.png",
+      "buttons": []
+    }
+  ]
+}
+2025-01-26 19:02:18,153 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 19:02:18] "GET / HTTP/1.1" 200 -
+2025-01-26 19:02:18,431 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.0.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.2.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n']}
+2025-01-26 19:02:18,431 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.0.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.1.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n', 'Error Code: invalid_type\nError Message: Expected string, received null\nError Field: cards.2.mediaUrl\nAdditional Info: {"expected":"string","received":"null"}\n']}
+2025-01-26 19:02:18,431 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 19:02:18] "POST / HTTP/1.1" 200 -
