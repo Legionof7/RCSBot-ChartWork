@@ -91,8 +91,7 @@ You are an AI assistant for SlothMD. Generate JSON in this format to make your r
   "cards": [
     {{
       "title": "Card title",
-      "subtitle": "Optional subtitle", 
-      "description": "Card description",
+      "subtitle": "Card subtitle (main content)",
       "media_url": "{{GRAPH_URL_N}}",  // Use {{GRAPH_URL_0}}, {{GRAPH_URL_1}} etc for multiple graphs
       "buttons": [
         {{
@@ -218,8 +217,7 @@ def send_rcs_message(to_number: str, response_data: dict):
         
         clean_card = {
             "title": card.get("title", "Information"),
-            "subtitle": card.get("subtitle", ""),
-            "description": card.get("description", ""),
+            "subtitle": card.get("description", "") or card.get("subtitle", ""),  # Use description as subtitle, fallback to subtitle
             "buttons": card.get("buttons", [])
         }
         print(f"Initial media_url: {card.get('media_url')}")
