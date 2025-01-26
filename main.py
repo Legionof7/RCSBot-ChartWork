@@ -13,7 +13,7 @@ import base64
 # Load FHIR data
 FHIR_DATA = get_patient_data()
 
-def create_context(query: str) -> str:
+def create_context(query: str, can_use_rcs: bool = False) -> str:
     graph_formats = '''
 GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
 
@@ -26,7 +26,7 @@ Supported graph types and their data formats:
 3. "scatter" - requires: {"x": [x_values], "y": [y_values], "title": "string", "xlabel": "string", "ylabel": "string"}
 '''
     return f"""You are an AI assistant for the SlothMD platform, designed to help patients manage their health by offering insights and analysis. 
-Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources. Keep answers short and concise, you are answering over SMS, remember that when formatting. Be human, conversational, and friendly.
+Your role is to be knowledgeable, empathetic, and highly efficient in handling inquiries related to patient records, healthcare coverage, and medical resources. Keep answers short and concise. RCS capability is {"enabled" if can_use_rcs else "disabled"} - when RCS is enabled, you can use rich cards and formatting, otherwise stick to plain text and MMS. Be human, conversational, and friendly.
 
 When visualizing data, you can generate graphs by including a special marker in your response using this format:
 {graph_formats}
@@ -128,9 +128,16 @@ def call_openrouter(messages):
         "Content-Type": "application/json"
     }
 
-    # Get relevant context based on user's message
+    # Get relevant context based on user's message and RCS capability
     latest_message = messages[-1]["content"] if messages else ""
-    context = create_context(latest_message)
+    try:
+        rcs_functionality = client.get_rcs_functionality(phone_number=to_number)
+        can_use_rcs = rcs_functionality.is_enabled if hasattr(rcs_functionality, 'is_enabled') else False
+    except Exception as e:
+        logger.error(f"Failed to check RCS functionality: {str(e)}")
+        can_use_rcs = False
+    
+    context = create_context(latest_message, can_use_rcs)
 
     data = {
         "model": MODEL,
