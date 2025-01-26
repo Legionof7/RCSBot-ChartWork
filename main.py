@@ -182,37 +182,46 @@ def send_rcs_message(to_number: str, response_data: dict):
     text = response_data.get("text", "")
     cards = response_data.get("cards", [])
     quick_replies = response_data.get("quick_replies", [])
+    image_url = None
 
-    if "graph" in response_data:
+    if "graph" in response_data and response_data["graph"]:
         try:
             g_type = response_data["graph"]["type"]
             g_data = response_data["graph"]["data"]
             img_b64 = generate_graph(g_type, g_data)
             image_url = upload_base64_to_imgbb(img_b64)
-            # Replace numbered placeholder URL in existing card
-            graph_placeholder = f"{{GRAPH_URL_{len([c for c in cards if '{{GRAPH_URL_' in str(c.get('media_url', ''))])}}}"
-            for card in cards:
-                if card.get("media_url") == graph_placeholder:
-                    card["media_url"] = image_url
-                    break
         except Exception as e:
             logger.error(f"Graph generation/upload failed: {str(e)}")
 
+    # Clean and validate cards
+    valid_cards = []
+    for card in cards:
+        clean_card = {
+            "title": card.get("title", "Information"),
+            "subtitle": card.get("subtitle", ""),
+            "description": card.get("description", ""),
+            "media_url": "",  # Default empty string
+            "buttons": card.get("buttons", [])
+        }
+        
+        # Handle graph URL placeholder
+        if image_url and card.get("media_url", "").startswith("{GRAPH_URL_"):
+            clean_card["media_url"] = image_url
+            
+        valid_cards.append(clean_card)
+
     # Send final RCS message
     try:
-        # Always include basic params
         rcs_params = {
             "to": to_number,
             "from_": "test"
         }
         
-        # Add quick replies if present
         if quick_replies:
             rcs_params["quick_replies"] = quick_replies
             
-        # Choose content type priority: cards > text
-        if cards:
-            rcs_params["cards"] = cards
+        if valid_cards:
+            rcs_params["cards"] = valid_cards
         elif text:
             rcs_params["text"] = text
         else:
