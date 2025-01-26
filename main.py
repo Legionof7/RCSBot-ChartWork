@@ -252,8 +252,14 @@ def handle_webhook():
             content = ai_response.get("content", "{}")
             logger.info(f"Raw Deepseek response content: {content}")
             
-            # Split content into JSON and graph data if needed
+            # Remove markdown code fences if present and split content
             json_content = content.split('GRAPH_DATA:', 1)[0].strip()
+            if json_content.startswith('```json'):
+                json_content = json_content[7:]  # Remove ```json prefix
+            if json_content.endswith('```'):
+                json_content = json_content[:-3]  # Remove ``` suffix
+                
+            json_content = json_content.strip()
             try:
                 response_data = json.loads(json_content)
                 
