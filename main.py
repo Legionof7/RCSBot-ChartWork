@@ -204,14 +204,24 @@ def send_rcs_message(to_number: str, response_data: dict):
             logger.error(f"Graph generation/upload failed: {str(e)}")
 
     # Send final RCS message
-    rcs_response = client.send.rcs(
-        to=to_number,
-        from_="test",
-        text=text,
-        cards=cards,
-        quick_replies=quick_replies
-    )
-    logger.info(f"RCS send response: {rcs_response}")
+    try:
+        rcs_params = {
+            "to": to_number,
+            "from_": "test",
+            "quick_replies": quick_replies
+        }
+        
+        # Only include either text or cards, not both
+        if cards:
+            rcs_params["cards"] = cards
+        else:
+            rcs_params["text"] = text
+            
+        rcs_response = client.send.rcs(**rcs_params)
+        logger.info(f"RCS send response: {rcs_response}")
+    except Exception as e:
+        logger.error(f"Failed to send RCS message: {str(e)}")
+        raise
 
 # -----------------------------
 #         FLASK ROUTES
