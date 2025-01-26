@@ -209,6 +209,15 @@ def handle_webhook():
                             raise ValueError("Empty response from OpenRouter")
 
                         # Check if response contains graph data
+                        # Check RCS functionality first
+                        try:
+                            rcs_functionality = client.get_rcs_functionality(parsed_data.from_)
+                            logger.info(f"RCS functionality for {parsed_data.from_}: {rcs_functionality}")
+                            can_use_rcs = rcs_functionality.get("is_enabled", False)
+                        except Exception as e:
+                            logger.error(f"Failed to check RCS functionality: {str(e)}")
+                            can_use_rcs = False
+
                         if "GRAPH_DATA:" in response_content:
                             try:
                                 # Extract graph data and remaining message
@@ -243,14 +252,28 @@ def handle_webhook():
                                     image_url = upload_response.json()['data']['url']
                                     logger.info(f"Image uploaded successfully: {image_url}")
 
-                                    # Send MMS with graph URL
-                                    response = client.send.mms(
-                                        to=parsed_data.from_,
-                                        from_=parsed_data.to,
-                                        text=graph_part.strip(),
-                                        media_urls=[image_url]
-                                    )
-                                    logger.info("Successfully sent MMS with graph")
+                                    # Send message with graph URL
+                                    if can_use_rcs:
+                                        response = client.send.rcs(
+                                            to=parsed_data.from_,
+                                            from_="test",  # Using test agent
+                                            cards=[
+                                                Card(
+                                                    title="Health Data Visualization",
+                                                    subtitle=graph_part.strip(),
+                                                    media_url=image_url
+                                                )
+                                            ]
+                                        )
+                                        logger.info("Successfully sent RCS with graph")
+                                    else:
+                                        response = client.send.mms(
+                                            to=parsed_data.from_,
+                                            from_=parsed_data.to,
+                                            text=graph_part.strip(),
+                                            media_urls=[image_url]
+                                        )
+                                        logger.info("Successfully sent MMS with graph")
                                 except Exception as mms_error:
                                     logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
                                     raise
@@ -278,11 +301,18 @@ def handle_webhook():
                             for attempt in range(max_retries):
                                 try:
                                     logger.info(f"Attempting to send message part: {message_part[:100]}...")
-                                    response = client.send.sms(
-                                        to=parsed_data.from_,
-                                        from_=parsed_data.to,
-                                        text=message_part
-                                    )
+                                    if can_use_rcs:
+                                        response = client.send.rcs(
+                                            to=parsed_data.from_,
+                                            from_="test",
+                                            text=message_part
+                                        )
+                                    else:
+                                        response = client.send.sms(
+                                            to=parsed_data.from_,
+                                            from_=parsed_data.to,
+                                            text=message_part
+                                        )
                                     logger.info(f"Message sent successfully. Response: {response}")
                                     break
                                 except Exception as sms_error:
