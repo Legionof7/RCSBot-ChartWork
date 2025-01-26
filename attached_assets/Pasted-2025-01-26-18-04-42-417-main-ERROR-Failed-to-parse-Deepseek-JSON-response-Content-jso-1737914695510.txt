@@ -1,0 +1,100 @@
+2025-01-26 18:04:42,417 - __main__ - ERROR - Failed to parse Deepseek JSON response. Content: ```json
+{
+  "text": "Welcome back, John! Let's review your key health metrics:",
+  "cards": [
+    {
+      "title": "Diabetes Management Snapshot",
+      "subtitle": "Latest lab results vs targets",
+      "description": "HbA1c: 6.8% (Goal <7.0%)\nFasting Glucose: 110 mg/dL (High)\nLDL Cholesterol: 110 mg/dL (Borderline)",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "Explain My Numbers",
+          "type": "trigger",
+          "payload": "explain_labs"
+        }
+      ]
+    },
+    {
+      "title": "Blood Pressure Control ✅",
+      "subtitle": "128/82 mmHg",
+      "description": "Within target range (<130/80)\nConsistent with Lisinopril effectiveness",
+      "buttons": [
+        {
+          "title": "BP Tracking Tips",
+          "type": "trigger",
+          "payload": "bp_tips"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "View All Labs",
+      "type": "trigger",
+      "payload": "full_labs"
+    },
+    {
+      "title": "Medication Review",
+      "type": "trigger",
+      "payload": "meds_review"
+    },
+    {
+      "title": "Next Appointment",
+      "type": "trigger",
+      "payload": "appt_details"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {
+      "labels": ["HbA1c", "Glucose", "LDL"],
+      "values": [6.8, 110, 110],
+      "title": "Key Metrics vs Targets",
+      "xlabel": "Biomarker",
+      "ylabel": "Value",
+      "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}
+    }
+  }
+}
+2025-01-26 18:04:42,417 - __main__ - ERROR - JSON parse error: Expecting value: line 1 column 1 (char 0)
+2025-01-26 18:04:42,417 - __main__ - ERROR - Error processing user message: Invalid JSON response from Deepseek: Expecting value: line 1 column 1 (char 0)
+2025-01-26 18:04:42,417 - werkzeug - INFO - 172.31.196.35 - - [26/Jan/2025 18:04:42] "POST / HTTP/1.1" 200 -
+2025-01-26 18:04:43,306 - werkzeug - INFO - 172.31.196.35 - - [26/Jan/2025 18:04:43] "GET / HTTP/1.1" 200 -
+2025-01-26 18:04:45,968 - __main__ - ERROR - Failed to parse Deepseek JSON response. Content: ```json
+{
+  "text": "Welcome back, John. Let's review your health summary:",
+  "cards": [
+    {
+      "title": "Diabetes & Hypertension Management",
+      "subtitle": "Key Metrics at a Glance",
+      "description": "HbA1c: 6.8% (Goal <7%)\nBP: 128/82 mmHg (Goal <130/80)\nLDL: 110mg/dL (Goal <100)\n\nNext appointment: Feb 15, 2024",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "View Full Labs",
+          "type": "trigger",
+          "payload": "show_full_labs"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "Confirm Appointment",
+      "type": "trigger",
+      "payload": "confirm_feb15"
+    },
+    {
+      "title": "Medication Refill",
+      "type": "trigger",
+      "payload": "refill_request"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {}
+  }
+}
+2025-01-26 18:04:45,968 - __main__ - ERROR - JSON parse error: Expecting value: line 1 column 1 (char 0)
+2025-01-26 18:04:45,968 - __main__ - ERROR - Error processing user message: Invalid JSON response from Deepseek: Expecting value: line 1 column 1 (char 0)
