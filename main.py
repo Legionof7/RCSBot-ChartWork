@@ -95,7 +95,7 @@ You are an AI assistant for SlothMD. Generate JSON in this format to make your r
       "media_url": "{{GRAPH_URL_N}}",  // Use {{GRAPH_URL_0}}, {{GRAPH_URL_1}} etc for multiple graphs
       "buttons": [
         {{
-          "title": "See More",  // Always include for health information
+          "title": "More Information",  // Always include for health information
           "type": "trigger",
           "payload": "more_info_[relevant_topic]"  // Replace [relevant_topic] with actual topic
         }}
@@ -111,13 +111,13 @@ You are an AI assistant for SlothMD. Generate JSON in this format to make your r
   ],
   "graph": {{
     "type": "bar|line|scatter",
-    "data": {{}}  // Always include for metric-related queries
+    "data": {{}}  // Always include for broad metric-related queries asking about levels/numbers
   }}
 }}
 
 Important:
 1. All health information cards MUST include a "See More" button
-2. All metric-related queries MUST include a graph visualization
+2. All broad metric-related queries asking about levels/numbers MUST include a graph visualization
 3. Use appropriate graph types:
    - bar: for comparing values
    - line: for trends over time
