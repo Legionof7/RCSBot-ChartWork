@@ -17,7 +17,7 @@ from graph_utils import generate_graph
 # --------------------------
 
 FHIR_DATA = get_patient_data()  # Patient data
-MODEL = "deepseek/deepseek-r1"
+MODEL = "deepseek/deepseek-r1-distill-llama-70b"
 OPENROUTER_API_KEY = "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"
 IMGBB_API_KEY = "dc9385b3e6c2b601de1361a53e98e869"
 

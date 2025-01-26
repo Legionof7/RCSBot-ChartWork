@@ -1,0 +1,61 @@
+2025-01-26 18:21:35,638 - __main__ - ERROR - Failed to parse Deepseek JSON response. Content: I need to process the user's message and the provided patient data to generate an appropriate response. The user just said, "Hi," which seems like a greeting, so I should return a friendly and welcoming reply.
+
+Looking at the patient data, I see relevant information about his conditions, medications, lab results, and care plan. I should highlight key points addressed in the care plan, such as blood pressure control, blood sugar monitoring, and cholesterol management.
+
+I'll structure the response to mention the greetings, acknowledge the active conditions, and then provide insights based on the data. Including a graph would help visualize the lab results, making it easier to understand. I'll include buttons and quick replies for easy navigation.
+
+Now, structuring the JSON response with the text, cards, graph data, and buttons. I need to replace {GRAPH_URL_0} with an actual URL if I had one or note that it's a placeholder if not. The buttons and quick replies should prompt the user to look into diet or exercise.
+
+Finally, ensuring the response is concise, helpful, and formatted correctly according to the provided structure.
+
+
+```json
+{
+  "text": "Hello! I'm here to help. Based on the data, I'll highlight some key points about your health.",
+  "cards": [
+    {
+      "title": "Health Overview",
+      "subtitle": "January 15, 2024",
+      "description": "Here are the key insights from your recent health data.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "View Detailed Report",
+          "type": "trigger",
+          "payload": "view_report"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "Check Diet Plan",
+      "type": "trigger",
+      "payload": "diet_plan"
+    },
+    {
+      "title": "Exercise Routine",
+      "type": "trigger",
+      "payload": "exercise_routine"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {
+      "labels": ["HbA1c", "Fasting Glucose", "LDL", "Cholesterol", "HDL"],
+      "values": [6.8, 110, 110, 185, 55],
+      "title": "Lab Results Overview",
+      "xlabel": "Test",
+      "ylabel": "Value",
+      "referenceLines": {
+        "HbA1c": 7.0,
+        "Fasting Glucose": 100,
+        "LDL": 100,
+        "Cholesterol": 200,
+        "HDL": 60
+      }
+    }
+  }
+}
+2025-01-26 18:21:35,639 - __main__ - ERROR - JSON parse error: Expecting value: line 1 column 1 (char 0)
+2025-01-26 18:21:35,639 - __main__ - ERROR - Error processing user message: Invalid JSON response from Deepseek: Expecting value: line 1 column 1 (char 0)
