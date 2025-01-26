@@ -1,0 +1,38 @@
+=== Final RCS Parameters ===
+{
+  "to": "+16282798511",
+  "from_": "test",
+  "cards": [
+    {
+      "title": "Vitals",
+      "subtitle": "Latest readings (2024-01-15)",
+      "description": "BP: 128/82 mmHg, HR: 72 bpm, Temp: 37.0 Celsius, Weight: 80.5 kg, Height: 180 cm",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Conditions",
+      "subtitle": "Active health conditions",
+      "description": "Type 2 Diabetes (since 2020-03-15), Hypertension (since 2019-06-22)",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Medications",
+      "subtitle": "Currently taking",
+      "description": "Metformin (500mg twice daily, started 2020-03-15), Lisinopril (10mg once daily, started 2019-06-22)",
+      "media_url": "",
+      "buttons": []
+    },
+    {
+      "title": "Lab Results",
+      "subtitle": "Latest results (2024-01-15)",
+      "description": "See graph for details.",
+      "media_url": "https://i.ibb.co/HDf3rmv/graph-1737916530-png.png",
+      "buttons": []
+    }
+  ]
+}
+2025-01-26 19:33:54,098 - werkzeug - INFO - 172.31.196.56 - - [26/Jan/2025 19:33:54] "GET /logs HTTP/1.1" 200 -
+2025-01-26 19:33:54,199 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.0.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.1.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.2.mediaUrl\nAdditional Info: {"validation":"url"}\n']}
+2025-01-26 19:33:54,199 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.0.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.1.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.2.mediaUrl\nAdditional Info: {"validation":"url"}\n']}
