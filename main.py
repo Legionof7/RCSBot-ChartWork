@@ -84,7 +84,7 @@ GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "valu
 '''
 
     rcs_instructions = f"""
-You are an AI assistant for SlothMD. IMPORTANT: Respond ONLY with valid JSON. Do not include any explanation text. The JSON must follow this format for RCS:
+You are an AI assistant for SlothMD. Generate JSON in this format to make your reply. The JSON must follow this format for RCS:
 
 {{
   "text": "Main message text",
