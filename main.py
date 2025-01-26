@@ -177,7 +177,7 @@ def handle_webhook():
                     try:
                         response = client.send.sms(
                             to=parsed_data.from_,
-                            from_=parsed_data.to,
+                            from_="+18337750778",
                             text="Hey there, it's SlothMD! I'll text you at this number as soon as your spot opens up. You won't receive any other marketing information. If you want to sign up for updates that you will receive less than once a month, reply \"SLOTH\". Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.  For support, you can reach us at founders@slothmd.io"
                         )
                         logger.info("Sent SlothMD welcome message")
@@ -187,7 +187,7 @@ def handle_webhook():
                     try:
                         response = client.send.sms(
                             to=parsed_data.from_,
-                            from_=parsed_data.to,
+                            from_="+18337750778",
                             text="You're in! Expect access to early texting features and SlothMD updates less than once a month. Standard msg/data rates apply. Reply STOP anytime to unsubscribe."
                         )
                         logger.info("Sent sloth subscription confirmation")
@@ -272,7 +272,7 @@ def handle_webhook():
                                     else:
                                         response = client.send.mms(
                                             to=parsed_data.from_,
-                                            from_=parsed_data.to,
+                                            from_="+18337750778",
                                             text=graph_part.strip(),
                                             media_urls=[image_url]
                                         )
@@ -313,7 +313,7 @@ def handle_webhook():
                                     else:
                                         response = client.send.sms(
                                             to=parsed_data.from_,
-                                            from_=parsed_data.to,
+                                            from_="+18337750778",
                                             text=message_part
                                         )
                                     logger.info(f"Message sent successfully. Response: {response}")
