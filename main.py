@@ -91,10 +91,28 @@ Supported graph types and their data formats:
 2. "bar"  - {"labels": [...], "values": [...], "title": "...", "xlabel": "...", "ylabel": "..."}
 3. "scatter" - {"x": [...], "y": [...], "title": "...", "xlabel": "...", "ylabel": "..."}
 '''
+
+    base_context = {
+        "rcs_enabled": f"""
+You are an AI assistant for SlothMD with RCS capabilities. Leverage rich formatting and interactive elements:
+• Use suggested replies for common responses
+• Include carousels for multiple data points
+• Incorporate rich cards for lab results
+• Use structured message layouts
+Focus on providing concise, empathetic health guidance with enhanced visual presentation.
+""",
+        "rcs_disabled": f"""
+You are an AI assistant for SlothMD using SMS/MMS only. Keep messages clear and concise:
+• Use plain text formatting
+• Break complex information into multiple messages
+• Include simple, clear action items
+• Use bullet points sparingly
+Focus on providing essential health guidance that's easy to read on basic devices.
+"""
+    }
+
     return f"""
-You are an AI assistant for SlothMD. Your focus is to provide concise, empathetic, and expert health management guidance. 
-RCS capability is {"enabled" if can_use_rcs else "disabled"}—when enabled, you may use richer formatting; otherwise, stick to plain text or MMS. 
-Always communicate in a friendly, accessible style.
+{base_context['rcs_enabled'] if can_use_rcs else base_context['rcs_disabled']}
 
 When you need to visualize data, embed the following marker in your response:
 {graph_formats}
