@@ -205,17 +205,23 @@ def send_rcs_message(to_number: str, response_data: dict):
 
     # Send final RCS message
     try:
+        # Always include basic params
         rcs_params = {
             "to": to_number,
-            "from_": "test",
-            "quick_replies": quick_replies
+            "from_": "test"
         }
         
-        # Only include either text or cards, not both
+        # Add quick replies if present
+        if quick_replies:
+            rcs_params["quick_replies"] = quick_replies
+            
+        # Choose content type priority: cards > text
         if cards:
             rcs_params["cards"] = cards
-        else:
+        elif text:
             rcs_params["text"] = text
+        else:
+            rcs_params["text"] = "No content available"
             
         rcs_response = client.send.rcs(**rcs_params)
         logger.info(f"RCS send response: {rcs_response}")
