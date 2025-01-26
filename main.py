@@ -276,22 +276,41 @@ def handle_webhook():
             content = ai_response.get("content", "{}")
             logger.info(f"Raw Deepseek response content: {content}")
             
-            # Find JSON content between ```json and ``` or at the start of the content
-            json_start = content.find('```json\n')
+            # Extract JSON content between code fences
+            json_start = content.find('```json')
             if json_start != -1:
-                json_end = content.find('```', json_start + 8)
-                json_content = content[json_start + 8:json_end].strip()
-            else:
-                # Try to find first valid JSON object
-                content_lines = content.split('\n')
-                for line in content_lines:
-                    if line.strip().startswith('{'):
-                        json_content = line.strip()
-                        break
+                json_end = content.find('```', json_start + 7)
+                if json_end != -1:
+                    json_content = content[json_start + 7:json_end].strip()
                 else:
                     json_content = "{}"
+            else:
+                # Try to find a complete JSON object
+                start_brace = content.find('{')
+                if start_brace != -1:
+                    # Find matching end brace
+                    brace_count = 0
+                    for i in range(start_brace, len(content)):
+                        if content[i] == '{':
+                            brace_count += 1
+                        elif content[i] == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                json_content = content[start_brace:i+1].strip()
+                                break
+                    else:
+                        json_content = "{}"
+                else:
+                    json_content = "{}"
+                    
             try:
+                # Ensure we're working with valid JSON
+                json_content = json_content.strip()
+                if not json_content.startswith('{'):
+                    json_content = "{}"
                 response_data = json.loads(json_content)
+                if not isinstance(response_data, dict):
+                    response_data = {"text": "I apologize, but I encountered an error. How else can I help you today?"}
                 
                 # Extract graph data if present
                 if 'GRAPH_DATA:' in content:
