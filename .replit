@@ -15,5 +15,9 @@ run = ["python3", "main.py"]
 deploymentTarget = "gce"
 
 [[ports]]
+localPort = 80
+externalPort = 3000
+
+[[ports]]
 localPort = 8080
 externalPort = 80
