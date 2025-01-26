@@ -216,7 +216,7 @@ def handle_webhook():
                         try:
                             rcs_functionality = client.get_rcs_functionality(phone_number=parsed_data.from_)
                             logger.info(f"RCS functionality for {parsed_data.from_}: {rcs_functionality}")
-                            can_use_rcs = rcs_functionality.get("is_enabled", False)
+                            can_use_rcs = rcs_functionality.is_enabled if hasattr(rcs_functionality, 'is_enabled') else False
                         except Exception as e:
                             logger.error(f"Failed to check RCS functionality: {str(e)}")
                             can_use_rcs = False
