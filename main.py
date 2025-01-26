@@ -91,9 +91,9 @@ You are an AI assistant for SlothMD. Return responses in JSON for RCS:
   "cards": [
     {{
       "title": "Card title",
-      "subtitle": "Optional subtitle",
+      "subtitle": "Optional subtitle", 
       "description": "Card description",
-      "media_url": "{{GRAPH_URL}}",  // Use this placeholder for graphs
+      "media_url": "{{GRAPH_URL_N}}",  // Use {{GRAPH_URL_0}}, {{GRAPH_URL_1}} etc for multiple graphs
       "buttons": [
         {{
           "title": "Button text",
@@ -194,9 +194,10 @@ def send_rcs_message(to_number: str, response_data: dict):
             g_data = response_data["graph"]["data"]
             img_b64 = generate_graph(g_type, g_data)
             image_url = upload_base64_to_imgbb(img_b64)
-            # Replace placeholder URL in existing card
+            # Replace numbered placeholder URL in existing card
+            graph_placeholder = f"{{GRAPH_URL_{len([c for c in cards if '{{GRAPH_URL_' in str(c.get('media_url', ''))])}}}"
             for card in cards:
-                if card.get("media_url") == "{{GRAPH_URL}}":
+                if card.get("media_url") == graph_placeholder:
                     card["media_url"] = image_url
                     break
         except Exception as e:
