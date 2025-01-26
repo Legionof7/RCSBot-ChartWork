@@ -1,0 +1,72 @@
+
+=== AI Model Response ===
+```json
+{
+  "text": "Here's a summary of your health information:",
+  "cards": [
+    {
+      "title": "Conditions",
+      "subtitle": "Active Medical Conditions",
+      "description": "Type 2 Diabetes, Hypertension",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Medications",
+      "subtitle": "Current Medications",
+      "description": "Metformin 500mg twice daily, Lisinopril 10mg once daily",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Vitals",
+      "subtitle": "Last Recorded (Jan 15, 2024)",
+      "description": "BP: 128/82 mmHg, HR: 72 bpm, Weight: 80.5 kg, Height: 180 cm",
+      "media_url": null,
+      "buttons": []
+    },
+    {
+      "title": "Lab Results",
+      "subtitle": "Last Results (Jan 15, 2024)",
+      "description": "See detailed graph below.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": []
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "View Care Plan",
+      "type": "trigger",
+      "payload": "view_care_plan"
+    },
+    {
+      "title": "Schedule Appointment",
+      "type": "trigger",
+      "payload": "schedule_appointment"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {
+      "labels": ["HbA1c", "Glucose", "LDL", "Cholesterol", "HDL", "Triglycerides", "Creatinine"],
+      "values": [6.8, 110, 110, 185, 55, 150, 1.1],
+      "title": "Lab Results",
+      "xlabel": "Test",
+      "ylabel": "Value",
+      "referenceLines": {
+        "HbA1c": 7.0,
+        "Glucose": 100,
+        "LDL": 100,
+        "Cholesterol": 200,
+        "HDL": 40,
+        "Triglycerides": 150,
+        "Creatinine": 1.3
+      }
+    }
+  }
+}
+```
+=====================
+
+2025-01-26 18:55:17,468 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.0.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.1.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.2.mediaUrl\nAdditional Info: {"validation":"url"}\n']}
+2025-01-26 18:55:17,468 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.0.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.1.mediaUrl\nAdditional Info: {"validation":"url"}\n', 'Error Code: invalid_string\nError Message: mediaUrl must be a valid URL for card\nError Field: cards.2.mediaUrl\nAdditional Info: {"validation":"url"}\n']}
