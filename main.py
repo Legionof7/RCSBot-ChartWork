@@ -194,11 +194,11 @@ def send_rcs_message(to_number: str, response_data: dict):
             g_data = response_data["graph"]["data"]
             img_b64 = generate_graph(g_type, g_data)
             image_url = upload_base64_to_imgbb(img_b64)
-            # Insert a card with the graph
-            cards.insert(0, {
-                "title": "Health Data Visualization",
-                "media_url": image_url
-            })
+            # Replace placeholder URL in existing card
+            for card in cards:
+                if card.get("media_url") == "{{GRAPH_URL}}":
+                    card["media_url"] = image_url
+                    break
         except Exception as e:
             logger.error(f"Graph generation/upload failed: {str(e)}")
 
