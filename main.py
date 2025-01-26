@@ -251,11 +251,20 @@ def handle_webhook():
             ai_response = call_openrouter(conversation_slice)
             content = ai_response.get("content", "{}")
             logger.info(f"Raw Deepseek response content: {content}")
-            # Must be valid JSON
+            
+            # Split content into JSON and graph data if needed
+            json_content = content.split('GRAPH_DATA:', 1)[0].strip()
             try:
-                response_data = json.loads(content)
+                response_data = json.loads(json_content)
+                
+                # Extract graph data if present
+                if 'GRAPH_DATA:' in content:
+                    graph_data = content.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
+                    graph_json = json.loads(graph_data)
+                    response_data['graph'] = graph_json
+                    
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse Deepseek JSON response. Raw content: {content}")
+                logger.error(f"Failed to parse Deepseek JSON response. Content: {json_content}")
                 logger.error(f"JSON parse error: {str(e)}")
                 raise ValueError(f"Invalid JSON response from Deepseek: {str(e)}")
 
