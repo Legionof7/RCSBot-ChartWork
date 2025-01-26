@@ -370,37 +370,67 @@ def handle_webhook():
 @app.route("/send", methods=['GET'])
 def send_message():
     return '''
-        <h2>Send SMS</h2>
-        <form action="/send_sms" method="post">
+        <h2>Send Message</h2>
+        <form action="/send_message" method="post">
             Phone Number (include +1): <input type="text" name="to_number"><br>
             Message: <input type="text" name="message"><br>
-            <input type="submit" value="Send SMS">
-        </form>
-
-        <h2>Send MMS</h2>
-        <form action="/send_mms" method="post">
-            Phone Number (include +1): <input type="text" name="to_number"><br>
-            Message (optional): <input type="text" name="message"><br>
-            Media URL: <input type="text" name="media_urls[]"><br>
-            Media URL: <input type="text" name="media_urls[]"><br>
-            <input type="submit" value="Send MMS">
+            Media URL (optional): <input type="text" name="media_urls[]"><br>
+            Media URL (optional): <input type="text" name="media_urls[]"><br>
+            <input type="submit" value="Send Message">
         </form>
     '''
 
-@app.route("/send_sms", methods=['POST'])
-def send_sms():
+@app.route("/send_message", methods=['POST'])
+def send_unified_message():
     to_number = request.form['to_number']
     message_body = request.form['message']
-
+    media_urls = [url.strip() for url in request.form.getlist('media_urls[]') if url.strip()]
+    
     try:
-        response = client.send.sms(
-            to=to_number,
-            from_="+18337750778",
-            text=message_body
-        )
+        # Check RCS capability
+        rcs_functionality = client.get_rcs_functionality(phone_number=to_number)
+        can_use_rcs = rcs_functionality.is_enabled if hasattr(rcs_functionality, 'is_enabled') else False
+        
+        if can_use_rcs:
+            if media_urls:
+                # Send RCS with media
+                response = client.send.rcs(
+                    to=to_number,
+                    from_="test",
+                    cards=[
+                        Card(
+                            title="Message with Media",
+                            subtitle=message_body,
+                            media_url=media_urls[0]  # Using first media URL
+                        )
+                    ]
+                )
+            else:
+                # Send simple RCS message
+                response = client.send.rcs(
+                    to=to_number,
+                    from_="test",
+                    text=message_body
+                )
+        else:
+            # Fallback to MMS if media present, otherwise SMS
+            if media_urls:
+                response = client.send.mms(
+                    to=to_number,
+                    from_="+18337750778",
+                    text=message_body if message_body else None,
+                    media_urls=media_urls
+                )
+            else:
+                response = client.send.sms(
+                    to=to_number,
+                    from_="+18337750778",
+                    text=message_body
+                )
+                
         return f"Message sent to {to_number}"
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Error sending message: {str(e)}")
         return f"Error: {str(e)}"
 
 @app.route("/logs")
