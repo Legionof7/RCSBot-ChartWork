@@ -51,7 +51,20 @@ Do not do anything unrelated to healthcare, such as generate code or answer unre
 MODEL = "deepseek/deepseek-r1"
 OPENROUTER_API_KEY = "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"
 
-client = Pinnacle(api_key=os.getenv('PINNACLE_API_KEY'))
+# Initialize RCS client with messaging configuration
+client = Pinnacle(
+    api_key=os.getenv('PINNACLE_API_KEY'),
+    timeout=60.0  # Default timeout
+)
+
+# Configure messaging settings
+messaging_config = {
+    "opt_in": "Hey there, it's SlothMD! I'll text you at this number as soon as your spot opens up. You won't receive any other marketing information. Standard message and data rates may apply. Reply \"STOP\" anytime to end communication with SlothMD outside the app.  For support, you can reach us at founders@slothmd.io",
+    "opt_out": "Reply STOP to unsubscribe. A confirmation message will be sent, and no further messages will be received unless you re-subscribe.",
+    "opt_out_keywords": ["STOP", "UNSUBSCRIBE"],
+    "agent_use_case": "SlothMD's agent assists with health management, medical insights, and patient support. It provides health data analysis, medication reminders, and helps track health metrics.",
+    "expected_agent_responses": "General Inquiry: \"How can I help with your health today?\"\nHealth Data: \"Here's your latest health metrics.\"\nOpt-In: \"You're subscribed to SlothMD!\"\nOpt-Out: \"You've been unsubscribed.\"\nEscalation: \"Connecting you to support.\""
+}
 
 # Configure logging with a custom handler to store logs
 class MemoryLogHandler(logging.Handler):
