@@ -220,7 +220,7 @@ def send_rcs_message(to_number: str, response_data: dict):
             "title": card.get("title", "Information"),
             "subtitle": card.get("subtitle", ""),
             "description": card.get("description", ""),
-            "media_url": None,  # Default to null instead of empty string
+            "media_url": "",  # Default to empty string since API requires string
             "buttons": card.get("buttons", [])
         }
         print(f"Initial media_url: {card.get('media_url')}")
