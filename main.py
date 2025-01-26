@@ -270,14 +270,20 @@ def handle_webhook():
             content = ai_response.get("content", "{}")
             logger.info(f"Raw Deepseek response content: {content}")
             
-            # Remove markdown code fences if present and split content
-            json_content = content.split('GRAPH_DATA:', 1)[0].strip()
-            if json_content.startswith('```json'):
-                json_content = json_content[7:]  # Remove ```json prefix
-            if json_content.endswith('```'):
-                json_content = json_content[:-3]  # Remove ``` suffix
-                
-            json_content = json_content.strip()
+            # Find JSON content between ```json and ``` or at the start of the content
+            json_start = content.find('```json\n')
+            if json_start != -1:
+                json_end = content.find('```', json_start + 8)
+                json_content = content[json_start + 8:json_end].strip()
+            else:
+                # Try to find first valid JSON object
+                content_lines = content.split('\n')
+                for line in content_lines:
+                    if line.strip().startswith('{'):
+                        json_content = line.strip()
+                        break
+                else:
+                    json_content = "{}"
             try:
                 response_data = json.loads(json_content)
                 
