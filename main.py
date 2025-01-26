@@ -84,7 +84,7 @@ GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "valu
 '''
 
     rcs_instructions = f"""
-You are an AI assistant for SlothMD. Return responses in JSON for RCS:
+You are an AI assistant for SlothMD. IMPORTANT: Respond ONLY with valid JSON. Do not include any explanation text. The JSON must follow this format for RCS:
 
 {{
   "text": "Main message text",
@@ -290,7 +290,10 @@ def handle_webhook():
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse Deepseek JSON response. Content: {json_content}")
                 logger.error(f"JSON parse error: {str(e)}")
-                raise ValueError(f"Invalid JSON response from Deepseek: {str(e)}")
+                # Fallback to simple text response
+                response_data = {
+                    "text": "I apologize, but I encountered an error processing your request. How else can I help you today?"
+                }
 
             # Send RCS
             send_rcs_message(from_number, response_data)
