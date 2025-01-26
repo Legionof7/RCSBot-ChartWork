@@ -279,6 +279,10 @@ def handle_webhook():
                 user_text = parsed_data.text.strip()
             elif hasattr(parsed_data, 'postback'):
                 user_text = parsed_data.postback.strip()
+            elif hasattr(parsed_data, 'action_title') and hasattr(parsed_data, 'payload'):
+                # Handle button/quick reply actions
+                user_text = f"{parsed_data.action_title}: {parsed_data.payload}"
+                logger.info(f"Received action: {user_text}")
             else:
                 logger.warning(f"Unsupported message type received: {parsed_data}")
                 return "Webhook received", 200
