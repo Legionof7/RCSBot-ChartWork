@@ -93,7 +93,7 @@ You are an AI assistant for SlothMD. Return responses in JSON for RCS:
       "title": "Card title",
       "subtitle": "Optional subtitle",
       "description": "Card description",
-      "media_url": "Optional media URL",
+      "media_url": "{{GRAPH_URL}}",  // Use this placeholder for graphs
       "buttons": [
         {{
           "title": "Button text",
