@@ -239,7 +239,15 @@ def handle_webhook():
             json_data = request.get_json()
             parsed_data = Pinnacle.parse_inbound_message(json_data)
             from_number = parsed_data.from_
-            user_text = parsed_data.text.strip()
+            
+            # Handle different types of inbound messages
+            if hasattr(parsed_data, 'text'):
+                user_text = parsed_data.text.strip()
+            elif hasattr(parsed_data, 'postback'):
+                user_text = parsed_data.postback.strip()
+            else:
+                logger.warning(f"Unsupported message type received: {parsed_data}")
+                return "Webhook received", 200
         except Exception as e:
             logger.error(f"Failed to parse inbound message: {str(e)}")
             return "Webhook received", 200
