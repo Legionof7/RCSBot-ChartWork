@@ -274,6 +274,9 @@ def handle_webhook():
         try:
             ai_response = call_openrouter(conversation_slice)
             content = ai_response.get("content", "{}")
+            print("\n=== AI Model Response ===")
+            print(content)
+            print("=====================\n")
             logger.info(f"Raw Deepseek response content: {content}")
             
             # Extract JSON content between code fences
