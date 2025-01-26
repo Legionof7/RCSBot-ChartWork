@@ -87,6 +87,11 @@ client.company.register(
         privacy_policy_url="https://slothmd.com/privacy",
         tos_url="https://slothmd.com/terms"
     ),
+    point_of_contact={
+        "name": "John Smith",
+        "email": "founders@slothmd.io",
+        "phone": "+18337750778"
+    },
     messaging=messaging
 )
 
