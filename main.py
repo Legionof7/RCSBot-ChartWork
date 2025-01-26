@@ -52,9 +52,12 @@ MODEL = "deepseek/deepseek-r1"
 OPENROUTER_API_KEY = "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"
 
 # Initialize RCS client with messaging configuration
+api_key = os.getenv('PINNACLE_API_KEY')
+if api_key is None:
+    raise ValueError("PINNACLE_API_KEY environment variable not set")
 client = Pinnacle(
-    api_key=os.getenv('PINNACLE_API_KEY'),
-    timeout=60.0  # Default timeout
+    api_key=api_key,
+    timeout=60.0
 )
 
 # Configure and register messaging settings
