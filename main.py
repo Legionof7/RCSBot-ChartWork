@@ -119,12 +119,7 @@ You are an AI assistant for SlothMD. Generate JSON in this format to make your r
 When including a graph, embed data using:
 {graph_formats}
 
-When providing insights, generate at least 3. Each insight:
-- References relevant data points
-- Includes actionable steps
-- Draws connections among metrics
-- ~3-4 sentences each
-- Highlights tangible markers of success
+Titles MUST be under 25 characters in length.
 
 Below is the patient's FHIR data (only address relevant healthcare questions):
 {json.dumps(FHIR_DATA, indent=2)}
