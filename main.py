@@ -205,7 +205,8 @@ def send_rcs_message(to_number: str, response_data: dict):
         }
 
         # Handle graph URL placeholder
-        if image_url and card.get("media_url", "").startswith("{GRAPH_URL_"):
+        media_url = card.get("media_url")
+        if image_url and media_url and isinstance(media_url, str) and media_url.startswith("{GRAPH_URL_"):
             clean_card["media_url"] = image_url
 
         valid_cards.append(clean_card)
