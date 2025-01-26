@@ -255,28 +255,13 @@ def handle_webhook():
                                     image_url = upload_response.json()['data']['url']
                                     logger.info(f"Image uploaded successfully: {image_url}")
 
-                                    # Send message with graph URL
-                                    if can_use_rcs:
-                                        response = client.send.rcs(
-                                            to=parsed_data.from_,
-                                            from_="test",  # Using test agent
-                                            cards=[
-                                                Card(
-                                                    title="Health Data Visualization",
-                                                    subtitle=graph_part.strip(),
-                                                    media_url=image_url
-                                                )
-                                            ]
-                                        )
-                                        logger.info("Successfully sent RCS with graph")
-                                    else:
-                                        response = client.send.mms(
-                                            to=parsed_data.from_,
-                                            from_="+18337750778",
-                                            text=graph_part.strip(),
-                                            media_urls=[image_url]
-                                        )
-                                        logger.info("Successfully sent MMS with graph")
+                                    # Send message with graph URL using unified function
+                                    response = send_unified_message(
+                                        to_number=parsed_data.from_,
+                                        message_body=graph_part.strip(),
+                                        media_urls=[image_url]
+                                    )
+                                    logger.info("Successfully sent message with graph")
                                 except Exception as mms_error:
                                     logger.error(f"Failed to send MMS: {str(mms_error)}", exc_info=True)
                                     raise
