@@ -1,0 +1,179 @@
+RCS Message
+POST
+
+https://www.trypinnacle.dev/api/send/rcs
+Send an interactive RCS message with text, media, or cards. Each message can only contain either text, media, or card(s).
+
+Quick replies can also be added to the message.
+
+Request
+This endpoint expects an object.
+from
+string
+Required
+The id of the RCS agent sending the message.
+
+Use ‘test’ if you want to send from the Pinnacle test agent. The test agent can only send to whitelisted test numbers.
+
+See https://dashboard.trypinnacle.app/settings/test-numbers to whitelist a number.
+
+to
+string
+Required
+format: "^\+\d{11}$"
+The recipient’s RCS-enabled phone number in E.164 format (e.g., +12345678901).
+
+text
+string
+Optional
+Text content of the message.
+
+Make sure you have either ‘text’, ‘mediaUrl’, or ‘cards’. An error will be thrown if multiple (i.e. both ‘text’ and ‘mediaUrl’) is provided.
+
+mediaUrl
+string
+Optional
+Media URL to be included in the message.
+
+Make sure you have either ‘text’, ‘mediaUrl’, or ‘cards’. An error will be thrown if multiple (i.e. both ‘text’ and ‘mediaUrl’) is provided.
+
+cards
+list of objects
+Optional
+List of rich cards. Maximum of 10 cards.
+
+Make sure you have either ‘text’, ‘mediaUrl’, or ‘cards’. An error will be thrown if multiple (i.e. both ‘text’ and ‘mediaUrl’) is provided.
+
+
+Hide 4 properties
+title
+string
+Required
+The title of the card.
+
+subtitle
+string
+Optional
+Optional subtitle for the card.
+
+mediaUrl
+string
+Optional
+Optional media URL displayed with the card.
+
+buttons
+list of objects
+Optional
+Optional list of buttons on the card (max 4).
+
+
+Show 9 properties
+quickReplies
+list of objects
+Optional
+Optional list of quick reply actions (max 10).
+
+
+Hide 9 properties
+title
+string
+Optional
+Title of the action (must be less than 25 characters).
+
+type
+enum
+Optional
+Type of action for the button. ‘openUrl’ opens a URL, ‘call’ dials a phone number, ‘trigger’ sends the predefined payload to the webhook when pressed, ‘requestUserLocation’ requests the user’s location, ‘scheduleEvent’ creates a calendar event, ‘sendLocation’ sends a location.
+
+
+Show 6 enum values
+payload
+string
+Optional
+Optional payload associated with the action. This payload encodes the respective fields for the action type and is required. For ‘openUrl’, the payload is the URL to open. For ‘call’, the payload is the phone number to dial. For ‘trigger’, the payload is the predefined payload to send to the webhook.
+
+metadata
+string
+Optional
+Optional metadata. Only used for type ‘trigger’ ignored for other action types. When the user presses the action, the metadata is sent to the webhook alongside the payload.
+
+eventStartTime
+string
+Optional
+Start time for events in ISO 8601 format. For example, ‘2022-01-01T12:00:00Z’. Required for ‘scheduleEvent’.
+
+eventEndTime
+string
+Optional
+End time for events in ISO 8601 format. For example, ‘2022-01-01T12:00:00Z’. Required for ‘scheduleEvent’.
+
+eventTitle
+string
+Optional
+Event title. Required for ‘scheduleEvent’.
+
+eventDescription
+string
+Optional
+Optional event description.
+
+latLong
+object
+Optional
+Latitude and longitude coordinates. Required for ‘sendLocation’.
+
+
+Show 2 properties
+fallback
+object
+Optional
+
+Hide 3 properties
+from
+string
+Optional
+format: "^\+\d{11}$"
+The sender’s phone number in E.164 format. Must be owned by the user.
+
+text
+string
+Optional
+<=1600 characters
+The fallback message content (max 1600 characters). One of ‘text’ or ‘mediaUrls’ must be provided.
+
+mediaUrls
+list of strings
+Optional
+The URLs of media to include. One of ‘text’ or ‘mediaUrls’ must be provided. jpeg, jpg, gif, and png file types are fully supported and have a size limit of 5 MB. 500 KB limit for other types. Up to 10 media URLs can be included.
+
+statusCallback
+string
+Optional
+Optional URL to receive a POST request when the message status changes. Read more about status callbacks here.
+
+Response
+RCS/Fallback message sent successfully
+
+messageId
+string
+The unique ID of the sent message.
+
+message
+string
+A message indicating the status of the sent message.
+
+Errors
+
+400
+Send Rcs Request Bad Request Error
+
+401
+Send Rcs Request Unauthorized Error
+
+402
+Send Rcs Request Payment Required Error
+
+403
+Send Rcs Request Forbidden Error
+
+500
