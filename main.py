@@ -477,5 +477,5 @@ def send_mms():
         return f"Error: {str(e)}", 400
 
 if __name__ == "__main__":
-    port = int(os.getenv('PORT', 3001))
+    port = int(os.getenv('PORT', 3000))
     app.run(host='0.0.0.0', port=port, debug=True, threaded=True)
