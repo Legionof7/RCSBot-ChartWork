@@ -480,7 +480,7 @@ def connect_terra_wearable(from_number: str):
                 "subtitle": "Click below to connect your wearable device",
                 "buttons": [{
                     "title": "Connect Now",
-                    "type": "url",
+                    "type": "openUrl",
                     "url": url
                 }]
             }]
