@@ -481,7 +481,8 @@ def connect_terra_wearable(from_number: str):
                 "buttons": [{
                     "title": "Connect Now",
                     "type": "openUrl",
-                    "url": url
+                    "url": url,
+                    "payload": "connect_terra_device"
                 }]
             }]
         )
