@@ -304,6 +304,11 @@ def handle_webhook():
                 # Handle button/quick reply actions
                 user_text = f"{parsed_data.action_title}: {parsed_data.payload}"
                 logger.info(f"Received action: {user_text}")
+                
+                # Handle Terra wearable connection
+                if parsed_data.payload == "connect_wearable":
+                    connect_terra_wearable(from_number)
+                    return "Webhook received", 200
             else:
                 logger.warning(f"Unsupported message type received: {parsed_data}")
                 return "Webhook received", 200
@@ -356,6 +361,42 @@ def handle_webhook():
                                 break
                     else:
                         json_content = "{}"
+
+
+def connect_terra_wearable(from_number: str):
+    """Generate Terra widget session and send URL via RCS"""
+    try:
+        response = requests.post(
+            "https://api.tryterra.co/v2/auth/generateWidgetSession",
+            headers={
+                "dev-id": "slothmd-testing-1BYwaAYSKe",
+                "x-api-key": "qb6CK_EcpleOaUWzh4E0MKYnQMAALrqm"
+            },
+            json={
+                "reference_id": from_number,
+                "lang": "en"
+            }
+        )
+        url = response.json()["url"]
+        
+        # Send RCS message with connection URL
+        client.send.rcs(
+            to=from_number,
+            from_="test",
+            cards=[{
+                "title": "Connect Device",
+                "subtitle": "Click below to connect your wearable device",
+                "buttons": [{
+                    "title": "Connect Now",
+                    "type": "url",
+                    "url": url
+                }]
+            }]
+        )
+    except Exception as e:
+        logger.error(f"Terra connection error: {str(e)}")
+        
+
                 else:
                     json_content = "{}"
 
