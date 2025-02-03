@@ -50,7 +50,7 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     import ReactDOMServer from 'react-dom/server';
     import fs from 'fs';
     import {{ createCanvas }} from 'canvas';
-    import ChartComponent from './VictoryChart.mjs';
+    import ChartComponent from './VictoryChart.jsx';
 
     const canvas = createCanvas(800, 600);
     const ctx = canvas.getContext('2d');
