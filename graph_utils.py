@@ -1,97 +1,82 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-import io
-import base64
-import logging
-import traceback
 import json
-from typing import List, Dict, Any
+import logging
+from typing import Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
-    """Generate a graph based on type and data, return base64 image"""
-    logger.info(f"Generating {graph_type} graph with data type: {type(data)}")
-    logger.debug(f"Full data content: {data}")
+    """Generate graph using React SSR and return image path"""
+    import subprocess
+    import os
+    import tempfile
+    logger.info(f"Generating {graph_type} graph config with data type: {type(data)}")
+
+    if isinstance(data, str):
+        if "GRAPH_DATA:" in data and "END_GRAPH_DATA" in data:
+            try:
+                graph_json = data.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0].strip()
+                data = json.loads(graph_json)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse graph JSON data: {e}")
+                logger.error(f"Attempted to parse: {graph_json}")
+                raise
 
     if data is None:
         logging.error("Data is None")
         raise ValueError("Data cannot be None")
 
     if not isinstance(data, dict):
-        logging.error(f"Invalid data type: {type(data)}. Expected dict. Data: {str(data)}")
+        logging.error(f"Invalid data type: {type(data)}. Expected dict.")
         raise ValueError(f"Data must be a dictionary, got {type(data)}")
 
-    required_fields = {
-        "line": ["x", "y"],
-        "bar": ["labels", "values"],
-        "scatter": ["x", "y"]
+    # Extract nested config if present
+    if "config" in data:
+        data = data["config"]
+
+    # Format data for Victory charts
+    chart_data = {
+        "type": graph_type,
+        "config": {
+            "data": data.get("data", []),
+            "title": data.get("title", "Graph"),
+            "xlabel": data.get("xlabel", "X Axis"),
+            "ylabel": data.get("ylabel", "Y Axis"),
+            "referenceLines": data.get("referenceLines", {})
+        }
     }
 
-    if graph_type not in required_fields:
-        logging.error(f"Invalid graph type: {graph_type}")
-        raise ValueError(f"Invalid graph type. Must be one of: {list(required_fields.keys())}")
+    # Create temporary file to store the chart data
+    temp_dir = tempfile.mkdtemp()
+    temp_file = os.path.join(temp_dir, 'chart.png')
+    
+    # Use node to render the React component to an image
+    node_script = f'''
+    const ReactDOMServer = require('react-dom/server');
+    const {{createElement}} = require('react');
+    const fs = require('fs');
+    const {{createCanvas}} = require('canvas');
+    const VictoryChart = require('./VictoryChart.jsx').default;
+    
+    const canvas = createCanvas(800, 600);
+    const ctx = canvas.getContext('2d');
+    const chartData = {json.dumps(chart_data)};
+    
+    const element = createElement(VictoryChart, {{graphData: chartData}});
+    const svg = ReactDOMServer.renderToString(element);
+    
+    fs.writeFileSync('{temp_file}', canvas.toBuffer());
+    '''
+    
+    with open('render.js', 'w') as f:
+        f.write(node_script)
+    
+    subprocess.run(['node', 'render.js'])
+    return temp_file
 
-    missing_fields = [field for field in required_fields[graph_type] if field not in data]
-    if missing_fields:
-        logging.error(f"Missing required fields: {missing_fields}")
-        raise ValueError(f"Missing required fields for {graph_type} graph: {missing_fields}")
-
-    plt.figure(figsize=(10, 6))
-
-    if graph_type == "line":
-        plt.plot(data["x"], data["y"])
-        plt.title(data.get("title", "Line Graph"))
-
-    elif graph_type == "bar":
-        plt.bar(data["labels"], data["values"])
-        plt.title(data.get("title", "Bar Graph"))
-
-        # Add reference lines if provided
-        if "referenceLines" in data:
-            for label, ref_value in data["referenceLines"].items():
-                if label in data["labels"]:
-                    idx = data["labels"].index(label)
-                    plt.hlines(y=ref_value, xmin=idx-0.4, xmax=idx+0.4, 
-                             colors='red', linestyles='dashed', label=f'{label} Target')
-
-    elif graph_type == "scatter":
-        plt.scatter(data["x"], data["y"])
-        plt.title(data.get("title", "Scatter Plot"))
-
-    plt.xlabel(data.get("xlabel", "X Axis"))
-    plt.ylabel(data.get("ylabel", "Y Axis"))
-    plt.grid(True)
-
-    try:
-        # Save to bytes buffer
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', dpi=100)
-        plt.close()
-
-        # Convert to base64
-        buf.seek(0)
-        img_b64 = base64.b64encode(buf.getvalue()).decode()
-        logging.info("Successfully generated graph image")
-        return img_b64
-    except Exception as e:
-        plt.close()  # Ensure figure is closed even on error
-        logger.error(f"Graph generation failed")
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        logger.error(f"Graph type: {graph_type}")
-        logger.error(f"Graph data: {json.dumps(data, indent=2)}")
-        logger.error(f"Matplotlib version: {matplotlib.__version__}")
-        raise ValueError(f"Graph generation failed: {str(e)}")
-
-def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> str:
+def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> Dict[str, Any]:
     """Generate specific health metric graphs"""
     data = {
-        "x": dates,
-        "y": values,
+        "data": [{"x": date, "y": value} for date, value in zip(dates, values)],
         "title": f"{metric_name} Over Time",
         "xlabel": "Date",
         "ylabel": metric_name
