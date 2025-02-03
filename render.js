@@ -7,7 +7,7 @@
 
     const canvas = createCanvas(800, 600);
     const ctx = canvas.getContext('2d');
-    const chartData = {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}, {"x": "Ideal LDL", "y": 100}], "title": "LDL Cholesterol", "xlabel": "LDL Level", "ylabel": "mg/dL", "referenceLines": {"Ideal LDL": 100}}};
+    const chartData = {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}, {"x": "Optimal", "y": 100}], "title": "LDL Cholesterol", "xlabel": "Level", "ylabel": "mg/dL", "referenceLines": {"Optimal": 100}}};
 
     const element = React.createElement(ChartComponent, {graphData: chartData});
     const svg = ReactDOMServer.renderToString(element);
