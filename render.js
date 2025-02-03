@@ -7,10 +7,10 @@
     
     const canvas = createCanvas(800, 600);
     const ctx = canvas.getContext('2d');
-    const chartData = {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}, {"x": "Optimal", "y": 100}], "title": "LDL Cholesterol", "xlabel": "Level", "ylabel": "mg/dL", "referenceLines": {"Optimal": 100}}};
+    const chartData = {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}], "title": "LDL Cholesterol", "xlabel": "Test", "ylabel": "Value (mg/dL)", "referenceLines": {"LDL": 100}}};
     
     const element = createElement(VictoryChart, {graphData: chartData});
     const svg = ReactDOMServer.renderToString(element);
     
-    fs.writeFileSync('/tmp/tmpec4qii4z/chart.png', canvas.toBuffer());
+    fs.writeFileSync('/tmp/tmp66snpgeg/chart.png', canvas.toBuffer());
     
