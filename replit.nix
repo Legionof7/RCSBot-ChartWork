@@ -11,5 +11,6 @@
     pkgs.ffmpeg-full
     pkgs.cairo
     pkgs.python312Packages.pyngrok
+    pkgs.nodejs
   ];
 }
