@@ -4,8 +4,11 @@ from typing import Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
-def generate_graph(graph_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate graph configuration for Victory"""
+def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
+    """Generate graph using React SSR and return image path"""
+    import subprocess
+    import os
+    import tempfile
     logger.info(f"Generating {graph_type} graph config with data type: {type(data)}")
 
     if isinstance(data, str):
@@ -42,7 +45,33 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         }
     }
 
-    return chart_data
+    # Create temporary file to store the chart data
+    temp_dir = tempfile.mkdtemp()
+    temp_file = os.path.join(temp_dir, 'chart.png')
+    
+    # Use node to render the React component to an image
+    node_script = f'''
+    const ReactDOMServer = require('react-dom/server');
+    const {{createElement}} = require('react');
+    const fs = require('fs');
+    const {{createCanvas}} = require('canvas');
+    const VictoryChart = require('./VictoryChart.jsx').default;
+    
+    const canvas = createCanvas(800, 600);
+    const ctx = canvas.getContext('2d');
+    const chartData = {json.dumps(chart_data)};
+    
+    const element = createElement(VictoryChart, {{graphData: chartData}});
+    const svg = ReactDOMServer.renderToString(element);
+    
+    fs.writeFileSync('{temp_file}', canvas.toBuffer());
+    '''
+    
+    with open('render.js', 'w') as f:
+        f.write(node_script)
+    
+    subprocess.run(['node', 'render.js'])
+    return temp_file
 
 def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> Dict[str, Any]:
     """Generate specific health metric graphs"""

@@ -181,27 +181,15 @@ def call_openrouter(messages) -> dict:
         logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
         raise
 
-def upload_base64_to_imgbb(img_b64: str) -> str:
+def upload_graph_to_pinnacle(file_path: str) -> str:
     """
-    Upload base64 image data to imgbb and return the public URL.
+    Upload graph image to Pinnacle and return the download URL.
     """
-    upload_url = 'https://api.imgbb.com/1/upload'
-    # Remove any potential data URL prefix
-    if ',' in img_b64:
-        img_b64 = img_b64.split(',', 1)[1]
-    
-    payload = {
-        'key': IMGBB_API_KEY,
-        'image': img_b64,
-        'name': f'graph_{int(time.time())}.png'
-    }
     try:
-        resp = requests.post(upload_url, data=payload)
-        resp.raise_for_status()
-        return resp.json()['data']['url']
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"ImgBB upload failed with status {resp.status_code}")
-        logger.error(f"Response content: {resp.text}")
+        download_url = client.upload(file_path)
+        return download_url
+    except Exception as e:
+        logger.error(f"Pinnacle upload failed: {str(e)}")
         raise
 
 def send_rcs_message(to_number: str, response_data: dict):
