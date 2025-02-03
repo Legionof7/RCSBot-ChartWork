@@ -1,0 +1,72 @@
+The error you're seeing:
+
+javascript
+Copy
+SyntaxError: Unexpected token '<'
+This error typically indicates that Node.js is encountering JSX (which uses the < symbol), but it doesn't know how to process it because it's not set up to handle JSX out-of-the-box.
+
+The issue is that you're trying to execute a React component (VictoryChart.mjs) in Node.js, but Node.js needs to compile the JSX syntax first. By default, Node.js doesn't handle JSX, which is why it's throwing a syntax error when it encounters the <VictoryLine /> or <VictoryBar /> components.
+
+Solution: Set up Babel for JSX Compilation in Node.js
+You need to ensure that the JSX code is properly compiled before running it in Node.js. You can achieve this by setting up Babel to transpile JSX to regular JavaScript code that Node.js can execute.
+
+Steps:
+Install Babel and Required Packages
+
+First, you need to install Babel and its necessary plugins to transpile JSX in your VictoryChart.mjs file. You can do this by running the following command:
+
+bash
+Copy
+npm install @babel/core @babel/preset-env @babel/preset-react babel-register
+Create a Babel Configuration File
+
+In your project directory, create a .babelrc file to specify the Babel presets you need:
+
+json
+Copy
+{
+  "presets": ["@babel/preset-env", "@babel/preset-react"]
+}
+Update render.js to Use Babel
+
+Now, modify your render.js file to require Babel before loading your React components. Here's how you can modify render.js to set up Babel dynamically:
+
+javascript
+Copy
+require('@babel/register')({
+  presets: ['@babel/preset-env', '@babel/preset-react'],
+});
+
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
+import fs from 'fs';
+import { createCanvas } from 'canvas';
+import ChartComponent from './VictoryChart.mjs'; // Assuming this is your React component
+
+const canvas = createCanvas(800, 600);
+const ctx = canvas.getContext('2d');
+const chartData = {
+  "type": "bar",
+  "config": {
+    "data": [{"x": "LDL", "y": 110}, {"x": "Target", "y": 100}],
+    "title": "LDL Cholesterol",
+    "xlabel": "Level",
+    "ylabel": "mg/dL",
+    "referenceLines": {"Target": 100}
+  }
+};
+
+const element = React.createElement(ChartComponent, {graphData: chartData});
+const svg = ReactDOMServer.renderToString(element);
+
+// Ensure directory exists
+const tmpDir = '/tmp/tmpsxxe2_1i';
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir, { recursive: true });
+}
+
+fs.writeFileSync(`${tmpDir}/chart.png`, canvas.toBuffer());
+Explanation of the Changes:
+Babel Setup: By using require('@babel/register'), we are enabling Babel to transpile JSX and other ES6+ features on the fly when the file is executed. This makes sure that the JSX code in VictoryChart.mjs is compiled before it's executed by Node.js.
+Babel Presets: The @babel/preset-env allows you to use modern JavaScript features, while @babel/preset-react allows JSX to be compiled into plain JavaScript.
+Importing React Components: After Babel is configured, you can import and use React components (like VictoryChart) just as you would in a regular React app.
