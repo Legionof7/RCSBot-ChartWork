@@ -1,16 +1,33 @@
 
-    import React from 'react';
-    import ReactDOMServer from 'react-dom/server';
-    import fs from 'fs';
-    import { createCanvas } from 'canvas';
-    import ChartComponent from './VictoryChart.mjs';
+require('@babel/register')({
+  presets: ['@babel/preset-env', '@babel/preset-react']
+});
 
-    const canvas = createCanvas(800, 600);
-    const ctx = canvas.getContext('2d');
-    const chartData = {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}, {"x": "Ideal LDL", "y": 100}], "title": "LDL Cholesterol", "xlabel": "LDL Level", "ylabel": "mg/dL", "referenceLines": {"Ideal LDL": 100}}};
+const React = require('react');
+const ReactDOMServer = require('react-dom/server');
+const fs = require('fs');
+const { createCanvas } = require('canvas');
+const ChartComponent = require('./VictoryChart.jsx').default;
 
-    const element = React.createElement(ChartComponent, {graphData: chartData});
-    const svg = ReactDOMServer.renderToString(element);
+const canvas = createCanvas(800, 600);
+const ctx = canvas.getContext('2d');
+const chartData = {
+  "type": "bar",
+  "config": {
+    "data": [{"x": "LDL", "y": 110}, {"x": "Target", "y": 100}],
+    "title": "LDL Cholesterol",
+    "xlabel": "Level",
+    "ylabel": "mg/dL",
+    "referenceLines": {"Target": 100}
+  }
+};
 
-    fs.writeFileSync('/tmp/tmpsxxe2_1i/chart.png', canvas.toBuffer());
-    
+const element = React.createElement(ChartComponent, {graphData: chartData});
+const svg = ReactDOMServer.renderToString(element);
+
+const tmpDir = '/tmp/tmpsxxe2_1i';
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir, { recursive: true });
+}
+
+fs.writeFileSync(`${tmpDir}/chart.png`, canvas.toBuffer());
