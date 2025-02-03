@@ -130,7 +130,7 @@ Examples:
    - "Contact Doctor" (payload: contact_doctor)
    - "View Medications" (payload: view_medications)
    - "Check Lab Results" (payload: check_labs)
-   - "Connect Wearable" (payload: connect_wearable) <-- send this when more data is requested/needed
+   - "Connect Wearable" (payload: connect_wearable) <-- send this when more data is requested/needed        
 4. Use appropriate graph types:
    - bar: for comparing values
    - line: for trends over time
