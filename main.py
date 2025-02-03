@@ -215,7 +215,7 @@ def send_rcs_message(to_number: str, response_data: dict):
             logger.info(f"Generating graph of type {g_type}")
             img_b64 = generate_graph(g_type, g_data)
             logger.info("Graph generated successfully, uploading to ImgBB")
-            image_url = upload_base64_to_imgbb(img_b64)
+            image_url = upload_graph_to_pinnacle(img_b64)
             logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
             logger.error(f"Graph generation/upload failed:")
