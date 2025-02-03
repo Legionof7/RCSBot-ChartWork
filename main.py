@@ -78,10 +78,10 @@ def create_context(query: str) -> str:
     and includes relevant instructions plus the patient's FHIR data.
     """
     graph_formats = '''
-GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
+GRAPH_DATA:{"type": "<graph_type>", "config": {"data": <data_array>, "title": "<title>", "xlabel": "<xlabel>", "ylabel": "<ylabel>", "referenceLines": <reference_lines>}}END_GRAPH_DATA
 
 Example:
-GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
+GRAPH_DATA:{"type": "bar", "config": {"data": [{"x": "HbA1c", "y": 6.8}, {"x": "Glucose", "y": 110}, {"x": "LDL", "y": 110}], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
 '''
 
     rcs_instructions = f"""
