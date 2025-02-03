@@ -18,40 +18,42 @@ const ChartComponent = ({ graphData }) => {
   const getChartComponent = () => {
     switch (type) {
       case 'line':
-        return React.createElement(VictoryLine, { data });
+        return <VictoryLine data={data} />;
       case 'bar':
-        return React.createElement(VictoryBar, { data });
+        return <VictoryBar data={data} />;
       case 'scatter':
-        return React.createElement(VictoryScatter, { data });
+        return <VictoryScatter data={data} />;
       default:
         return null;
     }
   };
 
-  return React.createElement('div',
-    { style: { width: '100%', height: '400px' } },
-    React.createElement(VictoryChart,
-      {
-        theme: VictoryTheme.material,
-        containerComponent: React.createElement(VictoryContainer, { responsive: true })
-      },
-      React.createElement(VictoryLabel, {
-        text: title,
-        x: 225,
-        y: 30,
-        textAnchor: "middle"
-      }),
-      React.createElement(Victory.VictoryAxis, {
-        label: xlabel,
-        style: { axisLabel: { padding: 30 } }
-      }),
-      React.createElement(Victory.VictoryAxis, {
-        dependentAxis: true,
-        label: ylabel,
-        style: { axisLabel: { padding: 40 } }
-      }),
-      getChartComponent()
-    )
+  return (
+    <svg width={800} height={600} viewBox="0 0 800 600">
+      <VictoryChart
+        width={800}
+        height={600}
+        theme={VictoryTheme.material}
+        standalone={false}
+      >
+        <VictoryLabel
+          text={title}
+          x={400}
+          y={30}
+          textAnchor="middle"
+        />
+        <VictoryAxis
+          label={xlabel}
+          style={{ axisLabel: { padding: 30 } }}
+        />
+        <VictoryAxis
+          dependentAxis
+          label={ylabel}
+          style={{ axisLabel: { padding: 40 } }}
+        />
+        {getChartComponent()}
+      </VictoryChart>
+    </svg>
   );
 };
 
