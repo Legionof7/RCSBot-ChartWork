@@ -1,0 +1,175 @@
+
+=== AI Model Response ===
+```json
+{
+  "text": "Your LDL cholesterol is 110 mg/dL.",
+  "cards": [
+    {
+      "title": "LDL Cholesterol",
+      "subtitle": "Your LDL cholesterol is 110 mg/dL.  This is considered borderline high.  Optimal levels are below 100 mg/dL. We should discuss ways to lower this.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "More Information",
+          "type": "trigger",
+          "payload": "more_info_ldl"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "What can I do to lower it?",
+      "type": "trigger",
+      "payload": "lower_ldl"
+    },
+    {
+      "title": "Schedule Appointment",
+      "type": "trigger",
+      "payload": "schedule_appointment"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": GRAPH_DATA:{"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}], "title": "LDL Cholesterol", "xlabel": "Test", "ylabel": "Value (mg/dL)", "referenceLines": {"LDL": 100}}}END_GRAPH_DATA
+  }
+}
+```
+
+=====================
+
+2025-02-03 23:26:53,299 - __main__ - ERROR - Failed to parse Deepseek JSON response. Content: {
+  "text": "Your LDL cholesterol is 110 mg/dL.",
+  "cards": [
+    {
+      "title": "LDL Cholesterol",
+      "subtitle": "Your LDL cholesterol is 110 mg/dL.  This is considered borderline high.  Optimal levels are below 100 mg/dL. We should discuss ways to lower this.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "More Information",
+          "type": "trigger",
+          "payload": "more_info_ldl"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "What can I do to lower it?",
+      "type": "trigger",
+      "payload": "lower_ldl"
+    },
+    {
+      "title": "Schedule Appointment",
+      "type": "trigger",
+      "payload": "schedule_appointment"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": GRAPH_DATA:{"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}], "title": "LDL Cholesterol", "xlabel": "Test", "ylabel": "Value (mg/dL)", "referenceLines": {"LDL": 100}}}END_GRAPH_DATA
+  }
+}
+2025-02-03 23:26:53,299 - __main__ - ERROR - JSON parse error: Expecting value: line 31 column 13 (char 768)
+
+=== Graph Generation Debug ===
+Response data keys: dict_keys(['text'])
+
+=== Card Processing Debug ===
+Number of cards: 0
+Image URL available: None
+
+=== Final RCS Parameters ===
+{
+  "to": "+16282798511",
+  "from_": "test",
+  "text": "I apologize, but I encountered an error processing your request. How else can I help you today?"
+}
+2025-02-03 23:26:56,346 - werkzeug - INFO - 172.31.128.16 - - [03/Feb/2025 23:26:56] "POST / HTTP/1.1" 200 -
+2025-02-03 23:27:03,884 - werkzeug - INFO - 172.31.128.16 - - [03/Feb/2025 23:27:03] "GET / HTTP/1.1" 200 -
+
+=== AI Model Response ===
+```json
+{
+  "text": "Here's your LDL cholesterol level:",
+  "cards": [
+    {
+      "title": "LDL Cholesterol",
+      "subtitle": "Your LDL cholesterol is 110 mg/dL.  This is considered borderline high.  Optimal levels are below 100 mg/dL.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "More Information",
+          "type": "trigger",
+          "payload": "more_info_ldl"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "What can I do to lower it?",
+      "type": "trigger",
+      "payload": "quick_reply_lower_ldl"
+    },
+    {
+      "title": "Schedule Appointment",
+      "type": "trigger",
+      "payload": "schedule_appointment"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}], "title": "LDL Cholesterol", "xlabel": "Test", "ylabel": "mg/dL", "referenceLines": {"LDL": 100}}}
+}
+```
+
+=====================
+
+2025-02-03 23:27:07,208 - __main__ - ERROR - Failed to parse Deepseek JSON response. Content: {
+  "text": "Here's your LDL cholesterol level:",
+  "cards": [
+    {
+      "title": "LDL Cholesterol",
+      "subtitle": "Your LDL cholesterol is 110 mg/dL.  This is considered borderline high.  Optimal levels are below 100 mg/dL.",
+      "media_url": "{GRAPH_URL_0}",
+      "buttons": [
+        {
+          "title": "More Information",
+          "type": "trigger",
+          "payload": "more_info_ldl"
+        }
+      ]
+    }
+  ],
+  "quick_replies": [
+    {
+      "title": "What can I do to lower it?",
+      "type": "trigger",
+      "payload": "quick_reply_lower_ldl"
+    },
+    {
+      "title": "Schedule Appointment",
+      "type": "trigger",
+      "payload": "schedule_appointment"
+    }
+  ],
+  "graph": {
+    "type": "bar",
+    "data": {"type": "bar", "config": {"data": [{"x": "LDL", "y": 110}], "title": "LDL Cholesterol", "xlabel": "Test", "ylabel": "mg/dL", "referenceLines": {"LDL": 100}}}
+}
+2025-02-03 23:27:07,208 - __main__ - ERROR - JSON parse error: Expecting ',' delimiter: line 32 column 2 (char 902)
+
+=== Graph Generation Debug ===
+Response data keys: dict_keys(['text'])
+
+=== Card Processing Debug ===
+Number of cards: 0
+Image URL available: None
+
+=== Final RCS Parameters ===
+{
+  "to": "+16282798511",
+  "from_": "test",
+  "text": "I apologize, but I encountered an error processing your request. How else can I help you today?"
