@@ -46,7 +46,8 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     }
 
     # Create temporary file to store the chart data
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = '/tmp/tmpsxxe2_1i'
+    os.makedirs(temp_dir, exist_ok=True)
     temp_file = os.path.join(temp_dir, 'chart.png')
     
     # Use node to render the React component to an image
