@@ -1,32 +1,25 @@
+
 import json
 import logging
-from typing import Dict, Any, List
+import os
 
 logger = logging.getLogger(__name__)
 
 def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     """Generate graph using React SSR and return image path"""
-    import subprocess
-    import os
-    import tempfile
     logger.info(f"Generating {graph_type} graph config with data type: {type(data)}")
-
-    if isinstance(data, str):
-        if "GRAPH_DATA:" in data and "END_GRAPH_DATA" in data:
-            try:
-                graph_json = data.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0].strip()
-                data = json.loads(graph_json)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse graph JSON data: {e}")
-                logger.error(f"Attempted to parse: {graph_json}")
-                raise
-
+    
     if data is None:
-        logging.error("Data is None")
         raise ValueError("Data cannot be None")
+        
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse graph data string: {e}")
+            raise
 
     if not isinstance(data, dict):
-        logging.error(f"Invalid data type: {type(data)}. Expected dict.")
         raise ValueError(f"Data must be a dictionary, got {type(data)}")
 
     # Extract nested config if present
@@ -50,29 +43,34 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     os.makedirs(temp_dir, exist_ok=True)
     temp_file = os.path.join(temp_dir, 'chart.png')
     
-    # Use node to render the React component to an image
-    node_script = f'''
-    const ReactDOMServer = require('react-dom/server');
-    const {{createElement}} = require('react');
-    const fs = require('fs');
-    const {{createCanvas}} = require('canvas');
-    const VictoryChart = require('./VictoryChart.jsx').default;
-    
+    # Write render script
+    render_script = f'''
+    import React from 'react';
+    import ReactDOMServer from 'react-dom/server';
+    import fs from 'fs';
+    import {{ createCanvas }} from 'canvas';
+    import ChartComponent from './VictoryChart.mjs';
+
     const canvas = createCanvas(800, 600);
     const ctx = canvas.getContext('2d');
     const chartData = {json.dumps(chart_data)};
-    
-    const element = createElement(VictoryChart, {{graphData: chartData}});
+
+    const element = React.createElement(ChartComponent, {{graphData: chartData}});
     const svg = ReactDOMServer.renderToString(element);
-    
+
     fs.writeFileSync('{temp_file}', canvas.toBuffer());
     '''
     
     with open('render.js', 'w') as f:
-        f.write(node_script)
+        f.write(render_script)
     
-    subprocess.run(['node', 'render.js'])
-    return temp_file
+    try:
+        import subprocess
+        subprocess.run(['node', 'render.js'], check=True)
+        return temp_file
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to render graph: {e}")
+        raise
 
 def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> Dict[str, Any]:
     """Generate specific health metric graphs"""
