@@ -1,9 +1,13 @@
+require('@babel/register')({
+      extensions: ['.js', '.jsx'],
+      presets: ['@babel/preset-env', '@babel/preset-react']
+    });
 
-    import React from 'react';
-    import ReactDOMServer from 'react-dom/server';
-    import fs from 'fs';
-    import { createCanvas } from 'canvas';
-    import ChartComponent from './VictoryChart.mjs';
+    const React = require('react');
+    const ReactDOMServer = require('react-dom/server');
+    const fs = require('fs');
+    const { createCanvas } = require('canvas');
+    const ChartComponent = require('./VictoryChart.jsx').default;
 
     const canvas = createCanvas(800, 600);
     const ctx = canvas.getContext('2d');
@@ -13,4 +17,3 @@
     const svg = ReactDOMServer.renderToString(element);
 
     fs.writeFileSync('/tmp/tmpsxxe2_1i/chart.png', canvas.toBuffer());
-    
