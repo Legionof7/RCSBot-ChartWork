@@ -30,7 +30,7 @@ const ChartComponent = ({ graphData }) => {
 
   return React.createElement('div',
     { style: { width: '100%', height: '400px' } },
-    React.createElement(Victory.VictoryChart,
+    React.createElement(VictoryChart,
       {
         theme: VictoryTheme.material,
         containerComponent: React.createElement(VictoryContainer, { responsive: true })
