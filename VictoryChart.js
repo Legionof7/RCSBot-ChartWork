@@ -1,15 +1,6 @@
 
-import React from 'react';
-import {
-  VictoryChart,
-  VictoryLine,
-  VictoryBar,
-  VictoryScatter,
-  VictoryAxis,
-  VictoryTheme,
-  VictoryLabel,
-  VictoryContainer
-} from 'victory';
+const React = require('react');
+const Victory = require('victory');
 
 const ChartComponent = ({ graphData }) => {
   const { type, config } = graphData;
@@ -18,41 +9,41 @@ const ChartComponent = ({ graphData }) => {
   const getChartComponent = () => {
     switch (type) {
       case 'line':
-        return <VictoryLine data={data} />;
+        return React.createElement(Victory.VictoryLine, { data });
       case 'bar':
-        return <VictoryBar data={data} />;
+        return React.createElement(Victory.VictoryBar, { data });
       case 'scatter':
-        return <VictoryScatter data={data} />;
+        return React.createElement(Victory.VictoryScatter, { data });
       default:
         return null;
     }
   };
 
-  return (
-    <div style={{ width: '100%', height: '400px' }}>
-      <VictoryChart
-        theme={VictoryTheme.material}
-        containerComponent={<VictoryContainer responsive={true} />}
-      >
-        <VictoryLabel
-          text={title}
-          x={225}
-          y={30}
-          textAnchor="middle"
-        />
-        <VictoryAxis
-          label={xlabel}
-          style={{ axisLabel: { padding: 30 } }}
-        />
-        <VictoryAxis
-          dependentAxis
-          label={ylabel}
-          style={{ axisLabel: { padding: 40 } }}
-        />
-        {getChartComponent()}
-      </VictoryChart>
-    </div>
+  return React.createElement('div',
+    { style: { width: '100%', height: '400px' } },
+    React.createElement(Victory.VictoryChart,
+      {
+        theme: Victory.VictoryTheme.material,
+        containerComponent: React.createElement(Victory.VictoryContainer, { responsive: true })
+      },
+      React.createElement(Victory.VictoryLabel, {
+        text: title,
+        x: 225,
+        y: 30,
+        textAnchor: "middle"
+      }),
+      React.createElement(Victory.VictoryAxis, {
+        label: xlabel,
+        style: { axisLabel: { padding: 30 } }
+      }),
+      React.createElement(Victory.VictoryAxis, {
+        dependentAxis: true,
+        label: ylabel,
+        style: { axisLabel: { padding: 40 } }
+      }),
+      getChartComponent()
+    )
   );
 };
 
-export default ChartComponent;
+module.exports = ChartComponent;
