@@ -1,0 +1,76 @@
+
+=== Graph Generation Debug ===
+Response data keys: dict_keys(['text', 'cards', 'quick_replies', 'graph'])
+Graph data found: {
+  "type": "bar",
+  "data": {
+    "type": "bar",
+    "config": {
+      "data": [
+        {
+          "x": "LDL",
+          "y": 110
+        },
+        {
+          "x": "Desirable Level",
+          "y": 100
+        }
+      ],
+      "title": "LDL Cholesterol",
+      "xlabel": "Level",
+      "ylabel": "mg/dL",
+      "referenceLines": {
+        "Desirable Level": 100
+      }
+    }
+  }
+}
+Attempting to generate bar graph with data:
+{
+  "type": "bar",
+  "config": {
+    "data": [
+      {
+        "x": "LDL",
+        "y": 110
+      },
+      {
+        "x": "Desirable Level",
+        "y": 100
+      }
+    ],
+    "title": "LDL Cholesterol",
+    "xlabel": "Level",
+    "ylabel": "mg/dL",
+    "referenceLines": {
+      "Desirable Level": 100
+    }
+  }
+}
+file:///home/runner/workspace/render.js:2
+    const ReactDOMServer = require('react-dom/server');
+                           ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/home/runner/workspace/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///home/runner/workspace/render.js:2:28
+    at ModuleJob.run (node:internal/modules/esm/module_job:234:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:473:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:122:5)
+
+Node.js v20.18.1
+2025-02-03 23:24:03,195 - __main__ - ERROR - Pinnacle upload failed: [Errno 2] No such file or directory: '/tmp/tmpsxxe2_1i/chart.png'
+2025-02-03 23:24:03,195 - __main__ - ERROR - Graph generation/upload failed:
+2025-02-03 23:24:03,195 - __main__ - ERROR - Error type: FileNotFoundError
+2025-02-03 23:24:03,195 - __main__ - ERROR - Error message: [Errno 2] No such file or directory: '/tmp/tmpsxxe2_1i/chart.png'
+2025-02-03 23:24:03,196 - __main__ - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 218, in send_rcs_message
+    image_url = upload_graph_to_pinnacle(img_b64)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/main.py", line 189, in upload_graph_to_pinnacle
+    download_url = client.upload(file_path)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/rcs/client.py", line 43, in upload
+    size=os.stat(file_path).st_size,
+         ^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpsxxe2_1i/chart.png'
