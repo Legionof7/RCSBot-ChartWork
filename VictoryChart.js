@@ -1,6 +1,15 @@
 
-const React = require('react');
-const Victory = require('victory');
+import React from 'react';
+import {
+  VictoryChart,
+  VictoryLine,
+  VictoryBar,
+  VictoryScatter,
+  VictoryAxis,
+  VictoryTheme,
+  VictoryLabel,
+  VictoryContainer
+} from 'victory';
 
 const ChartComponent = ({ graphData }) => {
   const { type, config } = graphData;
@@ -9,11 +18,11 @@ const ChartComponent = ({ graphData }) => {
   const getChartComponent = () => {
     switch (type) {
       case 'line':
-        return React.createElement(Victory.VictoryLine, { data });
+        return React.createElement(VictoryLine, { data });
       case 'bar':
-        return React.createElement(Victory.VictoryBar, { data });
+        return React.createElement(VictoryBar, { data });
       case 'scatter':
-        return React.createElement(Victory.VictoryScatter, { data });
+        return React.createElement(VictoryScatter, { data });
       default:
         return null;
     }
@@ -23,10 +32,10 @@ const ChartComponent = ({ graphData }) => {
     { style: { width: '100%', height: '400px' } },
     React.createElement(Victory.VictoryChart,
       {
-        theme: Victory.VictoryTheme.material,
-        containerComponent: React.createElement(Victory.VictoryContainer, { responsive: true })
+        theme: VictoryTheme.material,
+        containerComponent: React.createElement(VictoryContainer, { responsive: true })
       },
-      React.createElement(Victory.VictoryLabel, {
+      React.createElement(VictoryLabel, {
         text: title,
         x: 225,
         y: 30,
@@ -46,4 +55,4 @@ const ChartComponent = ({ graphData }) => {
   );
 };
 
-module.exports = ChartComponent;
+export default ChartComponent;
