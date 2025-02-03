@@ -11,10 +11,12 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(data, str):
         if "GRAPH_DATA:" in data and "END_GRAPH_DATA" in data:
             try:
-                graph_json = data.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
-                return json.loads(graph_json)
+                graph_json = data.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0].strip()
+                parsed_data = json.loads(graph_json)
+                return parsed_data
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse graph JSON data: {e}")
+                logger.error(f"Attempted to parse: {graph_json}")
                 raise
 
     if data is None:
