@@ -186,14 +186,23 @@ def upload_base64_to_imgbb(img_b64: str) -> str:
     Upload base64 image data to imgbb and return the public URL.
     """
     upload_url = 'https://api.imgbb.com/1/upload'
+    # Remove any potential data URL prefix
+    if ',' in img_b64:
+        img_b64 = img_b64.split(',', 1)[1]
+    
     payload = {
         'key': IMGBB_API_KEY,
         'image': img_b64,
         'name': f'graph_{int(time.time())}.png'
     }
-    resp = requests.post(upload_url, data=payload)
-    resp.raise_for_status()
-    return resp.json()['data']['url']
+    try:
+        resp = requests.post(upload_url, data=payload)
+        resp.raise_for_status()
+        return resp.json()['data']['url']
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"ImgBB upload failed with status {resp.status_code}")
+        logger.error(f"Response content: {resp.text}")
+        raise
 
 def send_rcs_message(to_number: str, response_data: dict):
     """
