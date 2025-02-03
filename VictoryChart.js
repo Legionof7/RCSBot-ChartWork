@@ -41,11 +41,11 @@ const ChartComponent = ({ graphData }) => {
         y: 30,
         textAnchor: "middle"
       }),
-      React.createElement(Victory.VictoryAxis, {
+      React.createElement(VictoryAxis, {
         label: xlabel,
         style: { axisLabel: { padding: 30 } }
       }),
-      React.createElement(Victory.VictoryAxis, {
+      React.createElement(VictoryAxis, {
         dependentAxis: true,
         label: ylabel,
         style: { axisLabel: { padding: 40 } }
