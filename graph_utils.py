@@ -8,6 +8,15 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Generate graph configuration for Victory"""
     logger.info(f"Generating {graph_type} graph config with data type: {type(data)}")
 
+    if isinstance(data, str):
+        if "GRAPH_DATA:" in data and "END_GRAPH_DATA" in data:
+            try:
+                graph_json = data.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
+                return json.loads(graph_json)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse graph JSON data: {e}")
+                raise
+
     if data is None:
         logging.error("Data is None")
         raise ValueError("Data cannot be None")
@@ -27,14 +36,19 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         }
     }
 
-    if graph_type == "line" or graph_type == "scatter":
+    if "config" in data and "data" in data["config"]:
+        return data  # Already in correct format
+    elif graph_type == "line" or graph_type == "scatter":
         chart_data["config"]["data"] = [
             {"x": x, "y": y} for x, y in zip(data["x"], data["y"])
         ]
     elif graph_type == "bar":
-        chart_data["config"]["data"] = [
-            {"x": label, "y": value} for label, value in zip(data["labels"], data["values"])
-        ]
+        if "data" in data:
+            chart_data["config"]["data"] = data["data"]
+        else:
+            chart_data["config"]["data"] = [
+                {"x": label, "y": value} for label, value in zip(data["labels"], data["values"])
+            ]
         if "referenceLines" in data:
             chart_data["config"]["referenceLines"] = data["referenceLines"]
 
