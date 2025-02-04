@@ -180,41 +180,21 @@ def call_openrouter(messages) -> dict:
         logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
         raise
 
-def save_and_upload_image(img_b64: str) -> str:
+def save_and_upload_image(img_path: str) -> str:
     """
-    Save base64 image data to temp file and upload via Pinnacle.
+    Upload a saved image from the local filesystem to Pinnacle.
     """
     try:
-        # Clean and validate base64 data
-        if ',' in img_b64:
-            img_b64 = img_b64.split(',', 1)[1]
-        
-        # Clean any whitespace and newlines
-        img_b64 = ''.join(img_b64.split())
-        
-        # Calculate and add proper padding
-        padding_length = (4 - (len(img_b64) % 4)) % 4
-        img_b64 = img_b64 + ('=' * padding_length)
+        # Verify the file exists and is not empty
+        if not os.path.exists(img_path) or os.path.getsize(img_path) < 100:
+            raise ValueError("Invalid image file generated")
 
-        temp_path = 'temp_chart.png'
-        try:
-            img_data = base64.b64decode(img_b64, validate=True)
-            with open(temp_path, 'wb') as f:
-                f.write(img_data)
-            
-            # Verify file was written correctly
-            if not os.path.exists(temp_path) or os.path.getsize(temp_path) < 100:
-                raise ValueError("Invalid image file generated")
-
-            # Upload using Pinnacle
-            download_url = client.upload(temp_path)
-            return download_url
-        except Exception as e:
-            logger.error(f"Failed to process or upload image: {str(e)}")
-            raise
-
-        # Clean up temp file
-        os.remove(temp_path)
+        # Upload using Pinnacle
+        download_url = client.upload(img_path)
+        return download_url
+    except Exception as e:
+        logger.error(f"Failed to upload image: {str(e)}")
+        raise
         return download_url
     except Exception as e:
         logger.error(f"Failed to upload image: {str(e)}")
@@ -241,9 +221,9 @@ def send_rcs_message(to_number: str, response_data: dict):
             print(f"Attempting to generate {g_type} graph with data:")
             print(json.dumps(g_data, indent=2))
             logger.info(f"Generating graph of type {g_type}")
-            img_b64 = generate_graph(g_type, g_data)
+            generate_graph(g_type, g_data)  # This will save to debug_chart.png
             logger.info("Graph generated successfully, uploading to Pinnacle")
-            image_url = save_and_upload_image(img_b64)
+            image_url = save_and_upload_image('debug_chart.png')
             logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
             logger.error(f"Graph generation/upload failed:")

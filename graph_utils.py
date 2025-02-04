@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
+def generate_graph(graph_type: str, data: Dict[str, Any]) -> None:
     """Generate a graph using Victory Charts service, return base64 image"""
     logger.info(f"Generating {graph_type} graph with data type: {type(data)}")
     logger.debug(f"Full data content: {data}")
