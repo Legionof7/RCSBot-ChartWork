@@ -186,6 +186,10 @@ def upload_base64_to_imgbb(img_b64: str) -> str:
     Upload base64 image data to imgbb and return the public URL.
     """
     upload_url = 'https://api.imgbb.com/1/upload'
+    # Strip potential data URL prefix
+    if ',' in img_b64:
+        img_b64 = img_b64.split(',', 1)[1]
+    
     payload = {
         'key': IMGBB_API_KEY,
         'image': img_b64,
