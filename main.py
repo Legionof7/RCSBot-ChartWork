@@ -202,8 +202,9 @@ def save_and_upload_image(img_b64: str) -> str:
             with open(temp_path, 'wb') as f:
                 f.write(img_data)
             
-        # Verify file was written correctly
-        if not os.path.exists(temp_path) or os.path.getsize(temp_path) < 100:
+            # Verify file was written correctly
+            if not os.path.exists(temp_path) or os.path.getsize(temp_path) < 100:
+                raise ValueError("Invalid image file generated")
             raise ValueError("Invalid image file generated")
 
         # Upload using Pinnacle
