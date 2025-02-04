@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   VictoryChart,
@@ -11,7 +10,7 @@ import {
 
 const ChartComponent = ({ graphData }) => {
   if (!graphData?.config) return null;
-  
+
   const { data, title, xlabel, ylabel, referenceLines } = graphData.config;
 
   const referenceLineComponents = (referenceLines || []).map((line, index) => (
