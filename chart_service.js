@@ -116,30 +116,29 @@ const renderChart = async (type, data) => {
   await page.setContent(htmlContent);
   console.log('Taking screenshot...');
   
-  // Wait for chart to be fully rendered
+  await page.evaluate(() => {
+    document.body.style.margin = '0';
+    document.body.style.background = 'white';
+    const root = document.getElementById('root');
+    root.style.background = 'white';
+    root.style.padding = '20px';
+    root.style.boxSizing = 'border-box';
+  });
+
+  // Wait for rendering and add extra delay
   await page.waitForFunction(() => {
     const svg = document.querySelector('#root svg');
     const paths = svg?.querySelectorAll('path');
     return svg && paths.length > 0 && Array.from(paths).every(p => p.getTotalLength() > 0);
   }, { timeout: 5000 });
-
-  // Add background color and padding
-  await page.evaluate(() => {
-    document.body.style.background = 'white';
-    document.getElementById('root').style.padding = '20px';
-  });
+  
+  await page.waitForTimeout(1000);
   
   console.log('Attempting to take screenshot...');
   const imageBuffer = await page.screenshot({ 
     type: 'png',
     fullPage: false,
-    omitBackground: false,
-    clip: {
-      x: 0,
-      y: 0,
-      width: 640,
-      height: 440
-    }
+    omitBackground: false
   }).catch(err => {
     console.error('Failed to take screenshot:', err);
     throw err;
