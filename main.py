@@ -374,18 +374,19 @@ def handle_webhook():
                     response_data = {"text": "I apologize, but I encountered an error. How else can I help you today?"}
 
                 # Extract graph data if present
-                if 'GRAPH_DATA:' in content:
-                    try:
-                        graph_data = content.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
-                        graph_json = json.loads(graph_data)
-                        if isinstance(graph_json, dict) and 'type' in graph_json and 'data' in graph_json:
+                try:
+                    if 'graph' in response_data and 'data' in response_data['graph']:
+                        graph_text = response_data['graph']['data']
+                        if isinstance(graph_text, str) and 'GRAPH_DATA:' in graph_text:
+                            graph_data = graph_text.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
+                            graph_json = json.loads(graph_data)
                             response_data['graph'] = graph_json
                         else:
-                            logger.error(f"Invalid graph data structure: {graph_json}")
+                            logger.error(f"Invalid graph data format: {graph_text}")
                             response_data['graph'] = None
-                    except Exception as e:
-                        logger.error(f"Failed to parse graph data: {str(e)}")
-                        response_data['graph'] = None
+                except Exception as e:
+                    logger.error(f"Failed to parse graph data: {str(e)}")
+                    response_data['graph'] = None
 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse Deepseek JSON response. Content: {json_content}")
