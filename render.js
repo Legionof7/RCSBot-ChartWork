@@ -5,16 +5,19 @@ import fs from 'fs';
 import sharp from 'sharp';
 import ChartComponent from './VictoryChart.js';
 
-const chartData = {"type": "bar", "config": {"data": [{"x": "HDL", "y": 55}], "title": "HDL Cholesterol", "xlabel": "Test", "ylabel": "Value (mg/dL)", "referenceLines": {"HDL": {"value": 40, "label": "Lower Limit"}, "HDL_2": {"value": 60, "label": "Upper Limit"}}}};
+const chartData = {"type": "bar", "config": {"data": [{"x": "HDL", "y": 55}], "title": "HDL Cholesterol", "xlabel": "Test", "ylabel": "Value (mg/dL)", "referenceLines": {"HDL": [40, 60]}}};
 
 const element = React.createElement(ChartComponent, {graphData: chartData});
 const svg = ReactDOMServer.renderToString(element);
 
-const fullSvg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+// Wrap SVG in proper XML wrapper
+const fullSvg = `
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
   ${svg}
-</svg>`;
+</svg>
+`;
 
+// Convert SVG to PNG using sharp
 sharp(Buffer.from(fullSvg))
   .resize(800, 600)
   .png()
