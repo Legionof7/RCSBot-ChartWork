@@ -49,6 +49,6 @@ app.post('/render-chart', async (req, res) => {
   }
 });
 
-app.listen(3001, '0.0.0.0', () => {
+app.listen(3001, 'localhost', () => {
   console.log('Chart service running on port 3001');
 });
