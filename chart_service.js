@@ -3,7 +3,7 @@ const express = require('express');
 const puppeteer = require('puppeteer');
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
-const { VictoryChart, VictoryLine, VictoryBar, VictoryScatter, VictoryTheme } = require('victory');
+const { VictoryChart, VictoryLine, VictoryBar, VictoryScatter, VictoryAxis, VictoryTheme } = require('victory');
 
 const app = express();
 app.use(express.json());
@@ -13,26 +13,61 @@ app.get('/', (req, res) => {
 });
 
 const renderChart = async (type, data) => {
-  const ChartComponent = ({ type, data }) => {
+  // Transform data into Victory format
+  const chartData = data.labels.map((label, index) => ({
+    x: label,
+    y: data.values[index]
+  }));
+
+  const ChartComponent = ({ type, data, chartData }) => {
     const Chart = {
       'line': VictoryLine,
       'bar': VictoryBar,
       'scatter': VictoryScatter
     }[type];
 
-    return React.createElement(VictoryChart, { theme: VictoryTheme.material },
-      React.createElement(Chart, { data: data })
+    return React.createElement(VictoryChart, 
+      { 
+        theme: VictoryTheme.material,
+        domainPadding: 20,
+        height: 400,
+        width: 600,
+        padding: { top: 50, bottom: 50, left: 60, right: 40 }
+      },
+      React.createElement(VictoryAxis, {
+        label: data.xlabel,
+        style: { axisLabel: { padding: 35 } }
+      }),
+      React.createElement(VictoryAxis, {
+        dependentAxis: true,
+        label: data.ylabel,
+        style: { axisLabel: { padding: 45 } }
+      }),
+      React.createElement(Chart, { 
+        data: chartData,
+        style: { data: { fill: "#4287f5" } }
+      })
     );
   };
 
   const chartHTML = ReactDOMServer.renderToString(
-    React.createElement(ChartComponent, { type, data })
+    React.createElement(ChartComponent, { type, data, chartData })
   );
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ 
+    args: ['--no-sandbox'],
+    headless: 'new'
+  });
   const page = await browser.newPage();
+  await page.setViewport({ width: 600, height: 400 });
   await page.setContent(`
-    <html><body><div id="root">${chartHTML}</div></body></html>
+    <html>
+      <body>
+        <div id="root" style="width:600px;height:400px;">
+          ${chartHTML}
+        </div>
+      </body>
+    </html>
   `);
   const imageBuffer = await page.screenshot({ type: 'png' });
   await browser.close();
@@ -42,13 +77,15 @@ const renderChart = async (type, data) => {
 app.post('/render-chart', async (req, res) => {
   try {
     const { type, data } = req.body;
+    console.log('Received chart request:', { type, data });
     const base64Image = await renderChart(type, data);
     res.json({ image_base64: base64Image });
   } catch (error) {
+    console.error('Chart generation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.listen(3001, 'localhost', () => {
+app.listen(3001, '0.0.0.0', () => {
   console.log('Chart service running on port 3001');
 });
