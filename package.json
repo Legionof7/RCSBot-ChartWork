@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@babel/preset-react": "^7.26.3",
+    "@types/babel__core": "^7.20.5",
+    "express": "^4.21.2",
+    "puppeteer": "^24.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "victory": "^37.3.6"
+  }
+}
