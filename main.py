@@ -185,16 +185,27 @@ def save_and_upload_image(img_b64: str) -> str:
     Save base64 image data to temp file and upload via Pinnacle.
     """
     try:
-        # Decode base64 and save temporarily
+        # Clean and validate base64 data
         if ',' in img_b64:
             img_b64 = img_b64.split(',', 1)[1]
+        
+        # Ensure proper padding
+        img_b64 = img_b64.strip()
+        missing_padding = len(img_b64) % 4
+        if missing_padding:
+            img_b64 += '=' * (4 - missing_padding)
 
         temp_path = 'temp_chart.png'
         with open(temp_path, 'wb') as f:
-            f.write(base64.b64decode(img_b64))
+            img_data = base64.b64decode(img_b64)
+            f.write(img_data)
+            
+        # Verify file was written correctly
+        if not os.path.exists(temp_path) or os.path.getsize(temp_path) < 100:
+            raise ValueError("Invalid image file generated")
 
-        # Upload using Pinnacle
-        download_url = client.upload(temp_path)
+        # Upload using Pinnacle with explicit content type
+        download_url = client.upload(temp_path, content_type='image/png')
 
         # Clean up temp file
         os.remove(temp_path)
