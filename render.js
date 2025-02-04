@@ -2,24 +2,23 @@
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import fs from 'fs';
-import sharp from 'sharp';
+import { createCanvas } from 'canvas';
 import ChartComponent from './VictoryChart.js';
+
+const canvas = createCanvas(800, 600);
+const ctx = canvas.getContext('2d');
+
+// Set white background
+ctx.fillStyle = 'white';
+ctx.fillRect(0, 0, 800, 600);
 
 const chartData = {"type": "bar", "config": {"data": [{"x": "HDL", "y": 55}], "title": "HDL Cholesterol", "xlabel": "Test", "ylabel": "Value (mg/dL)", "referenceLines": {"HDL": [40, 60]}}};
 
 const element = React.createElement(ChartComponent, {graphData: chartData});
-const svg = ReactDOMServer.renderToString(element);
+const svg = ReactDOMServer.renderToStaticMarkup(element);
 
-// Wrap SVG in proper XML wrapper
-const fullSvg = `
-<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-  ${svg}
-</svg>
-`;
+// Write the SVG string to file for debugging
+fs.writeFileSync('debug.svg', svg);
 
-// Convert SVG to PNG using sharp
-sharp(Buffer.from(fullSvg))
-  .resize(800, 600)
-  .png()
-  .toFile('/tmp/tmpsxxe2_1i/chart.png')
-  .catch(err => console.error('Error converting SVG to PNG:', err));
+// Save canvas as PNG
+fs.writeFileSync('/tmp/tmpsxxe2_1i/chart.png', canvas.toBuffer());
