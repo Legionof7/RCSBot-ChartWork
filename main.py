@@ -78,10 +78,10 @@ def create_context(query: str) -> str:
     and includes relevant instructions plus the patient's FHIR data.
     """
     graph_formats = '''
-GRAPH_DATA:{"type": "<graph_type>", "config": {"data": <data_array>, "title": "<title>", "xlabel": "<xlabel>", "ylabel": "<ylabel>", "referenceLines": <reference_lines>}}END_GRAPH_DATA
+GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
 
 Example:
-GRAPH_DATA:{"type": "bar", "config": {"data": [{"x": "HbA1c", "y": 6.8}, {"x": "Glucose", "y": 110}, {"x": "LDL", "y": 110}], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
+GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
 '''
 
     rcs_instructions = f"""
@@ -130,7 +130,7 @@ Examples:
    - "Contact Doctor" (payload: contact_doctor)
    - "View Medications" (payload: view_medications)
    - "Check Lab Results" (payload: check_labs)
-   - "Connect Wearable" (payload: connect_wearable) <-- send this when more data is requested/needed        
+   - "Connect Wearable" (payload: connect_wearable) <-- send this when more data is requested/needed
 4. Use appropriate graph types:
    - bar: for comparing values
    - line: for trends over time
@@ -181,16 +181,19 @@ def call_openrouter(messages) -> dict:
         logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
         raise
 
-def upload_graph_to_pinnacle(file_path: str) -> str:
+def upload_base64_to_imgbb(img_b64: str) -> str:
     """
-    Upload graph image to Pinnacle and return the download URL.
+    Upload base64 image data to imgbb and return the public URL.
     """
-    try:
-        download_url = client.upload(file_path)
-        return download_url
-    except Exception as e:
-        logger.error(f"Pinnacle upload failed: {str(e)}")
-        raise
+    upload_url = 'https://api.imgbb.com/1/upload'
+    payload = {
+        'key': IMGBB_API_KEY,
+        'image': img_b64,
+        'name': f'graph_{int(time.time())}.png'
+    }
+    resp = requests.post(upload_url, data=payload)
+    resp.raise_for_status()
+    return resp.json()['data']['url']
 
 def send_rcs_message(to_number: str, response_data: dict):
     """
@@ -215,7 +218,7 @@ def send_rcs_message(to_number: str, response_data: dict):
             logger.info(f"Generating graph of type {g_type}")
             img_b64 = generate_graph(g_type, g_data)
             logger.info("Graph generated successfully, uploading to ImgBB")
-            image_url = upload_graph_to_pinnacle(img_b64)
+            image_url = upload_base64_to_imgbb(img_b64)
             logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
             logger.error(f"Graph generation/upload failed:")
@@ -374,19 +377,18 @@ def handle_webhook():
                     response_data = {"text": "I apologize, but I encountered an error. How else can I help you today?"}
 
                 # Extract graph data if present
-                try:
-                    if 'graph' in response_data and 'data' in response_data['graph']:
-                        graph_text = response_data['graph']['data']
-                        if isinstance(graph_text, str) and 'GRAPH_DATA:' in graph_text:
-                            graph_data = graph_text.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
-                            graph_json = json.loads(graph_data)
+                if 'GRAPH_DATA:' in content:
+                    try:
+                        graph_data = content.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
+                        graph_json = json.loads(graph_data)
+                        if isinstance(graph_json, dict) and 'type' in graph_json and 'data' in graph_json:
                             response_data['graph'] = graph_json
                         else:
-                            logger.error(f"Invalid graph data format: {graph_text}")
+                            logger.error(f"Invalid graph data structure: {graph_json}")
                             response_data['graph'] = None
-                except Exception as e:
-                    logger.error(f"Failed to parse graph data: {str(e)}")
-                    response_data['graph'] = None
+                    except Exception as e:
+                        logger.error(f"Failed to parse graph data: {str(e)}")
+                        response_data['graph'] = None
 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse Deepseek JSON response. Content: {json_content}")
