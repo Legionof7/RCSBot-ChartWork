@@ -12,6 +12,10 @@ app.get('/', (req, res) => {
   res.send('Chart service is running');
 });
 
+app.get('/debug_chart.html', (req, res) => {
+  res.sendFile(__dirname + '/debug_chart.html');
+});
+
 const renderChart = async (type, data) => {
   console.log('\n=== Chart Generation Debug ===');
   console.log('Received chart type:', type);
