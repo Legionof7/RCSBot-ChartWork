@@ -17,3 +17,14 @@ deploymentTarget = "gce"
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[workflows]
+runButton = "Run"
+
+[[workflows.workflow]]
+name = "Run"
+author = 790161
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
