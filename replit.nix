@@ -24,5 +24,14 @@
     pkgs.expat
     pkgs.libdrm
     pkgs.mesa
+    pkgs.xorg.libX11
+    pkgs.xorg.libXcomposite
+    pkgs.xorg.libXdamage
+    pkgs.xorg.libXext
+    pkgs.xorg.libXfixes
+    pkgs.xorg.libXrandr
+    pkgs.alsaLib
+    pkgs.pango
+    pkgs.cairo
   ];
 }
