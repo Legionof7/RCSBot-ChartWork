@@ -129,6 +129,7 @@ const renderChart = async (type, data) => {
     document.getElementById('root').style.padding = '20px';
   });
   
+  console.log('Attempting to take screenshot...');
   const imageBuffer = await page.screenshot({ 
     type: 'png',
     fullPage: false,
@@ -136,12 +137,24 @@ const renderChart = async (type, data) => {
     clip: {
       x: 0,
       y: 0,
-      width: 640,  // Increased to account for padding
-      height: 440  // Increased to account for padding
+      width: 640,
+      height: 440
     }
   }).catch(err => {
     console.error('Failed to take screenshot:', err);
     throw err;
+  });
+
+  // Validate screenshot buffer
+  if (!imageBuffer || imageBuffer.length < 1000) {
+    console.error('Screenshot appears invalid - size too small');
+    throw new Error('Invalid screenshot generated');
+  }
+
+  console.log('Screenshot details:', {
+    size: imageBuffer.length,
+    isEmpty: !imageBuffer,
+    first10Bytes: imageBuffer.slice(0, 10).toString('hex')
   });
   
   if (!imageBuffer || imageBuffer.length < 1000) {
@@ -162,6 +175,7 @@ const renderChart = async (type, data) => {
   
   const base64Data = imageBuffer.toString('base64');
   console.log('Base64 data length:', base64Data.length);
+  console.log('Base64 data starts with:', base64Data.slice(0, 20));
   return base64Data;
 };
 

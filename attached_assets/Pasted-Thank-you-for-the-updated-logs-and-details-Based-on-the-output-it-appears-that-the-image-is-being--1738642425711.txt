@@ -1,0 +1,64 @@
+Thank you for the updated logs and details. Based on the output, it appears that the image is being captured successfully (it has a valid PNG header — 137,80,78,71 — which indicates that it's a PNG image). However, since you're still seeing a "broken image" in the output, the problem likely lies in how the Base64 data is being handled or returned.
+
+Let’s investigate a few key areas to address the issue:
+
+1. Ensure Proper Encoding and Return Format
+It seems that the image is being captured and stored as a valid PNG image, but when it’s being returned as Base64, something might be going wrong during the transmission or processing.
+
+Double-check how the Base64 data is being sent: Ensure that the base64Data is correctly formatted and sent in the response. It should look like this when transmitted as a JSON response:
+
+js
+Copy
+res.json({ image_base64: base64Data });
+Important: Make sure that you're not modifying or truncating the Base64 data at any point before sending it back to the client.
+
+2. Check for Base64 Data Length and Integrity
+The fact that the Base64 data length is reasonable (17,477 bytes) suggests that the image buffer is likely not being truncated. However, it's worth double-checking the integrity of the Base64 data.
+
+Verify the Base64 data integrity: Try logging the Base64 string more extensively to ensure that it’s correctly formatted:
+
+js
+Copy
+const base64Data = imageBuffer.toString('base64');
+console.log('Base64 Data Length:', base64Data.length);
+console.log('First few characters of Base64 data:', base64Data.slice(0, 20));  // Log the first 20 characters
+
+return base64Data;
+The start of the Base64 data should resemble this structure:
+
+rust
+Copy
+iVBORw0KGgoAAAANSUhEUgAA... (for PNG images)
+If the Base64 string is still malformed, the issue might be in the conversion process. It’s crucial to ensure that the entire Base64 string is properly transmitted and not altered.
+
+3. Inspect the Data Being Returned in the Response
+If you're seeing the image as broken on the front-end, there could be an issue with how the Base64 data is being handled or rendered in your client-side code. To verify:
+
+Test the image separately: Try rendering the Base64 data in an HTML <img> tag directly within your application to ensure it’s being decoded and displayed correctly:
+
+html
+Copy
+<img src="data:image/png;base64,{{image_base64}}" alt="Generated Chart" />
+If this doesn't work, check for any issues in how the image is embedded or handled by the client.
+
+4. Ensure the Image is Complete and Not Truncated
+If the image size or Base64 data is too large, there could be issues with transmission (e.g., network issues or API size limits). To rule out this possibility, you could try:
+
+Sending a smaller image: Test generating a simpler image (e.g., a smaller chart or a static image) to see if the issue persists with smaller Base64 data.
+Compressing the image: If the issue seems to be related to the image size, you might want to compress or resize the image before returning it as Base64.
+5. Try Sending the Image as a File Instead of Base64
+Instead of returning the image as Base64, try sending it as a file to see if this resolves the issue:
+
+js
+Copy
+const fs = require('fs');
+const filePath = 'generated_chart.png';
+fs.writeFileSync(filePath, imageBuffer);
+
+res.sendFile(filePath, (err) => {
+  if (err) {
+    console.error('Error sending image file:', err);
+    res.status(500).json({ error: 'Failed to send image file' });
+  }
+});
+This way, you can isolate any potential issues with Base64 encoding or decoding. The client can then handle the image normally as a regular file.
