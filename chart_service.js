@@ -1,10 +1,9 @@
 
 const express = require('express');
+const puppeteer = require('puppeteer-core');
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
 const { VictoryChart, VictoryLine, VictoryBar, VictoryScatter, VictoryAxis, VictoryTheme } = require('victory');
-const html2canvas = require('html2canvas');
-const { JSDOM } = require('jsdom');
 
 const app = express();
 app.use(express.json());
@@ -61,7 +60,14 @@ const renderChart = async (type, data) => {
     React.createElement(ChartComponent, { type, data, chartData })
   );
 
-  const dom = new JSDOM(`
+  const browser = await puppeteer.launch({
+    executablePath: '/usr/bin/chromium',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    headless: 'new'
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 600, height: 400 });
+  await page.setContent(`
     <html>
       <body>
         <div id="root" style="width:600px;height:400px;">
@@ -70,14 +76,9 @@ const renderChart = async (type, data) => {
       </body>
     </html>
   `);
-
-  const canvas = await html2canvas(dom.window.document.querySelector("#root"), {
-    width: 600,
-    height: 400,
-    backgroundColor: null
-  });
-
-  return canvas.toDataURL('image/png').split(',')[1];
+  const imageBuffer = await page.screenshot({ type: 'png' });
+  await browser.close();
+  return imageBuffer.toString('base64');
 };
 
 app.post('/render-chart', async (req, res) => {
