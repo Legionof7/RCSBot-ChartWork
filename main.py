@@ -204,8 +204,8 @@ def save_and_upload_image(img_b64: str) -> str:
         if not os.path.exists(temp_path) or os.path.getsize(temp_path) < 100:
             raise ValueError("Invalid image file generated")
 
-        # Upload using Pinnacle with explicit content type
-        download_url = client.upload(temp_path, content_type='image/png')
+        # Upload using Pinnacle
+        download_url = client.upload(temp_path)
 
         # Clean up temp file
         os.remove(temp_path)
