@@ -9,6 +9,7 @@ import {
 } from 'victory';
 
 const ChartComponent = ({ graphData }) => {
+  console.log('Rendering ChartComponent with data:', JSON.stringify(graphData, null, 2));
   console.log('ChartComponent rendering with data:', JSON.stringify(graphData, null, 2));
   if (!graphData?.config) return null;
 
