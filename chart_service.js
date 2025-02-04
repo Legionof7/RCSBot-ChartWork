@@ -1,9 +1,10 @@
 
 const express = require('express');
-const puppeteer = require('puppeteer');
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
 const { VictoryChart, VictoryLine, VictoryBar, VictoryScatter, VictoryAxis, VictoryTheme } = require('victory');
+const html2canvas = require('html2canvas');
+const { JSDOM } = require('jsdom');
 
 const app = express();
 app.use(express.json());
@@ -13,11 +14,17 @@ app.get('/', (req, res) => {
 });
 
 const renderChart = async (type, data) => {
-  // Transform data into Victory format
-  const chartData = data.labels.map((label, index) => ({
-    x: label,
-    y: data.values[index]
-  }));
+  let chartData;
+  if (Array.isArray(data)) {
+    chartData = data;
+  } else if (data.labels && data.values) {
+    chartData = data.labels.map((label, index) => ({
+      x: label,
+      y: data.values[index]
+    }));
+  } else {
+    throw new Error('Invalid data format');
+  }
 
   const ChartComponent = ({ type, data, chartData }) => {
     const Chart = {
@@ -54,13 +61,7 @@ const renderChart = async (type, data) => {
     React.createElement(ChartComponent, { type, data, chartData })
   );
 
-  const browser = await puppeteer.launch({ 
-    args: ['--no-sandbox'],
-    headless: 'new'
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 600, height: 400 });
-  await page.setContent(`
+  const dom = new JSDOM(`
     <html>
       <body>
         <div id="root" style="width:600px;height:400px;">
@@ -69,9 +70,14 @@ const renderChart = async (type, data) => {
       </body>
     </html>
   `);
-  const imageBuffer = await page.screenshot({ type: 'png' });
-  await browser.close();
-  return imageBuffer.toString('base64');
+
+  const canvas = await html2canvas(dom.window.document.querySelector("#root"), {
+    width: 600,
+    height: 400,
+    backgroundColor: null
+  });
+
+  return canvas.toDataURL('image/png').split(',')[1];
 };
 
 app.post('/render-chart', async (req, res) => {
