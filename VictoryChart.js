@@ -29,55 +29,55 @@ const ChartComponent = ({ graphData }) => {
     }
   };
 
-  return (
-    <VictoryChart
-      width={800}
-      height={600}
-      theme={VictoryTheme.material}
-      domainPadding={50}
-      containerComponent={
-        <VictoryContainer 
-          responsive={false}
-          style={{
-            touchAction: "auto",
-            userSelect: "auto"
-          }}
-        />
+  return React.createElement(VictoryChart, {
+    width: 800,
+    height: 600,
+    theme: VictoryTheme.material,
+    domainPadding: 50,
+    containerComponent: React.createElement(VictoryContainer, {
+      responsive: false,
+      style: {
+        touchAction: "auto",
+        userSelect: "auto"
       }
-      style={chartStyle}
-    >
-      <VictoryBar
-        data={data}
-        style={chartStyle}
-        barRatio={0.8}
-        alignment="middle"
-      />
-      <VictoryAxis
-        label={xlabel}
-        style={{
-          axisLabel: { padding: 40, fontSize: 14 },
-          tickLabels: { fontSize: 12 },
-          grid: { stroke: "none" }
-        }}
-      />
-      <VictoryAxis
-        dependentAxis
-        label={ylabel}
-        style={{
-          axisLabel: { padding: 45, fontSize: 14 },
-          tickLabels: { fontSize: 12 },
-          grid: { stroke: "#e0e0e0" }
-        }}
-      />
-      <VictoryLabel
-        text={title}
-        x={400}
-        y={30}
-        textAnchor="middle"
-        style={{ fontSize: 18, fontWeight: "bold" }}
-      />
-    </VictoryChart>
-  );
+    }),
+    style: chartStyle
+  }, [
+    React.createElement(VictoryBar, {
+      key: "bar",
+      data: data,
+      style: chartStyle,
+      barRatio: 0.8,
+      alignment: "middle"
+    }),
+    React.createElement(VictoryAxis, {
+      key: "xAxis",
+      label: xlabel,
+      style: {
+        axisLabel: { padding: 40, fontSize: 14 },
+        tickLabels: { fontSize: 12 },
+        grid: { stroke: "none" }
+      }
+    }),
+    React.createElement(VictoryAxis, {
+      key: "yAxis",
+      dependentAxis: true,
+      label: ylabel,
+      style: {
+        axisLabel: { padding: 45, fontSize: 14 },
+        tickLabels: { fontSize: 12 },
+        grid: { stroke: "#e0e0e0" }
+      }
+    }),
+    React.createElement(VictoryLabel, {
+      key: "title",
+      text: title,
+      x: 400,
+      y: 30,
+      textAnchor: "middle",
+      style: { fontSize: 18, fontWeight: "bold" }
+    })
+  ]);
 };
 
 export default ChartComponent;
