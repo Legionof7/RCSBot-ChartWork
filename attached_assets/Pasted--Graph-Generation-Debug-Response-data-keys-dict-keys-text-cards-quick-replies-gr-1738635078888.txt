@@ -1,0 +1,61 @@
+
+=== Graph Generation Debug ===
+Response data keys: dict_keys(['text', 'cards', 'quick_replies', 'graph'])
+Graph data found: {
+  "type": "bar",
+  "data": {
+    "labels": [
+      "HDL"
+    ],
+    "values": [
+      55
+    ],
+    "title": "HDL Cholesterol",
+    "xlabel": "Test",
+    "ylabel": "mg/dL",
+    "referenceLines": {
+      "HDL": [
+        40,
+        60
+      ]
+    }
+  }
+}
+Attempting to generate bar graph with data:
+{
+  "labels": [
+    "HDL"
+  ],
+  "values": [
+    55
+  ],
+  "title": "HDL Cholesterol",
+  "xlabel": "Test",
+  "ylabel": "mg/dL",
+  "referenceLines": {
+    "HDL": [
+      40,
+      60
+    ]
+  }
+}
+2025-02-04 02:11:08,926 - graph_utils - ERROR - Error generating graph: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+2025-02-04 02:11:08,926 - __main__ - ERROR - Graph generation/upload failed:
+2025-02-04 02:11:08,926 - __main__ - ERROR - Error type: ValueError
+2025-02-04 02:11:08,926 - __main__ - ERROR - Error message: Failed to generate graph: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+2025-02-04 02:11:08,927 - __main__ - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/graph_utils.py", line 38, in generate_graph
+    response.raise_for_status()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 219, in send_rcs_message
+    img_b64 = generate_graph(g_type, g_data)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/graph_utils.py", line 42, in generate_graph
+    raise ValueError(f"Failed to generate graph: {str(e)}")
+ValueError: Failed to generate graph: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
