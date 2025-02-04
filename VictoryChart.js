@@ -20,11 +20,15 @@ const ChartComponent = ({ graphData }) => {
       style: {
         data: { stroke: "#FF5722", strokeDasharray: "4,4" }
       },
-      x: 0,
-      y: value.value,
-      labels: [value.label],
+      data: [
+        { x: data[0].x, y: value.value },
+        { x: data[data.length - 1].x, y: value.value }
+      ],
       labelComponent: React.createElement(VictoryLabel, {
-        dy: -10,
+        text: value.label,
+        x: 50,
+        y: value.value,
+        dx: 10,
         style: { fontSize: 12 }
       })
     })
