@@ -115,23 +115,30 @@ const renderChart = async (type, data) => {
   
   await page.setContent(htmlContent);
   console.log('Taking screenshot...');
-  await page.waitForSelector('#root svg', { timeout: 5000 });
-  console.log('SVG element found, ensuring chart is rendered...');
-  await page.evaluate(() => {
+  
+  // Wait for chart to be fully rendered
+  await page.waitForFunction(() => {
     const svg = document.querySelector('#root svg');
-    return svg && svg.getBoundingClientRect().width > 0;
+    const paths = svg?.querySelectorAll('path');
+    return svg && paths.length > 0 && Array.from(paths).every(p => p.getTotalLength() > 0);
+  }, { timeout: 5000 });
+
+  // Add background color and padding
+  await page.evaluate(() => {
+    document.body.style.background = 'white';
+    document.getElementById('root').style.padding = '20px';
   });
   
   const imageBuffer = await page.screenshot({ 
     type: 'png',
     fullPage: false,
+    omitBackground: false,
     clip: {
       x: 0,
       y: 0,
-      width: 600,
-      height: 400
-    },
-    omitBackground: false
+      width: 640,  // Increased to account for padding
+      height: 440  // Increased to account for padding
+    }
   }).catch(err => {
     console.error('Failed to take screenshot:', err);
     throw err;
