@@ -20,7 +20,6 @@ from graph_utils import generate_graph
 FHIR_DATA = get_patient_data()  # Patient data
 MODEL = "google/gemini-flash-1.5"
 OPENROUTER_API_KEY = "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"
-IMGBB_API_KEY = "dc9385b3e6c2b601de1361a53e98e869"
 
 app = Flask(__name__)
 app.messages = []
@@ -181,23 +180,28 @@ def call_openrouter(messages) -> dict:
         logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
         raise
 
-def upload_base64_to_imgbb(img_b64: str) -> str:
+def save_and_upload_image(img_b64: str) -> str:
     """
-    Upload base64 image data to imgbb and return the public URL.
+    Save base64 image data to temp file and upload via Pinnacle.
     """
-    upload_url = 'https://api.imgbb.com/1/upload'
-    # Strip potential data URL prefix
-    if ',' in img_b64:
-        img_b64 = img_b64.split(',', 1)[1]
-    
-    payload = {
-        'key': IMGBB_API_KEY,
-        'image': img_b64,
-        'name': f'graph_{int(time.time())}.png'
-    }
-    resp = requests.post(upload_url, data=payload)
-    resp.raise_for_status()
-    return resp.json()['data']['url']
+    try:
+        # Decode base64 and save temporarily
+        if ',' in img_b64:
+            img_b64 = img_b64.split(',', 1)[1]
+
+        temp_path = 'temp_chart.png'
+        with open(temp_path, 'wb') as f:
+            f.write(base64.b64decode(img_b64))
+
+        # Upload using Pinnacle
+        download_url = client.upload(temp_path)
+
+        # Clean up temp file
+        os.remove(temp_path)
+        return download_url
+    except Exception as e:
+        logger.error(f"Failed to upload image: {str(e)}")
+        raise
 
 def send_rcs_message(to_number: str, response_data: dict):
     """
@@ -221,8 +225,8 @@ def send_rcs_message(to_number: str, response_data: dict):
             print(json.dumps(g_data, indent=2))
             logger.info(f"Generating graph of type {g_type}")
             img_b64 = generate_graph(g_type, g_data)
-            logger.info("Graph generated successfully, uploading to ImgBB")
-            image_url = upload_base64_to_imgbb(img_b64)
+            logger.info("Graph generated successfully, uploading to Pinnacle")
+            image_url = save_and_upload_image(img_b64)
             logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
             logger.error(f"Graph generation/upload failed:")
