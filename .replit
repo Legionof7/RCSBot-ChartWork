@@ -1,5 +1,5 @@
 entrypoint = "main.py"
-modules = ["nodejs-20", "python-3.11"]
+modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
@@ -17,14 +17,3 @@ deploymentTarget = "gce"
 [[ports]]
 localPort = 3000
 externalPort = 80
-
-[workflows]
-runButton = "Run"
-
-[[workflows.workflow]]
-name = "Run"
-author = 790161
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
