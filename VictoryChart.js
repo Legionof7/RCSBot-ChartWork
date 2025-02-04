@@ -13,20 +13,20 @@ const ChartComponent = ({ graphData }) => {
 
   const { data, title, xlabel, ylabel, referenceLines } = graphData.config;
 
-  const referenceLineComponents = (referenceLines || []).map((line, index) => (
+  const referenceLineComponents = Object.entries(referenceLines || {}).map(([label, value]) => (
     React.createElement(VictoryLine, {
-      key: `ref-${index}`,
+      key: `ref-${label}`,
       style: {
         data: { stroke: "#FF5722", strokeDasharray: "4,4" }
       },
       data: [
-        { x: data[0].x, y: line.y },
-        { x: data[data.length - 1].x, y: line.y }
+        { x: data[0].x, y: value },
+        { x: data[data.length - 1].x, y: value }
       ],
       labelComponent: React.createElement(VictoryLabel, {
-        text: line.label,
+        text: label,
         x: 50,
-        y: line.y,
+        y: value,
         dx: 10,
         style: { fontSize: 12 }
       })
