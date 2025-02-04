@@ -12,6 +12,10 @@ app.get('/', (req, res) => {
   res.send('Chart service is running');
 });
 
+app.get('/debug_chart.html', (req, res) => {
+  res.sendFile(__dirname + '/debug_chart.html');
+});
+
 const renderChart = async (type, data) => {
   console.log('\n=== Chart Generation Debug ===');
   console.log('Received chart type:', type);
@@ -111,12 +115,39 @@ const renderChart = async (type, data) => {
   
   await page.setContent(htmlContent);
   console.log('Taking screenshot...');
-  const imageBuffer = await page.screenshot({ type: 'png' }).catch(err => {
+  await page.waitForSelector('#root svg', { timeout: 5000 });
+  console.log('SVG element found, ensuring chart is rendered...');
+  await page.evaluate(() => {
+    const svg = document.querySelector('#root svg');
+    return svg && svg.getBoundingClientRect().width > 0;
+  });
+  
+  const imageBuffer = await page.screenshot({ 
+    type: 'png',
+    fullPage: false,
+    clip: {
+      x: 0,
+      y: 0,
+      width: 600,
+      height: 400
+    },
+    omitBackground: false
+  }).catch(err => {
     console.error('Failed to take screenshot:', err);
     throw err;
   });
+  
+  if (!imageBuffer || imageBuffer.length < 1000) {
+    console.error('Screenshot appears invalid - size too small');
+    throw new Error('Invalid screenshot generated');
+  }
+  
   console.log('Screenshot captured successfully');
-  console.log('Screenshot size:', imageBuffer.length, 'bytes');
+  console.log('Screenshot details:', {
+    size: imageBuffer.length,
+    isEmpty: !imageBuffer,
+    first10Bytes: imageBuffer.slice(0, 10).toString('hex')
+  });
   
   console.log('Closing browser...');
   await browser.close();
