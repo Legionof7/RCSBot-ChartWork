@@ -125,14 +125,14 @@ const renderChart = async (type, data) => {
     root.style.boxSizing = 'border-box';
   });
 
-  // Wait for rendering and add extra delay
+  // Wait for rendering and add extra delay using evaluate
   await page.waitForFunction(() => {
     const svg = document.querySelector('#root svg');
     const paths = svg?.querySelectorAll('path');
     return svg && paths.length > 0 && Array.from(paths).every(p => p.getTotalLength() > 0);
   }, { timeout: 5000 });
   
-  await page.waitForTimeout(1000);
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   console.log('Attempting to take screenshot...');
   const imageBuffer = await page.screenshot({ 
