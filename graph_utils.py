@@ -7,6 +7,7 @@ import base64
 import logging
 import traceback
 import json
+import requests
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
