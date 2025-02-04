@@ -34,5 +34,6 @@
     pkgs.pango
     pkgs.cairo
     pkgs.xorg.libxcb
+    pkgs.libxkbcommon
   ];
 }
