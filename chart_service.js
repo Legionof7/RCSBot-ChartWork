@@ -8,6 +8,10 @@ const { VictoryChart, VictoryLine, VictoryBar, VictoryScatter, VictoryTheme } = 
 const app = express();
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('Chart service is running');
+});
+
 const renderChart = async (type, data) => {
   const ChartComponent = ({ type, data }) => {
     const Chart = {
