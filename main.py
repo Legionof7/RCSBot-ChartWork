@@ -189,16 +189,18 @@ def save_and_upload_image(img_b64: str) -> str:
         if ',' in img_b64:
             img_b64 = img_b64.split(',', 1)[1]
         
-        # Ensure proper padding
-        img_b64 = img_b64.strip()
-        missing_padding = len(img_b64) % 4
-        if missing_padding:
-            img_b64 += '=' * (4 - missing_padding)
+        # Clean any whitespace and newlines
+        img_b64 = ''.join(img_b64.split())
+        
+        # Calculate and add proper padding
+        padding_length = (4 - (len(img_b64) % 4)) % 4
+        img_b64 = img_b64 + ('=' * padding_length)
 
         temp_path = 'temp_chart.png'
-        with open(temp_path, 'wb') as f:
-            img_data = base64.b64decode(img_b64)
-            f.write(img_data)
+        try:
+            img_data = base64.b64decode(img_b64, validate=True)
+            with open(temp_path, 'wb') as f:
+                f.write(img_data)
             
         # Verify file was written correctly
         if not os.path.exists(temp_path) or os.path.getsize(temp_path) < 100:
