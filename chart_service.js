@@ -61,7 +61,7 @@ const renderChart = async (type, data) => {
   );
 
   const browser = await puppeteer.launch({
-    executablePath: '/nix/store/chrome/chromium',
+    executablePath: '/nix/store/chromium-121.0.6167.184-1/bin/chromium',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     headless: 'new'
   });
