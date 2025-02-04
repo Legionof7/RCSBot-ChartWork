@@ -1,5 +1,5 @@
 entrypoint = "main.py"
-modules = ["python-3.11"]
+modules = ["nodejs-20", "python-3.11"]
 
 [nix]
 channel = "stable-24_05"
@@ -18,6 +18,10 @@ deploymentTarget = "gce"
 localPort = 3000
 externalPort = 80
 
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
 [workflows]
 runButton = "Chart Service"
 
@@ -28,3 +32,7 @@ author = 790161
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node chart_service.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 main.py"
