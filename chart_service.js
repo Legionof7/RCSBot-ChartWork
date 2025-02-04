@@ -93,7 +93,7 @@ const renderChart = async (type, data) => {
   });
   console.log('Page created successfully');
   await page.setViewport({ width: 600, height: 400 });
-  await page.setContent(`
+  const htmlContent = `
     <html>
       <body>
         <div id="root" style="width:600px;height:400px;">
@@ -101,7 +101,15 @@ const renderChart = async (type, data) => {
         </div>
       </body>
     </html>
-  `);
+  `;
+  
+  // Save HTML for debugging
+  const fs = require('fs');
+  const debugPath = 'debug_chart.html';
+  fs.writeFileSync(debugPath, htmlContent);
+  console.log(`Debug HTML saved to: ${debugPath}`);
+  
+  await page.setContent(htmlContent);
   console.log('Taking screenshot...');
   const imageBuffer = await page.screenshot({ type: 'png' }).catch(err => {
     console.error('Failed to take screenshot:', err);
