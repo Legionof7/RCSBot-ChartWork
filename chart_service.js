@@ -156,7 +156,6 @@ const renderChart = async (type, data) => {
     isEmpty: !imageBuffer,
     first10Bytes: imageBuffer.slice(0, 10).toString('hex')
   });
-  });
   
   if (!imageBuffer || imageBuffer.length < 1000) {
     console.error('Screenshot appears invalid - size too small');
