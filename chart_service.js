@@ -173,10 +173,25 @@ const renderChart = async (type, data) => {
   await browser.close();
   console.log('Browser closed successfully');
   
+  // Validate PNG header (89 50 4E 47)
+  const pngHeader = imageBuffer.slice(0, 4).toString('hex');
+  console.log('PNG header:', pngHeader);
+  
+  if (pngHeader !== '89504e47') {
+    console.error('Invalid PNG header detected');
+    throw new Error('Invalid PNG format');
+  }
+
   const base64Data = imageBuffer.toString('base64');
-  console.log('Base64 data length:', base64Data.length);
-  console.log('Base64 data starts with:', base64Data.slice(0, 20));
-  return base64Data;
+  console.log('Base64 validation:', {
+    length: base64Data.length,
+    start: base64Data.slice(0, 30),
+    end: base64Data.slice(-30),
+    startsWithiVBOR: base64Data.startsWith('iVBOR')
+  });
+
+  // Return with data URI prefix for direct testing
+  return `data:image/png;base64,${base64Data}`;
 };
 
 app.post('/render-chart', async (req, res) => {
