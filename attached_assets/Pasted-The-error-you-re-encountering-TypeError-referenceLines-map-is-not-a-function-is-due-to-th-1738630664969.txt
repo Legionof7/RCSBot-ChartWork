@@ -1,0 +1,94 @@
+The error you're encountering (TypeError: (referenceLines || []).map is not a function) is due to the fact that the referenceLines field you're passing is not an array as expected by your ChartComponent but rather an object.
+
+In your ChartComponent, you are trying to iterate over referenceLines as if it's an array:
+
+javascript
+Copy
+const referenceLineComponents = (referenceLines || []).map((line, index) => (
+  React.createElement(VictoryLine, {
+    key: `ref-${index}`,
+    style: {
+      data: { stroke: "#FF5722", strokeDasharray: "4,4" }
+    },
+    data: [
+      { x: data[0].x, y: line.y },
+      { x: data[data.length - 1].x, y: line.y }
+    ],
+    labelComponent: React.createElement(VictoryLabel, {
+      text: line.label,
+      x: 50,
+      y: line.y,
+      dx: 10,
+      style: { fontSize: 12 }
+    })
+  })
+));
+However, referenceLines is currently an object:
+
+json
+Copy
+"referenceLines": {
+  "HDL": {
+    "y": 52.5,
+    "label": "Normal Range"
+  }
+}
+The issue here is that map only works on arrays, but referenceLines is an object. To fix this, you need to modify the structure of the referenceLines in the input data to be an array of objects, as expected by your ChartComponent.
+
+Solution:
+Convert referenceLines to an array in the data structure. Instead of having referenceLines as an object, transform it to an array of objects in the format that your component expects:
+Updated chartData:
+javascript
+Copy
+const chartData = {
+  "type": "bar",
+  "config": {
+    "data": [{"x": "HDL", "y": 55}],
+    "title": "HDL Cholesterol",
+    "xlabel": "Test",
+    "ylabel": "mg/dL",
+    "referenceLines": [
+      {
+        "y": 52.5,
+        "label": "Normal Range"
+      }
+    ]
+  }
+};
+Explanation of Changes:
+referenceLines: The referenceLines field is now an array containing an object, which is what the map function expects. Each element in the array can have the y value and a label for the reference line.
+2. Refactor Your ChartComponent to Handle the Array:
+Your existing ChartComponent code should now work correctly since referenceLines is now an array:
+
+javascript
+Copy
+const referenceLineComponents = (referenceLines || []).map((line, index) => (
+  React.createElement(VictoryLine, {
+    key: `ref-${index}`,
+    style: {
+      data: { stroke: "#FF5722", strokeDasharray: "4,4" }
+    },
+    data: [
+      { x: data[0].x, y: line.y },
+      { x: data[data.length - 1].x, y: line.y }
+    ],
+    labelComponent: React.createElement(VictoryLabel, {
+      text: line.label,
+      x: 50,
+      y: line.y,
+      dx: 10,
+      style: { fontSize: 12 }
+    })
+  })
+));
+3. Ensure the Graph is Rendered Correctly:
+After these changes, try running the entire flow again. The main issue was that the map function was called on a non-array referenceLines. Once it is corrected to an array, the chart should render properly.
+
+If you are still having issues after making these changes, check the following:
+
+Ensure that the data provided for the bars ("data": [{"x": "HDL", "y": 55}]) is valid and is passed correctly.
+Ensure that other components such as VictoryBar, VictoryAxis, and VictoryLabel are correctly handling the input data.
+Final Debugging:
+Check Logs: After these changes, if you encounter any issues, check the Rendered SVG: log to ensure that the SVG content is being generated correctly.
+Use sharp to convert the generated SVG to a PNG image as you have been doing.
+Let me know if this resolves the issue or if there are any other details you'd like to address!
