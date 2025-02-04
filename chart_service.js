@@ -138,7 +138,8 @@ const renderChart = async (type, data) => {
   const imageBuffer = await page.screenshot({ 
     type: 'png',
     fullPage: false,
-    omitBackground: false
+    omitBackground: false,
+    path: 'debug_chart.png'  // Save to local file
   }).catch(err => {
     console.error('Failed to take screenshot:', err);
     throw err;
@@ -167,6 +168,12 @@ const renderChart = async (type, data) => {
     isEmpty: !imageBuffer,
     first10Bytes: imageBuffer.slice(0, 10).toString('hex')
   });
+  
+  // Verify the saved file
+  const savedFileSize = fs.statSync('debug_chart.png').size;
+  console.log('Saved PNG file size:', savedFileSize, 'bytes');
+  const savedFileHeader = fs.readFileSync('debug_chart.png', { length: 8 });
+  console.log('Saved PNG header:', Array.from(savedFileHeader));
   
   console.log('Closing browser...');
   await browser.close();
