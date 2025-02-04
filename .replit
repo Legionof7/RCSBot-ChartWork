@@ -17,3 +17,14 @@ deploymentTarget = "gce"
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[workflows]
+runButton = "Chart Service"
+
+[[workflows.workflow]]
+name = "Chart Service"
+author = 790161
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node chart_service.js"
