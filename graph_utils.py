@@ -27,11 +27,23 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
     if "config" in data:
         data = data["config"]
 
+    # Convert Chart.js format to Victory format if needed
+    if "labels" in data and "datasets" in data:
+        victory_data = []
+        for i, label in enumerate(data["labels"]):
+            for dataset in data["datasets"]:
+                victory_data.append({
+                    "x": label,
+                    "y": dataset["data"][i]
+                })
+    else:
+        victory_data = data.get("data", [])
+
     # Format data for Victory charts
     chart_data = {
         "type": graph_type,
         "config": {
-            "data": data.get("data", []),
+            "data": victory_data,
             "title": data.get("title", "Graph"),
             "xlabel": data.get("xlabel", "X Axis"),
             "ylabel": data.get("ylabel", "Y Axis"),
