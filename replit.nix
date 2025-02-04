@@ -33,5 +33,6 @@
     pkgs.alsaLib
     pkgs.pango
     pkgs.cairo
+    pkgs.xorg.libxcb
   ];
 }
