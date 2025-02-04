@@ -170,7 +170,6 @@ const renderChart = async (type, data) => {
   });
   
   // Verify the saved file
-  const fs = require('fs');
   const savedFileSize = fs.statSync('debug_chart.png').size;
   console.log('Saved PNG file size:', savedFileSize, 'bytes');
   const savedFileHeader = fs.readFileSync('debug_chart.png', { length: 8 });
