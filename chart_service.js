@@ -13,11 +13,18 @@ app.get('/', (req, res) => {
 });
 
 const renderChart = async (type, data) => {
-  // Transform data into Victory format
-  const chartData = data.labels.map((label, index) => ({
-    x: label,
-    y: data.values[index]
-  }));
+  // Handle both array of objects and labels/values format
+  let chartData;
+  if (Array.isArray(data)) {
+    chartData = data;
+  } else if (data.labels && data.values) {
+    chartData = data.labels.map((label, index) => ({
+      x: label,
+      y: data.values[index]
+    }));
+  } else {
+    throw new Error('Invalid data format');
+  }
 
   const ChartComponent = ({ type, data, chartData }) => {
     const Chart = {
