@@ -33,7 +33,7 @@ def generate_graph(graph_type: str, data: Dict[str, Any]) -> str:
         victory_data = [{"x": x, "y": y} for x, y in zip(data["x"], data["y"])]
 
     try:
-        response = requests.post("http://0.0.0.0:3001/render-chart", 
+        response = requests.post("http://localhost:3001/render-chart", 
                                json={"type": graph_type, "data": victory_data})
         response.raise_for_status()
         return response.json()["image_base64"]
