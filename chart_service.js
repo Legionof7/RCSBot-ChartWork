@@ -185,16 +185,19 @@ const renderChart = async (type, data) => {
     throw new Error('Invalid PNG format');
   }
 
+  // Convert buffer to base64 and ensure proper padding
   const base64Data = imageBuffer.toString('base64');
+  const paddedBase64 = base64Data.replace(/=/g, '').padEnd(Math.ceil(base64Data.length / 4) * 4, '=');
+  
   console.log('Base64 validation:', {
-    length: base64Data.length,
-    start: base64Data.slice(0, 30),
-    end: base64Data.slice(-30),
-    startsWithiVBOR: base64Data.startsWith('iVBOR')
+    length: paddedBase64.length,
+    start: paddedBase64.slice(0, 30),
+    end: paddedBase64.slice(-30),
+    startsWithiVBOR: paddedBase64.startsWith('iVBOR')
   });
 
-  // Return with data URI prefix for direct testing
-  return `data:image/png;base64,${base64Data}`;
+  // Return with data URI prefix and proper padding
+  return `data:image/png;base64,${paddedBase64}`;
 };
 
 app.post('/render-chart', async (req, res) => {
