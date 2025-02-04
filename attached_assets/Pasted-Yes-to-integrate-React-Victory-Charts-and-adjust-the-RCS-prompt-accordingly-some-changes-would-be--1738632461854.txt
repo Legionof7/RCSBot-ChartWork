@@ -1,0 +1,52 @@
+Yes, to integrate React Victory Charts and adjust the RCS prompt accordingly, some changes would be needed. Since we're now generating charts via a Node.js backend instead of directly with Matplotlib in Python, we should adjust the instructions for the graph data in the RCS system.
+
+Here are some changes I would suggest to the RCS prompt:
+
+Clarify that the graph will be rendered via a React frontend (i.e., using Victory Charts).
+Indicate that the graph generation involves sending the graph data to a Node.js server that handles rendering and image generation.
+Remove any references to Matplotlib since it's no longer used.
+Specify that the graph data must be passed in a JSON format, as that is how the backend will receive and process the data.
+Ensure the response includes the image URL that the Node.js server will provide after rendering the chart.
+Updated RCS Prompt
+Here's a revised version of the RCS instructions:
+
+plaintext
+Copy
+GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
+
+Example:
+GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
+
+Important:
+1. All health information cards MUST include a "See More" button.
+2. All metric-related queries MUST include a graph visualization.
+3. Always include quick reply actions AND follow-up questions using the context of the metrics. You MUST have follow-up questions:
+   Examples:
+      - "What's a good meal plan?"
+      - "Do I need medication?"
+      - "How is my cholesterol?"
+      - "What's glucose?"
+      - "Schedule Appointment" (payload: schedule_appointment)
+      - "View Care Plan" (payload: view_care_plan)
+      - "Contact Doctor" (payload: contact_doctor)
+      - "View Medications" (payload: view_medications)
+      - "Check Lab Results" (payload: check_labs)
+      - "Connect Wearable" (payload: connect_wearable)
+4. Use appropriate graph types:
+   - bar: for comparing values
+   - line: for trends over time
+   - scatter: for correlation analysis
+5. Titles MUST be under 25 characters in length.
+
+When including a graph, embed data using:
+{graph_formats}
+
+Below is the patient's FHIR data (only address relevant healthcare questions):
+{json.dumps(FHIR_DATA, indent=2)}
+Key Changes:
+Clarification about Graph Generation: I emphasized that the graph data will be passed to a backend service (the Node.js server running React Victory), which will render the graph and return an image URL.
+Removed Matplotlib References: Since Matplotlib is no longer used for graph generation, it's important not to mention it in the instructions.
+Image URL Handling: The image URL generated from React Victory will be returned as part of the graph data. The RCS system should expect this URL to be embedded in the message, either directly in the "media_url" field or dynamically inserted.
+This prompt ensures that when the AI generates a response containing a graph, it correctly follows the new workflow of generating charts via React Victory and Node.js, and uploading those images for use in the RCS message.
+
+Let me know if you'd like any further adjustments to the prompt or additional details!
