@@ -172,11 +172,15 @@ const renderChart = async (type, data) => {
   await browser.close();
   console.log('Browser closed successfully');
   
-  // Validate PNG header (89 50 4E 47)
-  const pngHeader = imageBuffer.slice(0, 4).toString('hex');
-  console.log('PNG header:', pngHeader);
+  // Log PNG header for debugging
+  const headerBytes = Array.from(imageBuffer.slice(0, 4));
+  console.log('PNG header bytes:', headerBytes);
   
-  if (pngHeader !== '89504e47') {
+  // Check for valid PNG signature: 89 50 4E 47
+  if (headerBytes[0] !== 0x89 || 
+      headerBytes[1] !== 0x50 || 
+      headerBytes[2] !== 0x4E || 
+      headerBytes[3] !== 0x47) {
     console.error('Invalid PNG header detected');
     throw new Error('Invalid PNG format');
   }
