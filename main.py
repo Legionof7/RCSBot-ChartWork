@@ -365,23 +365,13 @@ def handle_webhook():
                     json_content = "{}"
 
             try:
-                # Ensure we're working with valid JSON and handle incomplete responses
+                # Ensure we're working with valid JSON
                 json_content = json_content.strip()
                 if not json_content.startswith('{'):
                     json_content = "{}"
-                # Complete the JSON if it's truncated
-                if json_content.count('{') > json_content.count('}'):
-                    json_content += missing_braces = "}" * (json_content.count('{') - json_content.count('}'))
-                    logger.info(f"Completed truncated JSON by adding {missing_braces}")
-                # Add missing quick_replies if not present
                 response_data = json.loads(json_content)
                 if not isinstance(response_data, dict):
                     response_data = {"text": "I apologize, but I encountered an error. How else can I help you today?"}
-                if "quick_replies" not in response_data:
-                    response_data["quick_replies"] = [
-                        {"title": "Learn More", "type": "trigger", "payload": "learn_more"},
-                        {"title": "Check Other Labs", "type": "trigger", "payload": "check_labs"}
-                    ]
 
                 # Extract graph data if present
                 if 'GRAPH_DATA:' in content:

@@ -2,7 +2,9 @@
 import React from 'react';
 import {
   VictoryChart,
+  VictoryLine,
   VictoryBar,
+  VictoryScatter,
   VictoryAxis,
   VictoryTheme,
   VictoryLabel,
@@ -15,67 +17,42 @@ const ChartComponent = ({ graphData }) => {
   const { type, config } = graphData;
   const { data, title, xlabel, ylabel, referenceLines } = config;
 
-  const chartStyle = {
-    parent: {
-      border: "1px solid #ccc",
-      borderRadius: "8px",
-      padding: "16px"
-    },
-    data: {
-      fill: "#4CAF50"
-    },
-    labels: {
-      fontSize: 14
-    }
-  };
-
   return React.createElement(VictoryChart, {
     width: 800,
     height: 600,
+    padding: { top: 50, bottom: 50, left: 80, right: 50 },
     theme: VictoryTheme.material,
-    domainPadding: 50,
-    containerComponent: React.createElement(VictoryContainer, {
-      responsive: false,
-      style: {
-        touchAction: "auto",
-        userSelect: "auto"
-      }
-    }),
-    style: chartStyle
+    domainPadding: { x: 50, y: [0, 20] },
+    key: "chart"
   }, [
     React.createElement(VictoryBar, {
-      key: "bar",
       data: data,
-      style: chartStyle,
-      barRatio: 0.8,
-      alignment: "middle"
+      key: "bar",
+      style: { data: { fill: "#4CAF50" } }
     }),
     React.createElement(VictoryAxis, {
-      key: "xAxis",
       label: xlabel,
-      style: {
-        axisLabel: { padding: 40, fontSize: 14 },
-        tickLabels: { fontSize: 12 },
+      style: { 
+        axisLabel: { padding: 40 },
         grid: { stroke: "none" }
-      }
+      },
+      key: "xAxis"
     }),
     React.createElement(VictoryAxis, {
-      key: "yAxis",
       dependentAxis: true,
       label: ylabel,
-      style: {
-        axisLabel: { padding: 45, fontSize: 14 },
-        tickLabels: { fontSize: 12 },
+      style: { 
+        axisLabel: { padding: 45 },
         grid: { stroke: "#e0e0e0" }
-      }
+      },
+      key: "yAxis"
     }),
     React.createElement(VictoryLabel, {
-      key: "title",
       text: title,
       x: 400,
       y: 30,
       textAnchor: "middle",
-      style: { fontSize: 18, fontWeight: "bold" }
+      key: "title"
     })
   ]);
 };
