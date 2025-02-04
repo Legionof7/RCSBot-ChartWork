@@ -13,15 +13,23 @@ app.get('/', (req, res) => {
 });
 
 const renderChart = async (type, data) => {
+  console.log('\n=== Chart Generation Debug ===');
+  console.log('Received chart type:', type);
+  console.log('Received data:', JSON.stringify(data, null, 2));
+
   let chartData;
   if (Array.isArray(data)) {
     chartData = data;
+    console.log('Using array data directly');
   } else if (data.labels && data.values) {
+    console.log('Converting labels/values to chart data');
     chartData = data.labels.map((label, index) => ({
       x: label,
       y: data.values[index]
     }));
+    console.log('Converted chart data:', JSON.stringify(chartData, null, 2));
   } else {
+    console.error('Invalid data format received');
     throw new Error('Invalid data format');
   }
 
@@ -60,8 +68,9 @@ const renderChart = async (type, data) => {
     React.createElement(ChartComponent, { type, data, chartData })
   );
 
+  console.log('Launching Puppeteer browser...');
   const browser = await puppeteer.launch({
-    product: 'chrome',
+    executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -71,10 +80,20 @@ const renderChart = async (type, data) => {
     ],
     ignoreDefaultArgs: ['--disable-extensions'],
     headless: 'new'
+  }).catch(err => {
+    console.error('Failed to launch browser:', err);
+    throw err;
   });
-  const page = await browser.newPage();
+  
+  console.log('Browser launched successfully');
+  console.log('Creating new page...');
+  const page = await browser.newPage().catch(err => {
+    console.error('Failed to create new page:', err);
+    throw err;
+  });
+  console.log('Page created successfully');
   await page.setViewport({ width: 600, height: 400 });
-  await page.setContent(`
+  const htmlContent = `
     <html>
       <body>
         <div id="root" style="width:600px;height:400px;">
@@ -82,10 +101,30 @@ const renderChart = async (type, data) => {
         </div>
       </body>
     </html>
-  `);
-  const imageBuffer = await page.screenshot({ type: 'png' });
+  `;
+  
+  // Save HTML for debugging
+  const fs = require('fs');
+  const debugPath = 'debug_chart.html';
+  fs.writeFileSync(debugPath, htmlContent);
+  console.log(`Debug HTML saved to: ${debugPath}`);
+  
+  await page.setContent(htmlContent);
+  console.log('Taking screenshot...');
+  const imageBuffer = await page.screenshot({ type: 'png' }).catch(err => {
+    console.error('Failed to take screenshot:', err);
+    throw err;
+  });
+  console.log('Screenshot captured successfully');
+  console.log('Screenshot size:', imageBuffer.length, 'bytes');
+  
+  console.log('Closing browser...');
   await browser.close();
-  return imageBuffer.toString('base64');
+  console.log('Browser closed successfully');
+  
+  const base64Data = imageBuffer.toString('base64');
+  console.log('Base64 data length:', base64Data.length);
+  return base64Data;
 };
 
 app.post('/render-chart', async (req, res) => {
