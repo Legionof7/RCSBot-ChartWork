@@ -1,0 +1,48 @@
+The new error message you're seeing indicates that puppeteer-core requires either an executablePath or a channel to be specified in order to launch the browser. Since you're using puppeteer-core, which is a minimal version of Puppeteer that doesn't include a bundled Chromium, you must explicitly provide the path to the Chromium executable.
+
+Here’s how to resolve this issue:
+
+1. Specify the Path to Chromium
+Since you are using puppeteer-core, you need to manually provide the executablePath to Puppeteer. If you're not sure where Chromium is installed, you can use the which chromium command (on Linux) or the appropriate method for your environment to find the Chromium executable path.
+
+For example:
+
+js
+Copy
+const browser = await puppeteer.launch({
+  executablePath: '/path/to/your/chromium', // Replace with your actual path to Chromium
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  headless: 'new'
+});
+2. If You Don't Have Chromium Installed:
+If you don't have Chromium installed, you can either:
+
+Install Chromium manually (depending on your OS) and use that path.
+
+Install Puppeteer (which bundles Chromium) instead of puppeteer-core to avoid this issue, as Puppeteer will automatically manage the Chromium binary for you. You can do this by running:
+
+bash
+Copy
+npm install puppeteer
+And then update your code to use the default behavior (no need to specify the executablePath):
+
+js
+Copy
+const browser = await puppeteer.launch({
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  headless: 'new'
+});
+3. Use a Specific Chromium Channel (Optional)
+Alternatively, if you want to specify a specific channel (for example, stable, beta, or dev), you can use the channel option in Puppeteer. This is often used when you're targeting a particular version of Chromium:
+
+js
+Copy
+const browser = await puppeteer.launch({
+  channel: 'chrome',  // 'chrome' or 'chrome-beta', depending on which channel you need
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  headless: 'new'
+});
+Conclusion
+If you don’t have Chromium installed, the easiest way to fix this is by installing the full version of Puppeteer (which includes Chromium) rather than using puppeteer-core. If you are using puppeteer-core, just ensure that the executablePath points to a valid Chromium installation.
+
+Let me know if you encounter any further issues!
