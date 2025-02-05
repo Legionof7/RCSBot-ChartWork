@@ -146,16 +146,14 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         response.raise_for_status()
         response_json = response.json()
         
-        message = response_json.get("choices", [{}])[0].get("message", {})
-        if "tool_calls" in message:
-            for tool_call in message.get("tool_calls", []):
-                if tool_call["function"]["name"] == "get_patient_data":
-                    tool_response = get_patient_data()
-                    messages.append({
-                        "role": "function",
-                        "name": "get_patient_data",
-                        "content": json.dumps(tool_response)
-                    })
+        # Force tool call on first message
+        if len(messages) == 1:
+            tool_response = get_patient_data()
+            messages.append({
+                "role": "tool",
+                "name": "get_patient_data", 
+                "content": json.dumps(tool_response)
+            })
             
             # Make second call with tool results
             data["messages"] = messages
