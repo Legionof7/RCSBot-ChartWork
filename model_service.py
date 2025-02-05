@@ -4,7 +4,9 @@ import logging
 import json
 from typing import List, Dict, Any
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.handlers = []  # Clear any existing handlers
+logger.parent = logging.getLogger()  # Ensure using root logger's handlers
 
 MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
 OPENROUTER_API_KEY = "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"
