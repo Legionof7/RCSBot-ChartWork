@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-MODEL = "google/gemini-2.0-flash-thinking-exp:free"
+MODEL = "deepseek/deepseek-r1-distill-qwen-32b"
 OPENROUTER_API_KEY = "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"
 
 def create_context(query: str, fhir_data: dict) -> str:
@@ -135,10 +135,6 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
         response_json = response.json()
         logger.info(f"Deepseek response: {response_json}")
         
-        if "choices" not in response_json or not response_json["choices"]:
-            logger.error(f"Invalid API response format: {response_json}")
-            raise ValueError("API response missing 'choices' field")
-            
         content = response_json["choices"][0]["message"]["content"]
         return parse_model_response(content)
     except Exception as e:
