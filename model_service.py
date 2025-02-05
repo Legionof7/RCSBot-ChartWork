@@ -153,14 +153,17 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         response.raise_for_status()
         response_json = response.json()
         
-        # Force tool call on first message
-        if len(messages) == 1:
-            tool_response = get_patient_data()
-            messages.append({
-                "role": "tool",
-                "name": "get_patient_data", 
-                "content": json.dumps(tool_response)
-            })
+        # Check for tool calls
+        if "tool_calls" in response_json["choices"][0]["message"]:
+            tool_calls = response_json["choices"][0]["message"]["tool_calls"]
+            for tool_call in tool_calls:
+                if tool_call["function"]["name"] == "get_patient_data":
+                    tool_response = get_patient_data()
+                    messages.append({
+                        "role": "tool",
+                        "name": "get_patient_data",
+                        "content": json.dumps(tool_response)
+                    })
             
             # Make second call with tool results
             data["messages"] = messages
@@ -169,8 +172,8 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                 headers=headers,
                 json=data
             )
-        response.raise_for_status()
-        response_json = response.json()
+            response.raise_for_status()
+            response_json = response.json()
 
         pretty_response = json.dumps(response_json, indent=2)
         logger.info(f"Deepseek response:\n{pretty_response}")
