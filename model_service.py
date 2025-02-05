@@ -13,7 +13,7 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
+MODEL = "google/gemini-2.0-flash-001"
 OPENROUTER_API_KEY = "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"
 
 def create_context(query: str) -> str:
