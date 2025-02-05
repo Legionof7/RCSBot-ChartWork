@@ -1,0 +1,96 @@
+Tool Calls
+Tool calls (also known as function calling) allow you to give an LLM access to external tools. The LLM does not call the tools directly. Instead, it suggests the tool to call. The user then calls the tool separately and provides the results back to the LLM. Finally, the LLM formats the response into an answer to the user’s original question.
+
+An example of the five-turn sequence:
+
+The user asks a question, while supplying a list of available tools in a JSON schema format:
+...
+"messages": [{
+  "role": "user",
+  "content": "What is the weather like in Boston?"
+}],
+"tools": [{
+"type": "function",
+"function": {
+    "name": "get_current_weather",
+    "description": "Get the current weather in a given location",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "The city and state, e.g. San Francisco, CA"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "celsius",
+            "fahrenheit"
+          ]
+        }
+      },
+      "required": [
+        "location"
+      ]
+    }
+  }
+}]
+
+The LLM responds with tool suggestion, together with appropriate arguments:
+// Some models might include their reasoning in content
+"message": {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_9pw1qnYScqvGrCH58HWCvFH6",
+      "type": "function",
+      "function": {
+        "name": "get_current_weather",
+        "arguments": "{ \"location\": \"Boston, MA\"}"
+      }
+    }
+  ]
+},
+
+The user calls the tool separately:
+const weather = await getWeather({ location: 'Boston, MA' });
+console.log(weather); // { "temperature": "22", "unit": "celsius", "description": "Sunny"}
+
+The user provides the tool results back to the LLM:
+...
+"messages": [
+  {
+    "role": "user",
+    "content": "What is the weather like in Boston?"
+  },
+  {
+    "role": "assistant",
+    "content": null,
+    "tool_calls": [
+      {
+        "id": "call_9pw1qnYScqvGrCH58HWCvFH6",
+        "type": "function",
+        "function": {
+          "name": "get_current_weather",
+          "arguments": "{ \"location\": \"Boston, MA\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "name": "get_current_weather",
+    "tool_call_id": "call_9pw1qnYScqvGrCH58HWCvFH6",
+    "content": "{\"temperature\": \"22\", \"unit\": \"celsius\", \"description\": \"Sunny\"}"
+  }
+]
+
+The LLM formats the tool result into a natural language response:
+...
+"message": {
+  "role": "assistant",
+  "content": "The current weather in Boston, MA is sunny with a temperature of 22°C."
+}
+
+OpenRouter standardizes the tool calling interface. However, different providers and models may support less tool calling features and arguments. (ex: tool_choice, tool_use, tool_result)
