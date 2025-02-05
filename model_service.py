@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-MODEL = "google/gemini-flash-1.5"
+MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
 OPENROUTER_API_KEY = "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"
 
 def create_context(query: str, fhir_data: dict) -> str:
