@@ -8,7 +8,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 if not logger.handlers:
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)-8s: %(message).200s')
+    handler.setFormatter(formatter)
     logger.addHandler(handler)
 
 MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
