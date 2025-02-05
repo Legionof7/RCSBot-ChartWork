@@ -1,0 +1,122 @@
+def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
+    """
+    Calls the Gemini model via OpenRouter with Google's tool calling format.
+    Returns a dict with the JSON we expect for RCS.
+    """
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "HTTP-Referer": "https://slothmd.repl.co",
+        "X-Title": "SlothMD",
+        "Content-Type": "application/json"
+    }
+    latest_message = messages[-1]["content"] if messages else ""
+    context = create_context(latest_message)
+
+    # Format tool declaration more like Google's example
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "get_patient_data",
+            "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data_type": {
+                        "type": "string",
+                        "description": "Type of data to retrieve",
+                        "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                    }
+                },
+                "required": []
+            }
+        }
+    }]
+
+    # Add Google's preferred generation config
+    data = {
+        "model": MODEL,
+        "messages": [{"role": "system", "content": context}] + messages,
+        "tools": tools,
+        "tool_choice": "auto",
+        "temperature": 0.0,  # Google's example uses 0 temperature
+        "max_tokens": 1024,  # Add reasonable max tokens
+        "stream": False     # Ensure non-streaming response
+    }
+
+    pretty_data = json.dumps(data, indent=2)
+    logger.info(f"Sending request to Deepseek (OpenRouter):\n{pretty_data}")
+
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=data
+        )
+        response.raise_for_status()
+        response_json = response.json()
+        
+        # Get the assistant's response
+        assistant_message = response_json["choices"][0]["message"]
+        
+        # Handle function calls similar to Google's format
+        if "tool_calls" in assistant_message:
+            tool_calls = assistant_message["tool_calls"]
+            
+            # Process each tool call
+            for tool_call in tool_calls:
+                if tool_call["function"]["name"] == "get_patient_data":
+                    # Parse arguments with error handling
+                    try:
+                        args = json.loads(tool_call["function"]["arguments"])
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse tool call arguments")
+                        continue
+
+                    # Get tool response
+                    tool_response = get_patient_data()
+                    
+                    # Format messages like Google's example
+                    messages.extend([
+                        {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": tool_call["id"],
+                                    "type": "function",
+                                    "function": {
+                                        "name": "get_patient_data",
+                                        "arguments": json.dumps(args)
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "role": "tool",
+                            "name": "get_patient_data",
+                            "tool_call_id": tool_call["id"],
+                            "content": json.dumps({
+                                "content": tool_response  # Match Google's response format
+                            })
+                        }
+                    ])
+
+            # Make second call with tool results
+            data["messages"] = messages
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+            response_json = response.json()
+
+        pretty_response = json.dumps(response_json, indent=2)
+        logger.info(f"Deepseek response:\n{pretty_response}")
+        
+        content = response_json["choices"][0]["message"]["content"]
+        return parse_model_response(content)
+        
+    except Exception as e:
+        logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
+        raise
