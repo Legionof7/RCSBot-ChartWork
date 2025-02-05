@@ -23,7 +23,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
-runButton = "Flask App"
+runButton = "Run Everything"
 
 [[workflows.workflow]]
 name = "Chart Service"
@@ -34,8 +34,9 @@ task = "shell.exec"
 args = "node chart_service.js"
 
 [[workflows.workflow]]
-name = "Flask App"
+name = "Run Flask"
 author = 790161
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
