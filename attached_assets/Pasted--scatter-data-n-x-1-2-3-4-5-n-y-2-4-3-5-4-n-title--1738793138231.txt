@@ -1,0 +1,58 @@
+ \"scatter\", \"data\": {\n    \"x\": [1, 2, 3, 4, 5],\n    \"y\": [2, 4, 3, 5, 4],\n    \"title\": \"Correlation Plot\",\n    \"xlabel\": \"X Values\",\n    \"ylabel\": \"Y Values\"\n}}END_GRAPH_DATA\n\n\nUse the get_patient_data tool to retrieve FHIR information when needed.\n"
+    },
+    {
+      "role": "user",
+      "content": "Hi"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "data_type": {
+              "type": "string",
+              "description": "Type of data to retrieve",
+              "enum": [
+                "all",
+                "conditions",
+                "medications",
+                "vitals",
+                "labs"
+              ]
+            }
+          },
+          "required": []
+        }
+      }
+    }
+  ]
+}
+[2025-02-05 22:05:20,456] INFO    : Deepseek response:
+{
+  "error": {
+    "message": "Provider returned error",
+    "code": 400,
+    "metadata": {
+      "raw": "{\n  \"error\": {\n    \"code\": 400,\n    \"message\": \"Function calling 
+2025-02-05 22:05:20,456 - model_service - INFO - Deepseek response:
+{
+  "error": {
+    "message": "Provider returned error",
+    "code": 400,
+    "metadata": {
+      "raw": "{\n  \"error\": {\n    \"code\": 400,\n    \"message\": \"Function calling is not enabled for models/gemini-2.0-flash-lite-preview-02-05\",\n    \"status\": \"INVALID_ARGUMENT\"\n  }\n}\n",
+      "provider_name": "Google AI Studio"
+    }
+  },
+  "user_id": "user_2s06I8VmeFjLQm6vzr7N0vqpn7B"
+}
+[2025-02-05 22:05:20,456] ERROR   : OpenRouter/Deepseek API error: 'choices'
+2025-02-05 22:05:20,456 - model_service - ERROR - OpenRouter/Deepseek API error: 'choices'
+2025-02-05 22:05:20,456 - __main__ - ERROR - Error processing user message: 'choices'
+2025-02-05 22:05:20,457 - werkzeug - INFO - 172.31.128.27 - - [05/Feb/2025 22:05:20] "POST / HTTP/1.1" 200 -
+2025-02-05 22:05:27,956 - werkzeug - INFO - 172.31.128.27 - - [05/Feb/2025 22:05:27] "GET /logs HTTP/1.1" 200 -
