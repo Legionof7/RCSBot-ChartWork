@@ -1,25 +1,21 @@
-# main.py
 from flask import Flask, request
 from rcs import Pinnacle
 import logging
 import datetime
 import os
-import requests
-import time
 import json
-import base64
 import traceback
+import requests
 
 from fhir_data import get_patient_data
 from graph_utils import generate_graph
+from model_service import call_openrouter
 
 # --------------------------
 #      CONFIG & GLOBALS
 # --------------------------
 
 FHIR_DATA = get_patient_data()  # Patient data
-MODEL = "deepseek/deepseek-r1-distill-qwen-32b"
-OPENROUTER_API_KEY = "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"
 
 app = Flask(__name__)
 app.messages = []
@@ -68,217 +64,54 @@ client = Pinnacle(
 )
 
 # -----------------------------
-#        HELPER FUNCTIONS
+#        RCS FUNCTIONS
 # -----------------------------
 
-def create_context(query: str) -> str:
-    """
-    Builds a system prompt that explains how to format the JSON for an RCS message
-    and includes relevant instructions plus the patient's FHIR data.
-    """
-    graph_formats = '''
-GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
-
-Supported graph types and formats:
-
-1. Bar Chart:
-GRAPH_DATA:{"type": "bar", "data": {
-    "labels": ["Label1", "Label2", "Label3"],
-    "values": [10, 20, 30],
-    "title": "Bar Chart Title",
-    "xlabel": "Categories",
-    "ylabel": "Values",
-    "referenceLines": {"Label1": 15, "Label2": 25}
-}}END_GRAPH_DATA
-
-2. Line Chart:
-GRAPH_DATA:{"type": "line", "data": {
-    "x": ["2023-01", "2023-02", "2023-03"],
-    "y": [10, 20, 15],
-    "title": "Trend Analysis",
-    "xlabel": "Time Period",
-    "ylabel": "Values"
-}}END_GRAPH_DATA
-
-3. Scatter Plot:
-GRAPH_DATA:{"type": "scatter", "data": {
-    "x": [1, 2, 3, 4, 5],
-    "y": [2, 4, 3, 5, 4],
-    "title": "Correlation Plot",
-    "xlabel": "X Values",
-    "ylabel": "Y Values"
-}}END_GRAPH_DATA
-'''
-
-    rcs_instructions = f"""
-You are an AI assistant for SlothMD. Generate JSON in this format to make your reply. The JSON must follow this format for RCS:
-
-{{
-  "text": "Main message text",
-  "cards": [
-    {{
-      "title": "Card title",
-      "subtitle": "Card subtitle (main content)",
-      "media_url": "{{GRAPH_URL_N}}",  // Use {{GRAPH_URL_0}}, {{GRAPH_URL_1}} etc for multiple graphs
-      "buttons": [
-        {{
-          "title": "More Information",  // Always include for health information
-          "type": "trigger",
-          "payload": "more_info_[relevant_topic]"  // Replace [relevant_topic] with actual topic
-        }}
-      ]
-    }}
-  ],
-  "quick_replies": [
-    {{
-      "title": "Quick reply text",
-      "type": "trigger",
-      "payload": "quick_reply_action"
-    }}
-  ],
-  "graph": {{
-    "type": "bar|line|scatter",
-    "data": {{}}  // Always include for broad metric-related queries asking about levels/numbers
-  }}
-}}
-
-Important:
-1. All health information cards MUST include a "See More" button
-2. All metric-related queries MUST include a graph visualization
-3. Always include quick reply actions using the context of the metrics. You MUST have follow-up questions.:
-Examples:
-   - "Schedule Appointment" (payload: schedule_appointment)
-   - "View Care Plan" (payload: view_care_plan)
-   - "Contact Doctor" (payload: contact_doctor)
-   - "View Medications" (payload: view_medications)
-   - "Check Lab Results" (payload: check_labs)
-   - "Connect Wearable" (payload: connect_wearable) <-- send this when more data is requested/needed
-4. Use appropriate graph types:
-   - bar: for comparing values
-   - line: for trends over time
-   - scatter: for correlation analysis
-5. Titles MUST be under 25 characters in length.
-
-
-When including a graph, embed data using:
-{graph_formats}
-
-
-Below is the patient's FHIR data (only address relevant healthcare questions):
-{json.dumps(FHIR_DATA, indent=2)}
-"""
-    return rcs_instructions
-
-def call_openrouter(messages) -> dict:
-    """
-    Calls the Deepseek model via OpenRouter with the conversation plus RCS context.
-    Returns a dict with the JSON we expect for RCS.
-    """
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "HTTP-Referer": "https://slothmd.repl.co",
-        "X-Title": "SlothMD",
-        "Content-Type": "application/json"
-    }
-    latest_message = messages[-1]["content"] if messages else ""
-    context = create_context(latest_message)
-
-    data = {
-        "model": MODEL,
-        "messages": [{"role": "system", "content": context}] + messages,
-    }
-
-    logger.info(f"Sending request to Deepseek (OpenRouter): {data}")
-    try:
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=data
-        )
-        response.raise_for_status()
-        response_json = response.json()
-        logger.info(f"Deepseek response: {response_json}")
-        return response_json["choices"][0]["message"]
-    except Exception as e:
-        logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
-        raise
-
 def save_and_upload_image(img_path: str) -> str:
-    """
-    Upload a saved image from the local filesystem to Pinnacle.
-    """
+    """Upload a saved image from the local filesystem to Pinnacle."""
     try:
-        # Verify the file exists and is not empty
         if not os.path.exists(img_path) or os.path.getsize(img_path) < 100:
             raise ValueError("Invalid image file generated")
-
-        # Upload using Pinnacle
-        download_url = client.upload(img_path)
-        return download_url
-    except Exception as e:
-        logger.error(f"Failed to upload image: {str(e)}")
-        raise
-        return download_url
+        return client.upload(img_path)
     except Exception as e:
         logger.error(f"Failed to upload image: {str(e)}")
         raise
 
 def send_rcs_message(to_number: str, response_data: dict):
-    """
-    Takes JSON from Deepseek (text/cards/quick_replies/graph),
-    generates a graph if needed, then sends an RCS message via Pinnacle.
-    """
+    """Process and send an RCS message via Pinnacle."""
     text = response_data.get("text", "")
     cards = response_data.get("cards", [])
     quick_replies = response_data.get("quick_replies", [])
     image_url = None
 
     logger.info("Checking for graph data...")
-    print("\n=== Graph Generation Debug ===")
-    print(f"Response data keys: {response_data.keys()}")
     if "graph" in response_data and response_data["graph"]:
         try:
-            print(f"Graph data found: {json.dumps(response_data['graph'], indent=2)}")
             g_type = response_data["graph"]["type"]
             g_data = response_data["graph"]["data"]
-            print(f"Attempting to generate {g_type} graph with data:")
-            print(json.dumps(g_data, indent=2))
             logger.info(f"Generating graph of type {g_type}")
-            generate_graph(g_type, g_data)  # This will save to debug_chart.png
+            generate_graph(g_type, g_data)
             logger.info("Graph generated successfully, uploading to Pinnacle")
             image_url = save_and_upload_image('debug_chart.png')
             logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
             logger.error(f"Graph generation/upload failed:")
-            logger.error(f"Error type: {type(e).__name__}")
-            logger.error(f"Error message: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(traceback.format_exc())
 
     # Clean and validate cards
     valid_cards = []
-    print("\n=== Card Processing Debug ===")
-    print(f"Number of cards: {len(cards)}")
-    print(f"Image URL available: {image_url}")
-
     logger.info(f"Processing {len(cards)} cards")
     for idx, card in enumerate(cards):
-        print(f"\nCard {idx + 1}:")
-        print(f"Raw card data: {json.dumps(card, indent=2)}")
-
         clean_card = {
             "title": card.get("title", "Information"),
-            "subtitle": card.get("description", "") or card.get("subtitle", ""),  # Use description as subtitle, fallback to subtitle
+            "subtitle": card.get("description", "") or card.get("subtitle", ""),
             "buttons": card.get("buttons", [])
         }
-        print(f"Initial media_url: {card.get('media_url')}")
 
-        # Handle graph URL placeholder
         media_url = card.get("media_url")
-        logger.info(f"Processing media_url: {media_url}, image_url available: {bool(image_url)}")
         if image_url and media_url and isinstance(media_url, str) and media_url.startswith("{GRAPH_URL_"):
             logger.info(f"Setting media_url to image_url: {image_url}")
             clean_card["media_url"] = image_url
-        logger.info(f"Final card {idx + 1} media_url: {clean_card.get('media_url', 'not set')}")
         valid_cards.append(clean_card)
 
     # Send final RCS message
@@ -298,14 +131,43 @@ def send_rcs_message(to_number: str, response_data: dict):
         else:
             rcs_params["text"] = "No content available"
 
-        print("\n=== Final RCS Parameters ===")
-        print(json.dumps(rcs_params, indent=2))
-
         rcs_response = client.send.rcs(**rcs_params)
         logger.info(f"RCS send response: {rcs_response}")
     except Exception as e:
         logger.error(f"Failed to send RCS message: {str(e)}")
         raise
+
+def connect_terra_wearable(from_number: str):
+    """Generate Terra widget session and send URL via RCS"""
+    try:
+        response = requests.post(
+            "https://api.tryterra.co/v2/auth/generateWidgetSession",
+            headers={
+                "dev-id": "slothmd-testing-1BYwaAYSKe",
+                "x-api-key": "qb6CK_EcpleOaUWzh4E0MKYnQMAALrqm"
+            },
+            json={
+                "reference_id": from_number,
+                "lang": "en"
+            }
+        )
+        url = response.json()["url"]
+
+        client.send.rcs(
+            to=from_number,
+            from_="test",
+            cards=[{
+                "title": "Connect Device",
+                "subtitle": "Click below to connect your wearable device",
+                "buttons": [{
+                    "title": "Connect Now",
+                    "type": "openUrl",
+                    "payload": url
+                }]
+            }]
+        )
+    except Exception as e:
+        logger.error(f"Terra connection error: {str(e)}")
 
 # -----------------------------
 #         FLASK ROUTES
@@ -330,11 +192,9 @@ def handle_webhook():
             elif hasattr(parsed_data, 'postback'):
                 user_text = parsed_data.postback.strip()
             elif hasattr(parsed_data, 'action_title') and hasattr(parsed_data, 'payload'):
-                # Handle button/quick reply actions
                 user_text = f"{parsed_data.action_title}: {parsed_data.payload}"
                 logger.info(f"Received action: {user_text}")
 
-                # Handle Terra wearable connection
                 if parsed_data.payload == "connect_wearable":
                     connect_terra_wearable(from_number)
                     return "Webhook received", 200
@@ -357,79 +217,10 @@ def handle_webhook():
         app.conversation_history[from_number].append({"role": "user", "content": user_text})
         conversation_slice = app.conversation_history[from_number][-6:]
 
-        # Call Deepseek
+        # Call model and send response
         try:
-            ai_response = call_openrouter(conversation_slice)
-            content = ai_response.get("content", "{}")
-            print("\n=== AI Model Response ===")
-            print(content)
-            print("=====================\n")
-            logger.info(f"Raw Deepseek response content: {content}")
-
-            # Extract JSON content between code fences
-            json_start = content.find('```json')
-            if json_start != -1:
-                json_end = content.find('```', json_start + 7)
-                if json_end != -1:
-                    json_content = content[json_start + 7:json_end].strip()
-                else:
-                    json_content = "{}"
-            else:
-                # Try to find a complete JSON object
-                start_brace = content.find('{')
-                if start_brace != -1:
-                    # Find matching end brace
-                    brace_count = 0
-                    for i in range(start_brace, len(content)):
-                        if content[i] == '{':
-                            brace_count += 1
-                        elif content[i] == '}':
-                            brace_count -= 1
-                            if brace_count == 0:
-                                json_content = content[start_brace:i+1].strip()
-                                break
-                    else:
-                        json_content = "{}"
-
-
-                else:
-                    json_content = "{}"
-
-            try:
-                # Ensure we're working with valid JSON
-                json_content = json_content.strip()
-                if not json_content.startswith('{'):
-                    json_content = "{}"
-                response_data = json.loads(json_content)
-                if not isinstance(response_data, dict):
-                    response_data = {"text": "I apologize, but I encountered an error. How else can I help you today?"}
-
-                # Extract graph data if present
-                if 'GRAPH_DATA:' in content:
-                    try:
-                        graph_data = content.split('GRAPH_DATA:', 1)[1].split('END_GRAPH_DATA')[0]
-                        graph_json = json.loads(graph_data)
-                        if isinstance(graph_json, dict) and 'type' in graph_json and 'data' in graph_json:
-                            response_data['graph'] = graph_json
-                        else:
-                            logger.error(f"Invalid graph data structure: {graph_json}")
-                            response_data['graph'] = None
-                    except Exception as e:
-                        logger.error(f"Failed to parse graph data: {str(e)}")
-                        response_data['graph'] = None
-
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse Deepseek JSON response. Content: {json_content}")
-                logger.error(f"JSON parse error: {str(e)}")
-                # Fallback to simple text response
-                response_data = {
-                    "text": "I apologize, but I encountered an error processing your request. How else can I help you today?"
-                }
-
-            # Send RCS
+            response_data = call_openrouter(conversation_slice, FHIR_DATA)
             send_rcs_message(from_number, response_data)
-
-            # Save assistant response
             app.conversation_history[from_number].append(
                 {"role": "assistant", "content": json.dumps(response_data)}
             )
@@ -438,7 +229,7 @@ def handle_webhook():
 
         return "Webhook received", 200
     else:
-        # On GET, display a simple table of recent inbound messages
+        # Display recent messages table
         html_content = '''
             <h1>RCS Webhook Receiver</h1>
             <meta http-equiv="refresh" content="20">
@@ -482,39 +273,6 @@ def view_logs():
         '''
     html_content += '</table>'
     return html_content
-
-def connect_terra_wearable(from_number: str):
-    """Generate Terra widget session and send URL via RCS"""
-    try:
-        response = requests.post(
-            "https://api.tryterra.co/v2/auth/generateWidgetSession",
-            headers={
-                "dev-id": "slothmd-testing-1BYwaAYSKe",
-                "x-api-key": "qb6CK_EcpleOaUWzh4E0MKYnQMAALrqm"
-            },
-            json={
-                "reference_id": from_number,
-                "lang": "en"
-            }
-        )
-        url = response.json()["url"]
-
-        # Send RCS message with connection URL
-        client.send.rcs(
-            to=from_number,
-            from_="test",
-            cards=[{
-                "title": "Connect Device",
-                "subtitle": "Click below to connect your wearable device",
-                "buttons": [{
-                    "title": "Connect Now",
-                    "type": "openUrl",
-                    "payload": url
-                }]
-            }]
-        )
-    except Exception as e:
-        logger.error(f"Terra connection error: {str(e)}")
 
 if __name__ == "__main__":
     port = int(os.getenv('PORT', 3000))
