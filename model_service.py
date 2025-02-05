@@ -3,6 +3,7 @@ import requests
 import logging
 import json
 from typing import List, Dict, Any
+from fhir_data import get_patient_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -15,10 +16,9 @@ if not logger.handlers:
 MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
 OPENROUTER_API_KEY = "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"
 
-def create_context(query: str, fhir_data: dict) -> str:
+def create_context(query: str) -> str:
     """
     Builds a system prompt that explains how to format the JSON for an RCS message
-    and includes relevant instructions plus the patient's FHIR data.
     """
     graph_formats = '''
 GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
@@ -54,8 +54,8 @@ GRAPH_DATA:{"type": "scatter", "data": {
 }}END_GRAPH_DATA
 '''
 
-    rcs_instructions = f"""
-You are an AI assistant for SlothMD. Generate JSON in this format to make your reply. The JSON must follow this format for RCS:
+    return f"""
+You are an AI assistant for SlothMD. Generate JSON in this format to make your reply. Use FHIR tools to get patient data.
 
 {{
   "text": "Main message text",
@@ -89,14 +89,7 @@ You are an AI assistant for SlothMD. Generate JSON in this format to make your r
 Important:
 1. All health information cards MUST include a "See More" button
 2. All metric-related queries MUST include a graph visualization
-3. Always include quick reply actions using the context of the metrics. You MUST have follow-up questions.:
-Examples:
-   - "Schedule Appointment" (payload: schedule_appointment)
-   - "View Care Plan" (payload: view_care_plan)
-   - "Contact Doctor" (payload: contact_doctor)
-   - "View Medications" (payload: view_medications)
-   - "Check Lab Results" (payload: check_labs)
-   - "Connect Wearable" (payload: connect_wearable) <-- send this when more data is requested/needed
+3. Always include quick reply actions using the context of the metrics. You MUST have follow-up questions
 4. Use appropriate graph types:
    - bar: for comparing values
    - line: for trends over time
@@ -106,14 +99,12 @@ Examples:
 When including a graph, embed data using:
 {graph_formats}
 
-Below is the patient's FHIR data (only address relevant healthcare questions):
-{json.dumps(fhir_data, indent=2)}
+Use the get_patient_data tool to retrieve FHIR information when needed.
 """
-    return rcs_instructions
 
-def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
+def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
     """
-    Calls the Deepseek model via OpenRouter with the conversation plus RCS context.
+    Calls the Deepseek model via OpenRouter with the conversation plus tools context.
     Returns a dict with the JSON we expect for RCS.
     """
     headers = {
@@ -123,15 +114,29 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
         "Content-Type": "application/json"
     }
     latest_message = messages[-1]["content"] if messages else ""
-    context = create_context(latest_message, fhir_data)
+    context = create_context(latest_message)
+
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "get_patient_data",
+            "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    }]
 
     data = {
         "model": MODEL,
         "messages": [{"role": "system", "content": context}] + messages,
+        "tools": tools
     }
 
     pretty_data = json.dumps(data, indent=2)
     logger.info(f"Sending request to Deepseek (OpenRouter):\n{pretty_data}")
+
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -140,6 +145,29 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
         )
         response.raise_for_status()
         response_json = response.json()
+        
+        message = response_json["choices"][0]["message"]
+        if "tool_calls" in message:
+            for tool_call in message["tool_calls"]:
+                if tool_call["function"]["name"] == "get_patient_data":
+                    fhir_data = get_patient_data()
+                    messages.append({
+                        "role": "tool",
+                        "name": "get_patient_data",
+                        "tool_call_id": tool_call["id"],
+                        "content": json.dumps(fhir_data)
+                    })
+            
+            # Make second call with tool results
+            data["messages"] = messages
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+            response_json = response.json()
+
         pretty_response = json.dumps(response_json, indent=2)
         logger.info(f"Deepseek response:\n{pretty_response}")
         
