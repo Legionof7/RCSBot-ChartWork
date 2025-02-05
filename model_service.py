@@ -104,7 +104,7 @@ Use the get_patient_data tool to retrieve FHIR information when needed.
 
 def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
     """
-    Calls the Deepseek model via OpenRouter with the conversation plus tools context.
+    Calls the Gemini model via OpenRouter with Google's tool calling format.
     Returns a dict with the JSON we expect for RCS.
     """
     headers = {
@@ -116,6 +116,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
     latest_message = messages[-1]["content"] if messages else ""
     context = create_context(latest_message)
 
+    # Format tool declaration more like Google's example
     tools = [{
         "type": "function",
         "function": {
@@ -130,7 +131,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "enum": ["all", "conditions", "medications", "vitals", "labs"]
                     }
                 },
-                "required": []
+                "required": ["data_type"]
             }
         }
     }]
@@ -138,7 +139,11 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
     data = {
         "model": MODEL,
         "messages": [{"role": "system", "content": context}] + messages,
-        "tools": tools
+        "tools": tools,
+        "tool_choice": "auto",
+        "temperature": 0.0,  # Google's example uses 0 temperature
+        "max_tokens": 1024,  # Add reasonable max tokens
+        "stream": False     # Ensure non-streaming response
     }
 
     pretty_data = json.dumps(data, indent=2)
@@ -153,27 +158,51 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         response.raise_for_status()
         response_json = response.json()
         
-        # Handle tool calls if present
-        if "tool_calls" in response_json["choices"][0]["message"]:
-            tool_calls = response_json["choices"][0]["message"]["tool_calls"] 
+        # Get the assistant's response
+        assistant_message = response_json["choices"][0]["message"]
+        
+        # Handle function calls similar to Google's format
+        if "tool_calls" in assistant_message:
+            tool_calls = assistant_message["tool_calls"]
             
-            # Execute each tool call and collect responses
-            tool_responses = []
+            # Process each tool call
             for tool_call in tool_calls:
                 if tool_call["function"]["name"] == "get_patient_data":
-                    tool_response = get_patient_data()
-                    # Add both the call and response to conversation
-                    messages.append({
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [tool_call]
-                    })
-                    messages.append({
-                        "role": "tool",
-                        "name": "get_patient_data",
-                        "content": json.dumps(tool_response)
-                    })
-                    tool_responses.append(tool_response)
+                    # Parse arguments with error handling
+                    try:
+                        args = json.loads(tool_call["function"]["arguments"])
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse tool call arguments")
+                        continue
+
+                    # Get tool response
+                    tool_response = get_patient_data(args.get("data_type", "all"))
+                    
+                    # Format messages like Google's example
+                    messages.extend([
+                        {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": tool_call["id"],
+                                    "type": "function",
+                                    "function": {
+                                        "name": "get_patient_data",
+                                        "arguments": json.dumps(args)
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "role": "tool",
+                            "name": "get_patient_data",
+                            "tool_call_id": tool_call["id"],
+                            "content": json.dumps({
+                                "content": tool_response
+                            })
+                        }
+                    ])
 
             # Make second call with tool results
             data["messages"] = messages
