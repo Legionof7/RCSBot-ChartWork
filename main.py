@@ -79,8 +79,35 @@ def create_context(query: str) -> str:
     graph_formats = '''
 GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
 
-Example:
-GRAPH_DATA:{"type": "bar", "data": {"labels": ["HbA1c", "Glucose", "LDL"], "values": [6.8, 110, 110], "title": "Lab Results", "xlabel": "Test", "ylabel": "Value", "referenceLines": {"HbA1c": 7.0, "Glucose": 100, "LDL": 100}}}END_GRAPH_DATA
+Supported graph types and formats:
+
+1. Bar Chart:
+GRAPH_DATA:{"type": "bar", "data": {
+    "labels": ["Label1", "Label2", "Label3"],
+    "values": [10, 20, 30],
+    "title": "Bar Chart Title",
+    "xlabel": "Categories",
+    "ylabel": "Values",
+    "referenceLines": {"Label1": 15, "Label2": 25}
+}}END_GRAPH_DATA
+
+2. Line Chart:
+GRAPH_DATA:{"type": "line", "data": {
+    "x": ["2023-01", "2023-02", "2023-03"],
+    "y": [10, 20, 15],
+    "title": "Trend Analysis",
+    "xlabel": "Time Period",
+    "ylabel": "Values"
+}}END_GRAPH_DATA
+
+3. Scatter Plot:
+GRAPH_DATA:{"type": "scatter", "data": {
+    "x": [1, 2, 3, 4, 5],
+    "y": [2, 4, 3, 5, 4],
+    "title": "Correlation Plot",
+    "xlabel": "X Values",
+    "ylabel": "Y Values"
+}}END_GRAPH_DATA
 '''
 
     rcs_instructions = f"""
