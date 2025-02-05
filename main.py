@@ -18,7 +18,7 @@ from graph_utils import generate_graph
 # --------------------------
 
 FHIR_DATA = get_patient_data()  # Patient data
-MODEL = "google/gemini-flash-1.5"
+MODEL = "deepseek/deepseek-r1-distill-qwen-32b"
 OPENROUTER_API_KEY = "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"
 
 app = Flask(__name__)
