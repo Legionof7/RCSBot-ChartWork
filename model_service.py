@@ -8,7 +8,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 if not logger.handlers:
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)-8s: %(message).200s')
+    handler.setFormatter(formatter)
     logger.addHandler(handler)
 
 MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
@@ -129,7 +130,8 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
         "messages": [{"role": "system", "content": context}] + messages,
     }
 
-    logger.info(f"Sending request to Deepseek (OpenRouter): {data}")
+    pretty_data = json.dumps(data, indent=2)
+    logger.info(f"Sending request to Deepseek (OpenRouter):\n{pretty_data}")
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -138,7 +140,8 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
         )
         response.raise_for_status()
         response_json = response.json()
-        logger.info(f"Deepseek response: {response_json}")
+        pretty_response = json.dumps(response_json, indent=2)
+        logger.info(f"Deepseek response:\n{pretty_response}")
         
         content = response_json["choices"][0]["message"]["content"]
         return parse_model_response(content)
