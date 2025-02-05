@@ -123,7 +123,14 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
             "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
             "parameters": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "data_type": {
+                        "type": "string",
+                        "description": "Type of data to retrieve",
+                        "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                    }
+                },
+                "required": []
             }
         }
     }]
