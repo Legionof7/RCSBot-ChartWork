@@ -135,6 +135,10 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict) -> dict:
         response_json = response.json()
         logger.info(f"Deepseek response: {response_json}")
         
+        if "choices" not in response_json or not response_json["choices"]:
+            logger.error(f"Invalid API response format: {response_json}")
+            raise ValueError("API response missing 'choices' field")
+            
         content = response_json["choices"][0]["message"]["content"]
         return parse_model_response(content)
     except Exception as e:
