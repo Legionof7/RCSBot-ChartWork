@@ -1,0 +1,66 @@
+[2025-02-05 21:57:51,438] INFO    : Sending request to Deepseek (OpenRouter):
+{
+  "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
+  "messages": [
+    {
+      "role": "system",
+      "content": "\nYou are an AI assistant for 
+2025-02-05 21:57:51,438 - model_service - INFO - Sending request to Deepseek (OpenRouter):
+{
+  "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
+  "messages": [
+    {
+      "role": "system",
+      "content": "\nYou are an AI assistant for SlothMD. Generate JSON in this format to make your reply. Use FHIR tools to get patient data.\n\n{\n  \"text\": \"Main message text\",\n  \"cards\": [\n    {\n      \"title\": \"Card title\",\n      \"subtitle\": \"Card subtitle (main content)\",\n      \"media_url\": \"{GRAPH_URL_N}\",  // Use {GRAPH_URL_0}, {GRAPH_URL_1} etc for multiple graphs\n      \"buttons\": [\n        {\n          \"title\": \"More Information\",  // Always include for health information\n          \"type\": \"trigger\",\n          \"payload\": \"more_info_[relevant_topic]\"  // Replace [relevant_topic] with actual topic\n        }\n      ]\n    }\n  ],\n  \"quick_replies\": [\n    {\n      \"title\": \"Quick reply text\",\n      \"type\": \"trigger\",\n      \"payload\": \"quick_reply_action\"\n    }\n  ],\n  \"graph\": {\n    \"type\": \"bar|line|scatter\",\n    \"data\": {}  // Always include for broad metric-related queries asking about levels/numbers\n  }\n}\n\nImportant:\n1. All health information cards MUST include a \"See More\" button\n2. All metric-related queries MUST include a graph visualization\n3. Always include quick reply actions using the context of the metrics. You MUST have follow-up questions\n4. Use appropriate graph types:\n   - bar: for comparing values\n   - line: for trends over time\n   - scatter: for correlation analysis\n5. Titles MUST be under 25 characters in length.\n\nWhen including a graph, embed data using:\n\nGRAPH_DATA:{\"type\": \"<graph_type>\", \"data\": <data_object>}END_GRAPH_DATA\n\nSupported graph types and formats:\n\n1. Bar Chart:\nGRAPH_DATA:{\"type\": \"bar\", \"data\": {\n    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n    \"values\": [10, 20, 30],\n    \"title\": \"Bar Chart Title\",\n    \"xlabel\": \"Categories\",\n    \"ylabel\": \"Values\",\n    \"referenceLines\": {\"Label1\": 15, \"Label2\": 25}\n}}END_GRAPH_DATA\n\n2. Line Chart:\nGRAPH_DATA:{\"type\": \"line\", \"data\": {\n    \"x\": [\"2023-01\", \"2023-02\", \"2023-03\"],\n    \"y\": [10, 20, 15],\n    \"title\": \"Trend Analysis\",\n    \"xlabel\": \"Time Period\",\n    \"ylabel\": \"Values\"\n}}END_GRAPH_DATA\n\n3. Scatter Plot:\nGRAPH_DATA:{\"type\": \"scatter\", \"data\": {\n    \"x\": [1, 2, 3, 4, 5],\n    \"y\": [2, 4, 3, 5, 4],\n    \"title\": \"Correlation Plot\",\n    \"xlabel\": \"X Values\",\n    \"ylabel\": \"Y Values\"\n}}END_GRAPH_DATA\n\n\nUse the get_patient_data tool to retrieve FHIR information when needed.\n"
+    },
+    {
+      "role": "user",
+      "content": "What's my name"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  ]
+}
+[2025-02-05 21:57:52,838] INFO    : Deepseek response:
+{
+  "id": "gen-1738792671-qaryZJcOakxCDGiiWF37",
+  "provider": "Google",
+  "model": "google/gemini-2.0-flash-lite-preview-02-05",
+  "object": "chat.completion",
+  "created": 1738792
+2025-02-05 21:57:52,838 - model_service - INFO - Deepseek response:
+{
+  "id": "gen-1738792671-qaryZJcOakxCDGiiWF37",
+  "provider": "Google",
+  "model": "google/gemini-2.0-flash-lite-preview-02-05",
+  "object": "chat.completion",
+  "created": 1738792671,
+  "choices": [
+    {
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "STOP",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "I am sorry, I cannot directly tell you your name. I do not have access to that information. However, I can provide general health information or assist you with other health-related inquiries if you have any.\n",
+        "refusal": null
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 766,
+    "completion_tokens": 44,
+    "total_tokens": 810
+  }
