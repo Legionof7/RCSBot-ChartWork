@@ -146,27 +146,23 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         response.raise_for_status()
         response_json = response.json()
         
-        message = response_json["choices"][0]["message"]
-        if "tool_calls" in message:
-            for tool_call in message["tool_calls"]:
-                if tool_call["function"]["name"] == "get_patient_data":
-                    fhir_data = get_patient_data()
-                    messages.append({
-                        "role": "tool",
-                        "name": "get_patient_data",
-                        "tool_call_id": tool_call["id"],
-                        "content": json.dumps(fhir_data)
-                    })
+        # Always provide FHIR data on first call
+        fhir_data = get_patient_data()
+        messages.append({
+            "role": "tool",
+            "name": "get_patient_data",
+            "content": json.dumps(fhir_data)
+        })
             
-            # Make second call with tool results
-            data["messages"] = messages
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json=data
-            )
-            response.raise_for_status()
-            response_json = response.json()
+        # Make second call with FHIR data
+        data["messages"] = messages
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=data
+        )
+        response.raise_for_status()
+        response_json = response.json()
 
         pretty_response = json.dumps(response_json, indent=2)
         logger.info(f"Deepseek response:\n{pretty_response}")
