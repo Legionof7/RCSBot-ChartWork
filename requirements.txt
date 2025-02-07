@@ -6,3 +6,4 @@ anthropic
 requests
 matplotlib
 numpy
+e2b
