@@ -126,7 +126,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
     def run_e2b_code_sandbox(code: str) -> dict:
         """Run code in E2B sandbox and return results"""
-        execution = sbx.run_code(code)
+        execution = sbx.notebook.exec_cell(code)
         result = {
             "stdout": execution.stdout,
             "stderr": execution.stderr,
