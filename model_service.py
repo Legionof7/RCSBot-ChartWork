@@ -104,15 +104,24 @@ Use the get_patient_data tool to retrieve FHIR information when needed.
 
 def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
     """
-    Calls the Gemini model via OpenRouter with Google's tool calling format.
+    Calls the Gemini model via OpenRouter with tool calling format.
     Returns a dict with the JSON we expect for RCS.
     """
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}", 
         "HTTP-Referer": "https://slothmd.repl.co",
         "X-Title": "SlothMD",
         "Content-Type": "application/json"
     }
+
+    # Format messages like the example
+    formatted_messages = []
+    if len(messages) > 0:
+        formatted_messages = [{"role": "system", "content": create_context(messages[-1]["content"])}]
+        formatted_messages.extend([{
+            "role": msg["role"],
+            "content": msg["content"]
+        } for msg in messages])
     latest_message = messages[-1]["content"] if messages else ""
     context = create_context(latest_message)
 
@@ -121,7 +130,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "type": "function",
         "function": {
             "name": "get_patient_data",
-            "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
+            "description": "Retrieve patient's FHIR data including name, patient info, medical conditions, medications, vital signs, and lab results",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -141,9 +150,6 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "messages": [{"role": "system", "content": context}] + messages,
         "tools": tools,
         "tool_choice": "auto",
-        "temperature": 0.0,  # Google's example uses 0 temperature
-        "max_tokens": 1024,  # Add reasonable max tokens
-        "stream": False     # Ensure non-streaming response
     }
 
     pretty_data = json.dumps(data, indent=2)
@@ -204,12 +210,13 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         }
                     ])
 
-            # Make second call with tool results
-            data["messages"] = messages
+            # Extend messages with tool results and make second call
+            data["messages"] = formatted_messages
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
-                json=data
+                json=data,
+                stream=False
             )
             response.raise_for_status()
             response_json = response.json()
