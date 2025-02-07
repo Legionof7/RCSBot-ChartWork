@@ -230,7 +230,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                                     "id": tool_call["id"],
                                     "type": "function",
                                     "function": {
-                                        "name": "get_patient_data",
+                                        "name": tool_name,
                                         "arguments": json.dumps(args)
                                     }
                                 }
@@ -238,7 +238,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         },
                         {
                             "role": "tool",
-                            "name": "get_patient_data",
+                            "name": tool_name,
                             "tool_call_id": tool_call["id"],
                             "content": json.dumps({
                                 "content": tool_response
