@@ -130,7 +130,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "type": "function",
         "function": {
             "name": "get_patient_data",
-            "description": "Retrieve patient's FHIR data including medical conditions, medications, vital signs, and lab results",
+            "description": "Retrieve patient's FHIR data including name, patient info, medical conditions, medications, vital signs, and lab results",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -150,9 +150,6 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "messages": [{"role": "system", "content": context}] + messages,
         "tools": tools,
         "tool_choice": "auto",
-        "temperature": 0.0,  # Google's example uses 0 temperature
-        "max_tokens": 1024,  # Add reasonable max tokens
-        "stream": False     # Ensure non-streaming response
     }
 
     pretty_data = json.dumps(data, indent=2)
