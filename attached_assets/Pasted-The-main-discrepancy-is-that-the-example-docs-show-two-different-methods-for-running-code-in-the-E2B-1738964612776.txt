@@ -1,0 +1,79 @@
+The main discrepancy is that the example docs show two different methods for running code in the E2B sandbox:
+
+sbx.run_code(...)
+sbx.notebook.exec_cell(...)
+Depending on which version of e2b-code-interpreter you have installed, only one of these may be available. This is why you got the error:
+
+pgsql
+Copy
+'Sandbox' object has no attribute 'run_code'
+Why the Docs Show Both
+sbx.run_code(...) is an older example in some E2B docs or in prior versions.
+sbx.notebook.exec_cell(...) is what the latest docs usually recommend and is most commonly implemented in up-to-date versions.
+In short, they’re two ways of executing code within the sandbox, but not all versions support both.
+
+Which One Should You Use?
+1. Check Your Installed Version
+Make sure your local e2b-code-interpreter is up to date:
+
+bash
+Copy
+pip install --upgrade e2b-code-interpreter
+Then look at the library’s methods in an interactive shell:
+
+python
+Copy
+from e2b_code_interpreter import Sandbox
+sbx = Sandbox()
+dir(sbx)  # see if 'run_code' or 'notebook' is in the list
+If you see sbx.notebook, do dir(sbx.notebook) to see if exec_cell is available.
+
+2. Update Your Code
+If sbx.run_code exists, you can keep using it.
+
+If sbx.run_code does not exist, then the recommended approach is to call:
+
+python
+Copy
+execution = sbx.notebook.exec_cell(ai_generated_code)
+And the rest of the logic (checking execution.stdout, execution.results, etc.) remains the same.
+
+Example: Switching to exec_cell
+If you see that sbx.notebook and its exec_cell method is present, then replace this:
+
+python
+Copy
+execution = sbx.run_code(code)
+with:
+
+python
+Copy
+execution = sbx.notebook.exec_cell(code)
+Then continue as in the docs:
+
+python
+Copy
+def run_ai_generated_code(ai_generated_code: str):
+    print('Running the code in the sandbox....')
+    execution = sbx.notebook.exec_cell(ai_generated_code)
+    print('Code execution finished!')
+
+    # Check for errors
+    if execution.error:
+        print('AI-generated code had an error.')
+        print(execution.error.name)
+        print(execution.error.value)
+        print(execution.error.traceback)
+        sys.exit(1)
+
+    # If results includes .png fields, they are base64-encoded images
+    for i, result_item in enumerate(execution.results):
+        if result_item.png:
+            with open(f'chart-{i}.png', 'wb') as f:
+                f.write(base64.b64decode(result_item.png))
+            print(f'Saved chart chart-{i}.png')
+Summary
+The official E2B example you shared uses sbx.run_code(...) in some places and sbx.notebook.exec_cell(...) in others.
+Your installed version likely supports only exec_cell(...).
+Solution: Either upgrade your library and use whichever method is supported, or just switch all calls to sbx.notebook.exec_cell(...).
+Once you make that adjustment, you should no longer see the 'Sandbox' object has no attribute 'run_code' error, and your code execution in E2B will proceed normally.
