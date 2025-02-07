@@ -139,7 +139,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
     data = {
         "model": MODEL,
-        "messages": [{"role": "system", "content": context}] + messages,
+        "messages": [system_context] + messages,
         "tools": tools,
         "tool_choice": "auto",
     }
@@ -203,8 +203,12 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                     ])
 
             # Make second call with tool results included
-            data["messages"] = [system_context] + messages
-            data["tool_choice"] = "none"  # Prevent additional tool calls
+            data = {
+                "model": MODEL,
+                "messages": [system_context] + messages,
+                "tools": tools,
+                "tool_choice": "none"  # Prevent additional tool calls
+            }
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
