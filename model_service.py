@@ -57,7 +57,7 @@ GRAPH_DATA:{"type": "scatter", "data": {
 '''
 
     return f"""
-You are an AI assistant for SlothMD. Generate JSON in this format to make your reply. Use FHIR tools to get patient data.
+You are an AI assistant for SlothMD. Generate JSON in this format to make your reply. Use the get_patient_data tool to get patient data. If you need to do more complex analysis or the patient asks a question that requires computing multiple values (correlations, trends, etc.) run the run_e2b_code tool. You will never need permission from the user to run tools. Do not ask for consent, the user has already consented by running this program. Just pull data from get_patient_data and run the tools.
 
 {{
   "text": "Main message text",
@@ -230,7 +230,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                                     "id": tool_call["id"],
                                     "type": "function",
                                     "function": {
-                                        "name": "get_patient_data",
+                                        "name": tool_name,
                                         "arguments": json.dumps(args)
                                     }
                                 }
@@ -238,7 +238,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         },
                         {
                             "role": "tool",
-                            "name": "get_patient_data",
+                            "name": tool_name,
                             "tool_call_id": tool_call["id"],
                             "content": json.dumps({
                                 "content": tool_response
