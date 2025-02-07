@@ -114,16 +114,8 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "Content-Type": "application/json"
     }
 
-    # Format messages like the example
-    formatted_messages = []
-    if len(messages) > 0:
-        formatted_messages = [{"role": "system", "content": create_context(messages[-1]["content"])}]
-        formatted_messages.extend([{
-            "role": msg["role"],
-            "content": msg["content"]
-        } for msg in messages])
     latest_message = messages[-1]["content"] if messages else ""
-    context = create_context(latest_message)
+    system_context = {"role": "system", "content": create_context(latest_message)}
 
     # Format tool declaration more like Google's example
     tools = [{
@@ -210,8 +202,9 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         }
                     ])
 
-            # Extend messages with tool results and make second call
-            data["messages"] = formatted_messages
+            # Make second call with tool results included
+            data["messages"] = [system_context] + messages
+            data["tool_choice"] = "none"  # Prevent additional tool calls
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
