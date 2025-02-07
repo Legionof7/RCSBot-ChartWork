@@ -1,0 +1,308 @@
+Below is a step-by-step guide (with a sample code snippet) showing how to add a second tool—an “E2B code sandbox” tool—so that your Gemini-based assistant can:
+
+Call get_patient_data() to retrieve FHIR info.
+Then call an E2B sandbox tool (run_e2b_code) to analyze that data in Python.
+Finally generate a user-facing answer (possibly with a graph).
+This flows exactly like the Anthropic “tool calling” example, except we do it via OpenRouter (and google/gemini-2.0-flash-001) rather than Anthropic. The mechanism is the same: the LLM returns a tool_calls array with function + arguments, and you respond back with "role": "tool" messages containing the results, then re-invoke the model with the updated conversation.
+
+1. Define Two Tools in Your Request
+Instead of just having get_patient_data, define two “function” tools in the tools list:
+
+get_patient_data for FHIR lookups, as before.
+run_e2b_code for Python code analysis in E2B.
+python
+Copy
+tools = [
+  {
+    "type": "function",
+    "function": {
+      "name": "get_patient_data",
+      "description": "Retrieve patient's FHIR data including name, patient info, medical conditions, medications, vital signs, and lab results",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_type": {
+            "type": "string",
+            "description": "Type of data to retrieve",
+            "enum": ["all", "conditions", "medications", "vitals", "labs"]
+          }
+        },
+        "required": ["data_type"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "run_e2b_code",
+      "description": "Run Python code via E2B sandbox to analyze data",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Python code to run in the E2B sandbox"
+          }
+        },
+        "required": ["code"]
+      }
+    }
+  }
+]
+Note: The "tool_choice": "auto" or "tool_choice": "none" can still be used as you prefer.
+
+2. Implement a Function to Execute E2B Code
+You already have a local method that calls your E2B sandbox. For example:
+
+python
+Copy
+from e2b_code_interpreter import Sandbox
+
+# Create a global or local sandbox, depending on your structure
+sbx = Sandbox()
+
+def run_e2b_code_sandbox(code: str) -> dict:
+    """
+    Runs the AI-generated code in the E2B sandbox, returns the result as a dict.
+    You can store stdout, errors, file paths, etc. 
+    """
+    execution = sbx.run_code(code)
+    # Construct the JSON that you'll pass back to the LLM in a "tool" role message.
+    # Example:
+    result = {
+        "stdout": execution.stdout,
+        "stderr": execution.stderr,
+        "results": []
+    }
+    # If any base64 PNG was produced, add it to 'results'
+    for i, cell_result in enumerate(execution.results):
+        if cell_result.png:
+            result["results"].append({
+                "chartIndex": i,
+                "base64_png": cell_result.png
+            })
+    return result
+That function is the Python side of your new “run_e2b_code” tool.
+
+3. Handle the Model’s Tool Calls in call_openrouter()
+When the model calls get_patient_data, do exactly what you were doing.
+When the model calls run_e2b_code, parse "code" from the arguments, pass it into your run_e2b_code_sandbox() function, then provide the output.
+
+A single snippet might look like:
+
+python
+Copy
+if "tool_calls" in assistant_message:
+    tool_calls = assistant_message["tool_calls"]
+    for tool_call in tool_calls:
+        tool_name = tool_call["function"]["name"]
+        try:
+            args = json.loads(tool_call["function"]["arguments"])
+        except json.JSONDecodeError:
+            logger.error("Failed to parse tool call arguments for %s", tool_name)
+            continue
+
+        if tool_name == "get_patient_data":
+            # Same as before...
+            tool_response = get_patient_data(args.get("data_type", "all"))
+
+        elif tool_name == "run_e2b_code":
+            code_str = args.get("code", "")
+            tool_response = run_e2b_code_sandbox(code_str)
+
+        else:
+            logger.warning("Unknown tool call: %s", tool_name)
+            tool_response = {"error": "No such tool"}
+
+        # Then append the messages so the model sees the outcome
+        messages.append({
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": tool_call["id"],
+                    "type": "function",
+                    "function": {
+                        "name": tool_name,
+                        "arguments": json.dumps(args)
+                    }
+                }
+            ]
+        })
+        messages.append({
+            "role": "tool",
+            "name": tool_name,
+            "tool_call_id": tool_call["id"],
+            "content": json.dumps(tool_response)
+        })
+
+    # After processing all tool calls, re-call the model with updated messages
+    system_context = {"role": "system", "content": create_context(latest_message)}
+    data["messages"] = [system_context] + messages
+    # possibly data["tool_choice"] = "auto"
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=data
+    )
+    response.raise_for_status()
+    response_json = response.json()
+    # ... and so on (rest of your logic)
+The key points:
+
+Check which tool is being called.
+If tool_name == "run_e2b_code", then parse the "code" argument, run it in your sandbox, and store the results in tool_response.
+Append your new role="tool" message to the conversation, containing those sandbox results in JSON.
+Make another POST call with the updated conversation so the model can incorporate the code results in the final answer.
+4. Multi-Step Flow Summarized
+With two tools, your conversation might unfold like this:
+
+User: “Analyze my labs in detail and create a custom chart.”
+System (from your create_context()): “Here is how you must format the JSON... Also you can call these tools...”
+Assistant (1st model response): “tool_calls -> get_patient_data(...)”
+Because it wants the labs to analyze.
+Your Code calls get_patient_data(args), returns them as role="tool".
+Assistant (2nd model response): sees the labs, decides to do more analysis. “tool_calls -> run_e2b_code(...)”
+Your Code calls the sandbox, returns the Python execution results as role="tool".
+Assistant (3rd model response): Now sees the data + code results, returns final user-facing JSON with a chart, “Here is your data analysis,” etc.
+Some queries might skip the second tool call, or might do multiple calls to the same tool. As long as you keep appending the role="tool" messages and re-calling the model, the conversation state is preserved.
+
+5. Tips & Best Practices
+Be sure to keep your second request’s messages set to [system_context] + messages, not only the original messages. This is crucial for multi-step function calls.
+Watch for indefinite loops. If the model keeps calling the same tool repeatedly, you may have to handle that or set tool_choice="none" after some steps.
+Return JSON in your role="tool" messages. The LLM can parse it more reliably.
+Check stderr or “error” fields from E2B if the code fails. You might want to pass that back to the model so it can correct the code.
+Example “Double Tool” JSON Flow in OpenRouter
+Here’s a pseudo-illustration of how the final conversation might look in the raw JSON logs. (You don’t have to copy/paste this, but it shows the shape.)
+
+First call:
+
+json
+Copy
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "... your system context instructions ..."
+    },
+    {
+      "role": "user",
+      "content": "Please analyze my labs and chart them"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        ...
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_e2b_code",
+        ...
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+LLM response (first time):
+
+json
+Copy
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "tool_call_abc123",
+            "type": "function",
+            "function": {
+              "name": "get_patient_data",
+              "arguments": "{\"data_type\":\"labs\"}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+Your code sees the tool_calls, calls get_patient_data("labs"), adds two new messages (assistant with the function call, tool with the data). Then you re-send everything.
+
+Second call (including the new messages):
+
+json
+Copy
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "... your system context instructions ..."
+    },
+    {
+      "role": "user",
+      "content": "Please analyze my labs and chart them"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "tool_call_abc123",
+          "type": "function",
+          "function": {
+            "name": "get_patient_data",
+            "arguments": "{\"data_type\":\"labs\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "get_patient_data",
+      "tool_call_id": "tool_call_abc123",
+      "content": "{\"labResults\": {...}}"
+    }
+  ],
+  "tools": [... same 2 tools ...],
+  "tool_choice": "auto"
+}
+LLM response (second time):
+
+json
+Copy
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "tool_call_xyz789",
+            "type": "function",
+            "function": {
+              "name": "run_e2b_code",
+              "arguments": "{\"code\": \"import pandas as pd\\n...some python code...\"}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+Your code calls run_e2b_code_sandbox(...), returns the results. Then you do a third request with the updated messages. That final request should produce a standard content (no more tool_calls) with the final JSON answer for the user (including the chart, quick replies, etc.).
+
+Conclusion
+That’s all you need to do to add E2B as a second “code-execution” tool. The main difference from your existing single-tool approach is:
+
+Add the second tool definition in your tools array.
+Extend your tool-calling logic to handle whichever tool the model chooses.
+Provide the final answer only after re-calling the LLM with the “tool” role message containing the code’s output.
