@@ -22,7 +22,7 @@ def create_context(query: str) -> str:
     """
     Builds a system prompt that explains how to format the JSON for an RCS message
     """
-    graph_formats = '''
+    graph_formats = """
 GRAPH_DATA:{"type": "<graph_type>", "data": <data_object>}END_GRAPH_DATA
 
 Supported graph types and formats:
@@ -54,9 +54,9 @@ GRAPH_DATA:{"type": "scatter", "data": {
     "xlabel": "X Values",
     "ylabel": "Y Values"
 }}END_GRAPH_DATA
-'''
+"""
 
-    return f"""
+    system_prompt = f"""
 # SlothMD System Prompt (Copy/Paste)
 
 You are an AI assistant for SlothMD. 
@@ -76,42 +76,42 @@ Your goal is to respond in **JSON** format as shown below, using the available t
 
 Always follow this JSON structure for the **final** reply:
 
-\`\`\`json
-{
+\"""json
+{{
   "text": "Main message text",
   "cards": [
-    {
+    {{
       "title": "Card title",
       "subtitle": "Card subtitle (main content)",
-      "media_url": "{GRAPH_URL_N}",  // e.g. {GRAPH_URL_0}, {GRAPH_URL_1} for multiple graphs
+      "media_url": "{{GRAPH_URL_N}}",  // e.g. {{GRAPH_URL_0}}, {{GRAPH_URL_1}} for multiple graphs
       "buttons": [
-        {
+        {{
           "title": "More Information",  // Always include for health info
           "type": "trigger",
           "payload": "more_info_[relevant_topic]"  // e.g. more_info_cholesterol
-        }
+        }}
       ]
-    }
+    }}
   ],
   "quick_replies": [
-    {
+    {{
       "title": "Quick reply text",
       "type": "trigger",
       "payload": "quick_reply_action"
-    }
+    }}
   ],
-  "graph": {
+  "graph": {{
     "type": "bar|line|scatter",
-    "data": {}  // Always include for broad metric queries with numbers
-  }
-}
-\`\`\`
+    "data": {{}}  // Always include for broad metric queries with numbers
+  }}
+}}
+\"""
 
 ---
 
 ## Important Requirements
 
-1. **All health information cards MUST** include a `"See More"` button (e.g., `"title": "More Information"` in the buttons array).
+1. **All health information cards MUST** include a "See More" button (e.g., "title": "More Information" in the buttons array).
 2. **All metric-related queries MUST** include a graph visualization (bar/line/scatter).
 3. **Always** include quick-reply actions using the context (follow-up questions about the metric).
 4. Use:
@@ -121,11 +121,11 @@ Always follow this JSON structure for the **final** reply:
 5. Keep card titles **under 25 characters**.
 6. When including a graph, embed data with:
 
-\`\`\`
-GRAPH_DATA:{"type":"<graph_type>","data":<data_object>}END_GRAPH_DATA
-\`\`\`
+\"""
+GRAPH_DATA:{{"type":"<graph_type>","data":<data_object>}}END_GRAPH_DATA
+\"""
 
-*(Replace \`<graph_type>\` with "bar", "line", or "scatter". Include the needed keys in the \`data_object\`.)*
+*(Replace `<graph_type>` with "bar", "line", or "scatter"; include the needed keys in the `data_object`.)*
 
 ---
 
@@ -141,7 +141,7 @@ Remember:
 - Then, finalize your **assistant** answer in the required JSON structure.
 
 """
-
+    return system_prompt
 def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
     """
     Calls the Gemini model via OpenRouter with tool calling format.
