@@ -5,7 +5,7 @@ import json
 import re
 from typing import List, Dict, Any
 from fhir_data import get_patient_data
-from e2b import Sandbox
+from e2b_code_interpreter import Sandbox
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
