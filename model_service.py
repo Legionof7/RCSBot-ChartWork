@@ -4,6 +4,8 @@ import logging
 import json
 from typing import List, Dict, Any
 from fhir_data import get_patient_data
+from e2b import Sandbox
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -118,6 +120,26 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
     system_context = {"role": "system", "content": create_context(latest_message)}
 
     # Format tool declaration more like Google's example
+
+    # Initialize E2B sandbox
+    sbx = Sandbox()
+
+    def run_e2b_code_sandbox(code: str) -> dict:
+        """Run code in E2B sandbox and return results"""
+        execution = sbx.run_code(code)
+        result = {
+            "stdout": execution.stdout,
+            "stderr": execution.stderr,
+            "results": []
+        }
+        for i, cell_result in enumerate(execution.results):
+            if cell_result.png:
+                result["results"].append({
+                    "chartIndex": i,
+                    "base64_png": cell_result.png
+                })
+        return result
+
     tools = [{
         "type": "function",
         "function": {
@@ -133,6 +155,23 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                     }
                 },
                 "required": ["data_type"]
+            }
+        }
+    },
+    {
+        "type": "function", 
+        "function": {
+            "name": "run_e2b_code",
+            "description": "Run Python code via E2B sandbox to analyze retrieved data and find correlations, trends, or other interesting features.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Python code to run in the E2B sandbox"
+                    }
+                },
+                "required": ["code"]
             }
         }
     }]
@@ -165,16 +204,21 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
             
             # Process each tool call
             for tool_call in tool_calls:
-                if tool_call["function"]["name"] == "get_patient_data":
-                    # Parse arguments with error handling
-                    try:
-                        args = json.loads(tool_call["function"]["arguments"])
-                    except json.JSONDecodeError:
-                        logger.error("Failed to parse tool call arguments")
-                        continue
+                try:
+                    args = json.loads(tool_call["function"]["arguments"])
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse tool call arguments")
+                    continue
 
-                    # Get tool response
+                tool_name = tool_call["function"]["name"]
+                if tool_name == "get_patient_data":
                     tool_response = get_patient_data(args.get("data_type", "all"))
+                elif tool_name == "run_e2b_code":
+                    code_str = args.get("code", "")
+                    tool_response = run_e2b_code_sandbox(code_str)
+                else:
+                    logger.warning(f"Unknown tool call: {tool_name}")
+                    tool_response = {"error": "No such tool"}
                     
                     # Format messages like Google's example
                     messages.extend([
