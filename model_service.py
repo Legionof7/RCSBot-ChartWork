@@ -4,6 +4,8 @@ import logging
 import json
 from typing import List, Dict, Any
 from fhir_data import get_patient_data
+from e2b import Sandbox
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -118,7 +120,6 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
     system_context = {"role": "system", "content": create_context(latest_message)}
 
     # Format tool declaration more like Google's example
-    from e2b import Sandbox
 
     # Initialize E2B sandbox
     sbx = Sandbox()
@@ -161,7 +162,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "type": "function", 
         "function": {
             "name": "run_e2b_code",
-            "description": "Run Python code via E2B sandbox to analyze data",
+            "description": "Run Python code via E2B sandbox to analyze retrieved data and find correlations, trends, or other interesting features.",
             "parameters": {
                 "type": "object",
                 "properties": {
