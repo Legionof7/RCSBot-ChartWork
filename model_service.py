@@ -149,16 +149,27 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
     def run_e2b_code_sandbox(code: str) -> dict:
         execution = sbx.run_code(code)
         result = {
-            "stdout": execution.stdout,
-            "stderr": execution.stderr,
+            "logs": execution.logs,   # Combined console logs
+            "error": None,
             "results": []
         }
+
+        # If there's an execution error, store it
+        if execution.error:
+            result["error"] = {
+                "name": execution.error.name,
+                "value": execution.error.value,
+                "traceback": execution.error.traceback
+            }
+
+        # Handle outputs (like images)
         for i, cell_result in enumerate(execution.results):
             if cell_result.png:
                 result["results"].append({
                     "chartIndex": i,
                     "base64_png": cell_result.png
                 })
+
         return result
 
     latest_message = messages[-1]["content"] if messages else ""
