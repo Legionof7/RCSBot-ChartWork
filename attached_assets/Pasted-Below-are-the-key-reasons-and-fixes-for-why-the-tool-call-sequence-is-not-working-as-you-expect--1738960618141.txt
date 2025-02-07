@@ -1,0 +1,163 @@
+Below are the key reasons (and fixes) for why the tool call sequence is not working as you expect:
+
+1. You Are Not Actually Passing the “Tool + Results” Messages in the Second Request
+When the model responds with a function call, you do correctly call get_patient_data(), generate "tool" role messages, and extend messages with them. However, for the second request to the model (the one that should finalize the answer after seeing tool results), you are setting:
+
+python
+Copy
+data["messages"] = formatted_messages
+But formatted_messages is rebuilt each time to include only the original system + user messages (not your newly added “assistant + tool” messages). As a result, the second request never sees the function-response content you appended to messages.
+
+Why it matters:
+OpenRouter’s function calling requires a 2-step approach:
+
+The model’s function call (the LLM suggests which tool to call).
+You call the tool and then append a role="tool" message containing the tool results, and pass that back to the model in the next request.*
+Right now, your second request is missing the new tool messages. So the model never sees its own function call result.
+
+How to Fix It
+Instead of doing:
+
+python
+Copy
+# Currently:
+data["messages"] = formatted_messages
+Switch to something like:
+
+python
+Copy
+# 1. Add a single system message at the front if needed:
+system_context = {"role": "system", "content": create_context(latest_message)}
+
+# 2. Then actually pass ALL conversation messages (including the new tool messages).
+data["messages"] = [system_context] + messages
+This way, the second request includes:
+
+The system context
+The user messages
+The model’s (assistant) function call message
+The tool’s response (role="tool") with the FHIR data
+Hence the model “sees” the function results and can use them for the final answer.
+
+2. You Must Ensure the “Tool” Message is Structured Properly
+OpenRouter (and Google’s function calling) expects the tool result to be a message with:
+
+"role": "tool"
+"name": "<tool_function_name>"
+"tool_call_id": "<the same id used by the model>"
+"content": "<json_data_or_text_here>"
+You do appear to set that in your code:
+
+python
+Copy
+{
+  "role": "tool",
+  "name": "get_patient_data",
+  "tool_call_id": tool_call["id"],
+  "content": json.dumps({ "content": tool_response })
+}
+That is good. Just confirm the tool_call_id in your new message matches the model’s tool_calls[index].id. (You do so by referencing tool_call["id"].)
+
+3. Confirm You Keep the System Prompt Up-to-Date
+When you do the second request with the newly extended messages, you still need your “system instructions” at the front (the “You are an AI assistant for SlothMD…” context). Otherwise the model may not continue in the same style. So you typically do:
+
+python
+Copy
+system_context = {
+  "role": "system",
+  "content": create_context(latest_message)
+}
+
+data["messages"] = [system_context] + messages
+Where messages now includes:
+
+The older user messages
+The function-calling assistant message
+The newly inserted tool message with the function results
+Then you POST that updated data to the OpenRouter endpoint again. This second call is where the model should produce the final, fully-informed response (including the data from get_patient_data()).
+
+4. Example of a 2-Step Flow
+For clarity, the entire flow is:
+
+First call
+
+messages = [System Prompt, User’s question, etc.]
+The LLM’s response triggers "tool_calls" → e.g. calls get_patient_data with some arguments.
+Your code sees "tool_calls"
+
+You parse the arguments, call your real Python function, get the result.
+You then append two messages to messages:
+The function call message (role=assistant, content=None, with tool_calls)
+The tool’s result message (role=tool, content=<actual result>).
+Second call
+
+You do data["messages"] = [system_context] + messages.
+That call goes back to the model with the new “tool” message in the conversation.
+The model receives the tool output and uses it to produce the final text in its role=assistant message.
+5. Confirm the Model Doesn’t Re-Invoke the Same Tool Unless Needed
+If you’re doing a second call, you usually either:
+
+Keep tool_choice="auto" and rely on the LLM to do no repeated calls, or
+Pass something like tool_choice="none" on the second request if you want to forbid more calls.
+(This depends on your preference and the model’s behavior.)
+Either approach can work. Just be consistent. If the model still tries to call the tool again, you might need to handle or ignore that.
+
+Putting It All Together
+Minimal changes in your code:
+Inside your if "tool_calls" in assistant_message: block:
+
+python
+Copy
+if "tool_calls" in assistant_message:
+    tool_calls = assistant_message["tool_calls"]
+    for tool_call in tool_calls:
+        if tool_call["function"]["name"] == "get_patient_data":
+            try:
+                args = json.loads(tool_call["function"]["arguments"])
+            except json.JSONDecodeError:
+                logger.error("Failed to parse tool call arguments")
+                continue
+
+            # Actually call your function
+            tool_response = get_patient_data(args.get("data_type", "all"))
+
+            # Add an "assistant" message indicating the function was called
+            messages.append({
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": tool_call["id"],
+                        "type": "function",
+                        "function": {
+                            "name": "get_patient_data",
+                            "arguments": json.dumps(args)
+                        }
+                    }
+                ]
+            })
+
+            # Add a "tool" message with the function result
+            messages.append({
+                "role": "tool",
+                "name": "get_patient_data",
+                "tool_call_id": tool_call["id"],
+                "content": json.dumps(tool_response)
+            })
+
+    # Now do the second call,
+    # but pass the updated messages + system prompt
+    system_context = {"role": "system", "content": create_context(latest_message)}
+    data["messages"] = [system_context] + messages
+    # Optionally: data["tool_choice"] = "none"  # if you want no more calls
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=data
+    )
+    response.raise_for_status()
+    response_json = response.json()
+That ensures the second request includes your new role="tool" message, so the LLM sees the data and can finalize a normal user-facing answer.
+
+Bottom Line
+The key is that you must include the function-call result messages in the second request. Right now, you replace data["messages"] with a “clean” set (formatted_messages) and lose the newly appended tool messages. Once you fix that, the model should properly incorporate the patient data.
