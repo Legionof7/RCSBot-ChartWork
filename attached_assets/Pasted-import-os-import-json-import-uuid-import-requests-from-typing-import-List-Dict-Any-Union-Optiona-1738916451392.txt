@@ -1,0 +1,260 @@
+import os
+import json
+import uuid
+import requests
+from typing import List, Dict, Any, Union, Optional, Generator
+
+# -------------------------
+# Minimal helper utilities
+# -------------------------
+
+def nanoid() -> str:
+    """Generate a short unique ID."""
+    return str(uuid.uuid4())[:8]
+
+class APICallError(Exception):
+    """
+    Custom error to mimic the structure from the original code.
+    """
+    def __init__(self, message: str, responseBody: str = ""):
+        super().__init__(message)
+        self.responseBody = responseBody
+
+def isAPICallError(error: Any) -> bool:
+    return isinstance(error, APICallError)
+
+def getErrorMessage(error: Any) -> str:
+    defaultErrorMessage = "An error occurred while processing your request."
+    if isAPICallError(error):
+        return error.responseBody or str(error) or defaultErrorMessage
+    return defaultErrorMessage
+
+# -------------------------
+# System prompt/message
+# -------------------------
+
+systemMessage = """\
+You are a stock trading conversation bot. You can discuss stock prices with the user.
+
+If the user wants to see the price of a stock, you can call the "showStockPrice" tool with:
+  { "symbol": "<symbol>", "price": <some number>, "delta": "<some string>" }
+
+If the user wants anything else, either reply normally or politely refuse if it's unsupported.
+"""
+
+# -----------------------------------------
+# Single tool: showStockPrice & parameters
+# -----------------------------------------
+
+showStockPriceParameters = {
+    "type": "object",
+    "properties": {
+        "symbol": {"type": "string"},
+        "price": {"type": "number"},
+        "delta": {"type": "string"}
+    },
+    "required": ["symbol", "price", "delta"]
+}
+
+def tool_showStockPrice(args: Dict[str, Any], aiState: Dict[str, Any]) -> str:
+    """
+    Mock tool that returns text describing a single stock's info.
+    Logs the tool-call in the conversation and returns a text response.
+    """
+    symbol = args["symbol"]
+    price = args["price"]
+    delta = args["delta"]
+
+    toolCallId = nanoid()
+
+    # Log the tool call in conversation
+    aiState["messages"].append({
+        "id": nanoid(),
+        "role": "assistant",
+        "content": [
+            {
+                "type": "tool-call",
+                "toolName": "showStockPrice",
+                "toolCallId": toolCallId,
+                "args": {"symbol": symbol, "price": price, "delta": delta}
+            }
+        ]
+    })
+    aiState["messages"].append({
+        "id": nanoid(),
+        "role": "tool",
+        "content": [
+            {
+                "type": "tool-result",
+                "toolName": "showStockPrice",
+                "toolCallId": toolCallId,
+                "result": {"symbol": symbol, "price": price, "delta": delta}
+            }
+        ]
+    })
+
+    return f"Stock {symbol}: Price=${price:.2f}, Change={delta}"
+
+# -------------------------------------------------
+# Function to call OpenRouter and stream responses
+# -------------------------------------------------
+
+def call_openrouter(
+    messages: List[Dict[str, Union[str, list]]],
+    openrouter_key: Optional[str],
+    model_slug: str = "anthropic/claude-2",
+    max_tokens: int = 3000
+) -> Generator[str, None, None]:
+    """
+    Calls OpenRouter's /chat/completions streaming endpoint, yielding text chunks.
+    """
+    if not openrouter_key:
+        raise APICallError("Missing OpenRouter API key.")
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {openrouter_key}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": model_slug,
+        "max_tokens": max_tokens,
+        "stream": True,
+        "messages": messages
+    }
+
+    with requests.post(url, headers=headers, json=payload, stream=True) as r:
+        if r.status_code != 200:
+            try:
+                error_json = r.json()
+                raise APICallError("OpenRouter error", responseBody=str(error_json))
+            except json.JSONDecodeError:
+                raise APICallError(f"OpenRouter status {r.status_code}", responseBody=r.text)
+
+        for chunk in r.iter_content(chunk_size=None):
+            if chunk:
+                yield chunk.decode("utf-8", errors="ignore")
+
+# ---------------------------------------
+# submit_user_message to handle tool-calls
+# ---------------------------------------
+
+def submit_user_message(
+    content: str,
+    aiState: Dict[str, Any],
+    openRouterKey: Optional[str] = None,
+    modelSlug: str = "anthropic/claude-2"
+) -> Dict[str, Any]:
+    """
+    Adds the user's message to conversation, calls OpenRouter, streams partial responses,
+    and checks for a "tool-call" in the final text. If found, we call the relevant tool.
+    """
+    # Append user message
+    user_msg = {
+        "id": nanoid(),
+        "role": "user",
+        "content": content
+    }
+    aiState["messages"].append(user_msg)
+
+    # Build the message list for OpenRouter
+    coreMessages = [
+        {"role": "system", "content": systemMessage}
+    ]
+    for m in aiState["messages"]:
+        coreMessages.append({
+            "role": m["role"],
+            "content": m["content"]
+        })
+
+    # We'll accumulate the LLM's entire text response
+    assistant_full_response = ""
+
+    try:
+        # Stream from OpenRouter
+        for chunk in call_openrouter(coreMessages, openRouterKey, modelSlug):
+            # For a real SSE approach, you'd parse line by line or JSON in partial chunks
+            assistant_full_response += chunk
+
+        # Once we've got the full text, store it as an assistant message
+        assistantMessage = {
+            "id": nanoid(),
+            "role": "assistant",
+            "content": assistant_full_response
+        }
+        aiState["messages"].append(assistantMessage)
+
+        # Check if there's a tool call
+        # In a real scenario, we expect a structured JSON with "type": "tool-call"
+        # For a demo, let's do a naive search for that substring
+        if '"type":"tool-call"' in assistant_full_response:
+            # Attempt to extract the JSON snippet
+            # This is extremely naive: you might want to parse with a real JSON approach
+            # For demonstration, let's guess there's a JSON block that starts at index
+            start_idx = assistant_full_response.find('{')
+            end_idx = assistant_full_response.rfind('}') + 1
+            possible_json_str = assistant_full_response[start_idx:end_idx]
+            try:
+                parsed = json.loads(possible_json_str)
+                if (isinstance(parsed, dict) and
+                        parsed.get("type") == "tool-call" and
+                        parsed.get("toolName") == "showStockPrice"):
+                    # We have a showStockPrice call
+                    args = parsed.get("args", {})
+                    tool_output = tool_showStockPrice(args, aiState)
+                    # Return a final text to show the user
+                    return {"id": nanoid(), "display": tool_output}
+            except:
+                pass
+
+        # Otherwise, just return the raw text
+        return {"id": nanoid(), "display": assistant_full_response}
+
+    except Exception as e:
+        err_txt = getErrorMessage(e)
+        errorMessage = {
+            "id": nanoid(),
+            "role": "assistant",
+            "content": err_txt
+        }
+        aiState["messages"].append(errorMessage)
+        return {"id": nanoid(), "display": err_txt}
+
+# -------------
+# Main demo
+# -------------
+
+def main():
+    """
+    Simple console-based loop showing how to store messages, call the bot,
+    and handle a single "showStockPrice" tool if invoked by the LLM.
+    """
+    print("=== Welcome to the simplified stock bot demo (one tool) ===")
+    print("Type your message, or 'exit' to quit.")
+
+    # Our conversation state (AIState)
+    aiState = {
+        "chatId": nanoid(),
+        "messages": []
+    }
+
+    # Typically set via environment variable or config
+    openrouter_key = os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY")
+
+    while True:
+        user_input = input("\nUser > ")
+        if user_input.strip().lower() in ("exit", "quit"):
+            print("Exiting chat.")
+            break
+
+        result = submit_user_message(
+            content=user_input,
+            aiState=aiState,
+            openRouterKey=openrouter_key,
+            modelSlug="anthropic/claude-2"
+        )
+        print(f"Bot > {result['display']}")
+
+if __name__ == "__main__":
+    main()
