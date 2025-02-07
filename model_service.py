@@ -148,7 +148,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
     def run_e2b_code_sandbox(code: str) -> dict:
         execution = sbx.run_code(code)
         result = {
-            "logs": execution.logs,   # Combined console logs
+            "logs": str(execution.logs) if execution.logs else "",   # Convert logs to string
             "error": None,
             "results": []
         }
@@ -156,9 +156,9 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         # If there's an execution error, store it
         if execution.error:
             result["error"] = {
-                "name": execution.error.name,
-                "value": execution.error.value,
-                "traceback": execution.error.traceback
+                "name": str(execution.error.name),
+                "value": str(execution.error.value),
+                "traceback": str(execution.error.traceback)
             }
 
         # Handle outputs (like images)
