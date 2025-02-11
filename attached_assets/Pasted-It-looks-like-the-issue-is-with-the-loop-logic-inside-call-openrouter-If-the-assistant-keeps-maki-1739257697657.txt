@@ -1,0 +1,129 @@
+It looks like the issue is with the loop logic inside `call_openrouter`. If the assistant keeps making tool calls or generating code blocks, it continues iterating. However, if the model doesn't generate an explicit stopping condition, the function may exceed the `max_iterations` (set to 10) and exit with the "stuck in a loop" message.
+
+### Possible Fix:
+1. **Check if `messages` already contains a finalized response**  
+   - If a valid JSON response exists and doesn't include tool calls or code blocks, break the loop early.
+
+2. **Modify the Loop Condition**  
+   - Instead of looping indefinitely until `max_iterations`, exit once no new tool calls or code blocks are detected twice in a row.
+
+### Fix Example:
+Modify the `call_openrouter` function like this:
+
+```python
+max_iterations = 10
+iteration_count = 0
+handled_something_last_time = True  # Track whether the last iteration handled a tool call or code block
+
+while iteration_count < max_iterations:
+    iteration_count += 1
+
+    logger.info("===== Iteration %d =====", iteration_count)
+
+    # Make OpenRouter API request
+    try:
+        resp = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+        resp.raise_for_status()
+        response_json = resp.json()
+
+        assistant_message = response_json["choices"][0]["message"]
+        content = assistant_message.get("content", "")
+        tool_calls = parse_tool_calls(assistant_message)
+        code_blocks = parse_code_blocks(content)
+
+        handled_something = False
+
+        # Handle tool calls
+        if tool_calls:
+            handled_something = True
+            for tc in tool_calls:
+                try:
+                    args = json.loads(tc["function"]["arguments"])
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse tool call args: %s", tc["function"]["arguments"])
+                    continue
+
+                tool_name = tc["function"]["name"]
+                tool_id = tc.get("id", "(no_id)")
+
+                if tool_name == "get_patient_data":
+                    data_type = args.get("data_type", "all")
+                    logger.info("Running get_patient_data(%s)", data_type)
+                    result_data = get_patient_data(data_type)
+                elif tool_name == "run_e2b_code":
+                    code_str = args.get("code", "")
+                    logger.info("Running run_e2b_code_sandbox:\n%s", code_str)
+                    result_data = run_e2b_code_sandbox(code_str)
+                else:
+                    logger.warning("Unknown tool: %s", tool_name)
+                    result_data = {"error": f"No such tool '{tool_name}'"}
+
+                messages.append({
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [tc]
+                })
+                messages.append({
+                    "role": "tool",
+                    "name": tool_name,
+                    "tool_call_id": tool_id,
+                    "content": json.dumps(result_data)
+                })
+
+        # Handle code blocks
+        if code_blocks:
+            handled_something = True
+            for i, block in enumerate(code_blocks):
+                pseudo_tool_id = f"codeblock_{i}"
+                logger.info("Handling code block:\n%s", block)
+                result_data = run_e2b_code_sandbox(block)
+
+                messages.append({
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": pseudo_tool_id,
+                            "type": "function",
+                            "function": {
+                                "name": "run_e2b_code",
+                                "arguments": json.dumps({"code": block})
+                            }
+                        }
+                    ]
+                })
+                messages.append({
+                    "role": "tool",
+                    "name": "run_e2b_code",
+                    "tool_call_id": pseudo_tool_id,
+                    "content": json.dumps(result_data)
+                })
+
+        # If nothing was handled in two consecutive iterations, exit early
+        if not handled_something and not handled_something_last_time:
+            logger.info("No more tool calls or code blocks detected. Exiting loop.")
+            break
+
+        handled_something_last_time = handled_something
+
+    except Exception as e:
+        logger.error("OpenRouter API error: %s", e)
+        return {"text": "Sorry, an API error occurred."}
+
+# Final parsing step after loop exits
+final_json = parse_model_response(content)
+logger.info("Final JSON Response:\n%s", json.dumps(final_json, indent=2))
+return final_json
+```
+
+### Changes & Fixes:
+1. **Track if two consecutive iterations do not handle a tool call or code block**
+   - If `handled_something` is `False` twice in a row, exit the loop before reaching `max_iterations`.
+
+2. **Check `content` for a final JSON response early**  
+   - If the model has already provided a valid JSON output, exit instead of looping.
+
+3. **Ensure error handling prevents unnecessary retries**  
+   - If an API error occurs, the function immediately returns an error message.
+
+This should help prevent unnecessary looping while still ensuring tools and code blocks execute properly. Let me know if you need more refinements! 🚀
