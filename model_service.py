@@ -24,7 +24,9 @@ def parse_code_blocks(text: str) -> list:
     return blocks
 
 def parse_tool_calls(assistant_message: dict) -> list:
-    return assistant_message.get("tool_calls", [])
+    if "tool_calls" in assistant_message:
+        return assistant_message["tool_calls"]
+    return []
 
 def create_context(query: str) -> str:
     graph_formats = """
@@ -134,36 +136,6 @@ GRAPH_DATA:{{"type":"<graph_type>","data":<data_object>}}END_GRAPH_DATA
     return system_prompt.strip()
 
 def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
-    """
-    Calls Gemini model via OpenRouter, processes any code or tool calls,
-    logs debugging info, and prevents indefinite loops with a max iteration count.
-    """
-
-    sbx = Sandbox()
-
-    def run_e2b_code_sandbox(code: str) -> dict:
-        """Run code in E2B sandbox, capturing logs/errors/results."""
-        execution = sbx.run_code(code)
-        result = {
-            "logs": str(execution.logs) if execution.logs else "",
-            "error": None,
-            "results": []
-        }
-        if execution.error:
-            result["error"] = {
-                "name": str(execution.error.name),
-                "value": str(execution.error.value),
-                "traceback": str(execution.error.traceback)
-            }
-
-        for i, cell_result in enumerate(execution.results):
-            if cell_result.png:
-                result["results"].append({
-                    "chartIndex": i,
-                    "base64_png": cell_result.png
-                })
-        return result
-
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "HTTP-Referer": "https://slothmd.repl.co",
@@ -171,55 +143,73 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         "Content-Type": "application/json"
     }
 
+    sbx = Sandbox()
+
+    def run_e2b_code_sandbox(code: str) -> dict:
+        execution = sbx.run_code(code)
+        result = {
+            "logs": str(execution.logs) if execution.logs else "",   # Convert logs to string
+            "error": None,
+            "results": []
+        }
+
+        # If there's an execution error, store it
+        if execution.error:
+            result["error"] = {
+                "name": str(execution.error.name),
+                "value": str(execution.error.value),
+                "traceback": str(execution.error.traceback)
+            }
+
+        # Handle outputs (like images)
+        for i, cell_result in enumerate(execution.results):
+            if cell_result.png:
+                result["results"].append({
+                    "chartIndex": i,
+                    "base64_png": cell_result.png
+                })
+
+        return result
+
     latest_message = messages[-1]["content"] if messages else ""
     system_context = {"role": "system", "content": create_context(latest_message)}
 
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "get_patient_data",
-                "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "data_type": {
-                            "type": "string",
-                            "enum": ["all","conditions","medications","vitals","labs"]
-                        }
-                    },
-                    "required": ["data_type"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "run_e2b_code",
-                "description": "Run Python code in E2B for analysis",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "Python code to run"
-                        }
-                    },
-                    "required": ["code"]
-                }
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "get_patient_data",
+            "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data_type": {
+                        "type": "string",
+                        "enum": ["all","conditions","medications","vitals","labs"]
+                    }
+                },
+                "required": ["data_type"]
             }
         }
-    ]
-
-    max_iterations = 10
-    iteration_count = 0
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_e2b_code",
+            "description": "Run Python code in E2B for analysis",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Python code to run"
+                    }
+                },
+                "required": ["code"]
+            }
+        }
+    }]
 
     while True:
-        iteration_count += 1
-        if iteration_count > max_iterations:
-            logger.warning("Reached max iteration limit (%d). Stopping loop.", max_iterations)
-            return {"text": "Sorry, I'm stuck in a loop. Stopping now."}
-
         data = {
             "model": MODEL,
             "messages": [system_context] + messages,
@@ -227,51 +217,47 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
             "tool_choice": "auto"
         }
 
-        logger.info("===== Iteration %d =====", iteration_count)
-        logger.info("Sending to OpenRouter:\n%s", json.dumps(data, indent=2))
-        
+        pretty_data = json.dumps(data, indent=2)
+        logger.info(f"Sending request to Deepseek (OpenRouter):\n{pretty_data}")
+
         try:
-            resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
-                               headers=headers, json=data)
-            resp.raise_for_status()
-            response_json = resp.json()
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+            response_json = response.json()
 
             logger.info("Deepseek response:\n%s", json.dumps(response_json, indent=2))
 
             assistant_message = response_json["choices"][0]["message"]
             content = assistant_message.get("content", "")
-            tool_calls = parse_tool_calls(assistant_message)
+            new_tool_calls = parse_tool_calls(assistant_message)
             code_blocks = parse_code_blocks(content)
-
-            logger.info("Assistant content: %s", content)
-            logger.info("Found %d tool calls, %d code blocks", len(tool_calls), len(code_blocks))
 
             handled_something = False
 
-            if tool_calls:
+            if new_tool_calls:
                 handled_something = True
-                for tc in tool_calls:
-                    logger.info("Handling tool call: %s", tc)
+                for tc in new_tool_calls:
                     try:
                         args = json.loads(tc["function"]["arguments"])
                     except json.JSONDecodeError:
-                        logger.error("Failed to parse tool call args: %s", tc["function"]["arguments"])
+                        logger.error("Failed to parse tool call arguments: %s", tc["function"]["arguments"])
                         continue
 
                     tool_name = tc["function"]["name"]
-                    tool_id = tc.get("id","(no_id)")
+                    tool_id = tc.get("id","")
 
                     if tool_name == "get_patient_data":
                         data_type = args.get("data_type","all")
-                        logger.info("Running get_patient_data(%s)", data_type)
-                        result_data = get_patient_data(data_type)
+                        tool_result = get_patient_data(data_type)
                     elif tool_name == "run_e2b_code":
                         code_str = args.get("code","")
-                        logger.info("Running run_e2b_code_sandbox:\n%s", code_str)
-                        result_data = run_e2b_code_sandbox(code_str)
+                        tool_result = run_e2b_code_sandbox(code_str)
                     else:
-                        logger.warning("Unknown tool: %s", tool_name)
-                        result_data = {"error": f"No such tool '{tool_name}'"}
+                        tool_result = {"error":f"No such tool '{tool_name}'"}
 
                     messages.append({
                         "role": "assistant",
@@ -282,16 +268,14 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "role": "tool",
                         "name": tool_name,
                         "tool_call_id": tool_id,
-                        "content": json.dumps(result_data)
+                        "content": json.dumps(tool_result)
                     })
 
             if code_blocks:
                 handled_something = True
                 for i, block in enumerate(code_blocks):
+                    tool_result = run_e2b_code_sandbox(block)
                     pseudo_tool_id = f"codeblock_{i}"
-                    logger.info("Handling code block:\n%s", block)
-                    result_data = run_e2b_code_sandbox(block)
-
                     messages.append({
                         "role": "assistant",
                         "content": None,
@@ -300,8 +284,8 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                                 "id": pseudo_tool_id,
                                 "type": "function",
                                 "function": {
-                                    "name": "run_e2b_code",
-                                    "arguments": json.dumps({"code": block})
+                                    "name":"run_e2b_code",
+                                    "arguments": json.dumps({"code":block})
                                 }
                             }
                         ]
@@ -310,19 +294,16 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "role": "tool",
                         "name": "run_e2b_code",
                         "tool_call_id": pseudo_tool_id,
-                        "content": json.dumps(result_data)
+                        "content": json.dumps(tool_result)
                     })
 
             if handled_something:
-                logger.info("Handled something, looping again.\n")
                 continue
             else:
-                final_json = parse_model_response(content)
-                logger.info("No more calls. Final JSON:\n%s", final_json)
-                return final_json
+                return parse_model_response(content)
 
         except Exception as e:
-            logger.error("OpenRouter/Deepseek API error: %s", e)
+            logger.error(f"OpenRouter/Deepseek API error: {str(e)}")
             raise
 
 def extract_top_level_json(text: str) -> str:
@@ -366,5 +347,5 @@ def parse_model_response(content: str) -> dict:
         return response_data
 
     except json.JSONDecodeError as e:
-        logger.error("JSON parse error on final content: %s", e)
+        logger.error("JSON parse error on final model content: %s", e)
         return {"text": "Sorry, I encountered an error reading the response."}
