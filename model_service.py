@@ -105,6 +105,10 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                                     }
                                 },
                                 "required": ["data_type"]
+                            },
+                            result={
+                                "type": "OBJECT",
+                                "additionalProperties": True
                             }
                         )
                     ])
