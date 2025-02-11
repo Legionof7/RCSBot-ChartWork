@@ -38,9 +38,16 @@ Final JSON structure:
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        formatted_messages = []
+        for msg in [{"role": "system", "content": create_context()}] + messages:
+            formatted_messages.append(types.Content(
+                role=msg["role"],
+                parts=[types.Part.from_text(msg["content"])]
+            ))
+            
         response = client.models.generate_content(
             model='gemini-2.0-flash',
-            contents=[create_context()] + messages,
+            contents=formatted_messages,
             config=types.GenerateContentConfig(
                 tools=[types.Tool(
                     code_execution=types.ToolCodeExecution()
