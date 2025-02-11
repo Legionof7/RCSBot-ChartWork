@@ -1,4 +1,7 @@
+Below is a version of your code with additional logging around each loop iteration, each tool call, and each code block. It also adds a max iteration safeguard so you don’t spin forever if the model keeps returning tool calls. If it exceeds (for example) 10 iterations, we’ll break out. You can tweak that as needed.
 
+python
+Copy
 import requests
 import logging
 import json
@@ -16,7 +19,11 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 MODEL = "google/gemini-2.0-flash-001"
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "sk-or-..."
+
+###############################################################################
+# Helpers for parsing code blocks and tool calls
+###############################################################################
 
 def parse_code_blocks(text: str) -> list:
     code_fence_pattern = r'```(?:python|py|tool_code|.*)?\s*(.*?)\s*```'
@@ -25,6 +32,10 @@ def parse_code_blocks(text: str) -> list:
 
 def parse_tool_calls(assistant_message: dict) -> list:
     return assistant_message.get("tool_calls", [])
+
+###############################################################################
+# System prompt creation
+###############################################################################
 
 def create_context(query: str) -> str:
     graph_formats = """
@@ -133,6 +144,10 @@ GRAPH_DATA:{{"type":"<graph_type>","data":<data_object>}}END_GRAPH_DATA
 """
     return system_prompt.strip()
 
+###############################################################################
+# Main function: call_openrouter
+###############################################################################
+
 def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
     """
     Calls Gemini model via OpenRouter, processes any code or tool calls,
@@ -211,7 +226,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         }
     ]
 
-    max_iterations = 10
+    max_iterations = 10  # Safeguard
     iteration_count = 0
 
     while True:
@@ -229,10 +244,9 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
         logger.info("===== Iteration %d =====", iteration_count)
         logger.info("Sending to OpenRouter:\n%s", json.dumps(data, indent=2))
-        
         try:
             resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
-                               headers=headers, json=data)
+                                 headers=headers, json=data)
             resp.raise_for_status()
             response_json = resp.json()
 
@@ -248,6 +262,9 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
             handled_something = False
 
+            ###################################################
+            # Handle standard function calls
+            ###################################################
             if tool_calls:
                 handled_something = True
                 for tc in tool_calls:
@@ -273,6 +290,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         logger.warning("Unknown tool: %s", tool_name)
                         result_data = {"error": f"No such tool '{tool_name}'"}
 
+                    # Add the results as new messages
                     messages.append({
                         "role": "assistant",
                         "content": None,
@@ -285,6 +303,9 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "content": json.dumps(result_data)
                     })
 
+            ###################################################
+            # Handle code blocks (like ```python ...```)
+            ###################################################
             if code_blocks:
                 handled_something = True
                 for i, block in enumerate(code_blocks):
@@ -313,10 +334,12 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "content": json.dumps(result_data)
                     })
 
+            # If we handled any tool calls or code blocks, loop again
             if handled_something:
                 logger.info("Handled something, looping again.\n")
                 continue
             else:
+                # No more calls => final answer
                 final_json = parse_model_response(content)
                 logger.info("No more calls. Final JSON:\n%s", final_json)
                 return final_json
@@ -324,6 +347,10 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         except Exception as e:
             logger.error("OpenRouter/Deepseek API error: %s", e)
             raise
+
+###############################################################################
+# JSON parsing for final response
+###############################################################################
 
 def extract_top_level_json(text: str) -> str:
     start_brace = text.find('{')
@@ -368,3 +395,14 @@ def parse_model_response(content: str) -> dict:
     except json.JSONDecodeError as e:
         logger.error("JSON parse error on final content: %s", e)
         return {"text": "Sorry, I encountered an error reading the response."}
+What’s New or Changed?
+Added iteration_count and max_iterations = 10. Each time we re-call the LLM, we increment iteration_count. If it exceeds 10, we log a warning and return a fallback JSON. This prevents infinite loops if the model keeps returning tool calls or code blocks without converging on a final answer.
+
+More logs:
+
+logger.info("===== Iteration %d =====", iteration_count) each loop.
+logger.info("Found %d tool calls, %d code blocks", len(tool_calls), len(code_blocks)) after parsing.
+Logging each tool call or code block specifically with logger.info("Handling code block:\n%s", block) or logger.info("Running get_patient_data(%s)", data_type).
+If you want to watch the logs in real time, you can keep an eye on the console. This should help you see if the model is repeating code blocks or function calls indefinitely—and you’ll see which conversation messages are being appended each iteration.
+
+With this setup, if the LLM or your logic tries to do an infinite sequence of tool calls or code blocks, you’ll see it in the logs, and it’ll stop after 10 loops. You can then inspect the console logs to debug further.
