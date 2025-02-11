@@ -178,36 +178,38 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
     tools = [
         {
-            "function_declarations": [
-                {
-                    "name": "get_patient_data",
-                    "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "data_type": {
-                                "type": "string",
-                                "enum": ["all","conditions","medications","vitals","labs"]
-                            }
-                        },
-                        "required": ["data_type"]
-                    }
-                },
-                {
-                    "name": "run_e2b_code",
-                    "description": "Run Python code in E2B for analysis",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "code": {
-                                "type": "string",
-                                "description": "Python code to run"
-                            }
-                        },
-                        "required": ["code"]
-                    }
+            "type": "function",
+            "function": {
+                "name": "get_patient_data",
+                "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {
+                            "type": "string",
+                            "enum": ["all","conditions","medications","vitals","labs"]
+                        }
+                    },
+                    "required": ["data_type"]
                 }
-            ]
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "run_e2b_code",
+                "description": "Run Python code in E2B for analysis",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "Python code to run"
+                        }
+                    },
+                    "required": ["code"]
+                }
+            }
         }
     ]
 
