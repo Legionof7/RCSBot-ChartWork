@@ -107,13 +107,8 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                                 "required": ["data_type"]
                             },
                             response_schema={
-                                "type": "object",
-                                "properties": {
-                                    "data": {
-                                        "type": "object",
-                                        "description": "Patient health data"
-                                    }
-                                }
+                                "type": "string",
+                                "description": "Patient health data as JSON string"
                             }
                         )
                     ])
