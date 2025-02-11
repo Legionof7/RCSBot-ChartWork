@@ -38,20 +38,14 @@ Final JSON structure:
 
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
-        response = genai.generate_content(
-            model='gemini-2.0-flash-exp',
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
             contents=[create_context()] + messages,
-            generation_config=types.GenerationConfig(
-                temperature=0.0
-            ),
-            tools=[types.Tool(
-                code_execution=types.ToolCodeExecution()
-            )],
-            tool_config=types.ToolConfig(
-                function_calling_config=types.FunctionCallingConfig(
-                    mode=types.FunctionCallingMode.ANY,
-                    allowed_function_names=['get_patient_data']
-                )
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(
+                    code_execution=types.ToolCodeExecution()
+                )]
             )
         )
 
