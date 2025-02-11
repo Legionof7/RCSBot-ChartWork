@@ -2,8 +2,8 @@ import logging
 import json
 from typing import List, Dict, Any
 from fhir_data import get_patient_data
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
