@@ -1,25 +1,4 @@
-
-import requests
-import logging
-import json
-import re
-from typing import List, Dict, Any
-from fhir_data import get_patient_data
-from e2b_code_interpreter import Sandbox
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)-8s: %(message).200s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-MODEL = "google/gemini-2.0-flash-001"
-OPENROUTER_API_KEY = "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"
-
-def parse_code_blocks(text: str) -> list:
-    code_fence_pattern = r'```(?:python|py|tool_code|.*)?\s*(.*?)\s*```'
+(?:python|py|tool_code|.*)?\s*(.*?)\s*```'
     blocks = re.findall(code_fence_pattern, text, flags=re.DOTALL)
     return blocks
 
@@ -71,78 +50,14 @@ You **do not** need user permission to call tools—assume the user has already 
 If the user asks a question about labs, vitals, or other FHIR data, **always** call `get_patient_data`. 
 If you must compute multiple values, do correlations, or generate code to handle the data, **use** `run_e2b_code` or produce your own fenced Python code blocks to be executed.
 
-**Example**: If the user says "What is the sum of my HDL plus my LDL?", immediately:
-1. Call `get_patient_data(data_type='labs')` and process the data
-2. Generate Python code block or use `run_e2b_code` to sum the values
-3. Return final JSON response with results, card, and graph - no intermediate status messages
-
----
-## Final JSON Reply Structure
-
-\"\"\"json
-{{
-  "text": "Main message text",
-  "cards": [
-    {{
-      "title": "Card title",
-      "subtitle": "Card subtitle (main content)",
-      "media_url": "{{GRAPH_URL_N}}",  
-      "buttons": [
-        {{
-          "title": "More Information",
-          "type": "trigger",
-          "payload": "more_info_[relevant_topic]"
-        }}
-      ]
-    }}
-  ],
-  "quick_replies": [
-    {{
-      "title": "Quick reply text",
-      "type": "trigger",
-      "payload": "quick_reply_action"
-    }}
-  ],
-  "graph": {{
-    "type": "bar|line|scatter",
-    "data": {{}}
-  }}
-}}
-\"\"\"
-
----
-## Important Requirements
-
-1. Health info cards MUST include a "See More" button.
-2. Metric queries MUST include a graph (bar|line|scatter).
-3. Always include quick replies for user follow-up.
-4. Titles under 25 chars.
-5. To embed a graph, use:
-\"\"\"
-GRAPH_DATA:{{"type":"<graph_type>","data":<data_object>}}END_GRAPH_DATA
-\"\"\"
-
----
-## Tool Usage
-
-- Call `get_patient_data` for FHIR data.
-- Call `run_e2b_code` or produce a fenced code block for Python analysis (no extra permissions needed).
-- Then finalize your JSON response.
-
 {graph_formats}
 """
     return system_prompt.strip()
 
 def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> dict:
-    """
-    Calls Gemini model via OpenRouter, processes any code or tool calls,
-    logs debugging info, and prevents indefinite loops with a max iteration count.
-    """
-
     sbx = Sandbox()
 
     def run_e2b_code_sandbox(code: str) -> dict:
-        """Run code in E2B sandbox, capturing logs/errors/results."""
         execution = sbx.run_code(code)
         result = {
             "logs": str(execution.logs) if execution.logs else "",
@@ -229,22 +144,31 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
         logger.info("===== Iteration %d =====", iteration_count)
         logger.info("Sending to OpenRouter:\n%s", json.dumps(data, indent=2))
-        
+
         try:
             resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
                                headers=headers, json=data)
             resp.raise_for_status()
             response_json = resp.json()
 
-            logger.info("Deepseek response:\n%s", json.dumps(response_json, indent=2))
+            logger.info("OpenRouter response:\n%s", json.dumps(response_json, indent=2))
 
             assistant_message = response_json["choices"][0]["message"]
             content = assistant_message.get("content", "")
+
+            # Check for direct content first
+            if content and content.strip():
+                logger.info("Got final user-facing content, parsing and returning")
+                try:
+                    final_json = json.loads(content)
+                    return final_json
+                except json.JSONDecodeError:
+                    logger.warning("Content was not JSON, returning as text")
+                    return {"text": content}
+
+            # If no direct content, check for tool calls or code blocks
             tool_calls = parse_tool_calls(assistant_message)
             code_blocks = parse_code_blocks(content)
-
-            logger.info("Assistant content: %s", content)
-            logger.info("Found %d tool calls, %d code blocks", len(tool_calls), len(code_blocks))
 
             handled_something = False
 
@@ -259,14 +183,14 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         continue
 
                     tool_name = tc["function"]["name"]
-                    tool_id = tc.get("id","(no_id)")
+                    tool_id = tc.get("id", "(no_id)")
 
                     if tool_name == "get_patient_data":
-                        data_type = args.get("data_type","all")
+                        data_type = args.get("data_type", "all")
                         logger.info("Running get_patient_data(%s)", data_type)
                         result_data = get_patient_data(data_type)
                     elif tool_name == "run_e2b_code":
-                        code_str = args.get("code","")
+                        code_str = args.get("code", "")
                         logger.info("Running run_e2b_code_sandbox:\n%s", code_str)
                         result_data = run_e2b_code_sandbox(code_str)
                     else:
@@ -285,92 +209,36 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "content": json.dumps(result_data)
                     })
 
-        # Check for direct content first
-        content = assistant_message.get("content", "")
-        if content and content.strip():
-            logger.info("Got final user-facing content, parsing and returning")
-            try:
-                final_json = json.loads(content)
-                return final_json
-            except json.JSONDecodeError:
-                logger.warning("Content was not JSON, returning as text")
-                return {"text": content}
-
-        # If no direct content, check for tool calls or code blocks
-        tool_calls = parse_tool_calls(assistant_message)
-        code_blocks = parse_code_blocks(content)
-        
-        handled_something = False
-        if tool_calls:
-            handled_something = True
-            # Tool calls are handled above
-        if code_blocks:
-            handled_something = True
-            for code in code_blocks:
-                if code.strip():
-                    logger.info("Running code block:\n%s", code)
-                    result = run_e2b_code_sandbox(code)
-                    messages.append({
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [{
-                            "function": {"name": "run_e2b_code", "arguments": json.dumps({"code": code})},
-                            "id": str(uuid.uuid4())
-                        }]
-                    })
-                    messages.append({
-                        "role": "tool",
-                        "name": "run_e2b_code",
-                        "tool_call_id": str(uuid.uuid4()),
-                        "content": json.dumps(result)
-                    })
-
-        if handled_something:
-            logger.info("Handled tool calls or code blocks, continuing loop")
-            continue
-
-        logger.info("No content and no tool calls/code blocks, returning empty")
-        return {}
-                    })
-
             if code_blocks:
                 handled_something = True
-                for i, block in enumerate(code_blocks):
-                    pseudo_tool_id = f"codeblock_{i}"
-                    logger.info("Handling code block:\n%s", block)
-                    result_data = run_e2b_code_sandbox(block)
-
-                    messages.append({
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [
-                            {
-                                "id": pseudo_tool_id,
-                                "type": "function",
-                                "function": {
-                                    "name": "run_e2b_code",
-                                    "arguments": json.dumps({"code": block})
-                                }
-                            }
-                        ]
-                    })
-                    messages.append({
-                        "role": "tool",
-                        "name": "run_e2b_code",
-                        "tool_call_id": pseudo_tool_id,
-                        "content": json.dumps(result_data)
-                    })
+                for code in code_blocks:
+                    if code.strip():
+                        logger.info("Running code block:\n%s", code)
+                        result = run_e2b_code_sandbox(code)
+                        messages.append({
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [{
+                                "function": {"name": "run_e2b_code", "arguments": json.dumps({"code": code})},
+                                "id": str(uuid.uuid4())
+                            }]
+                        })
+                        messages.append({
+                            "role": "tool",
+                            "name": "run_e2b_code",
+                            "tool_call_id": str(uuid.uuid4()),
+                            "content": json.dumps(result)
+                        })
 
             if handled_something:
-                logger.info("Handled something, looping again.\n")
+                logger.info("Handled tool calls or code blocks, continuing loop")
                 continue
-            else:
-                final_json = parse_model_response(content)
-                logger.info("No more calls. Final JSON:\n%s", final_json)
-                return final_json
+
+            logger.info("No content and no tool calls/code blocks, returning empty")
+            return {}
 
         except Exception as e:
-            logger.error("OpenRouter/Deepseek API error: %s", e)
+            logger.error("OpenRouter/OpenRouter API error: %s", e)
             raise
 
 def extract_top_level_json(text: str) -> str:
@@ -391,28 +259,4 @@ def parse_model_response(content: str) -> dict:
     try:
         json_start = content.find('```json')
         if json_start != -1:
-            json_end = content.find('```', json_start + 7)
-            if json_end != -1:
-                json_content = content[json_start + 7:json_end].strip()
-            else:
-                json_content = "{}"
-        else:
-            json_content = extract_top_level_json(content)
-
-        response_data = json.loads(json_content)
-
-        if 'GRAPH_DATA:' in content:
-            try:
-                graph_data = content.split('GRAPH_DATA:',1)[1].split('END_GRAPH_DATA')[0]
-                graph_json = json.loads(graph_data)
-                if isinstance(graph_json, dict) and 'type' in graph_json and 'data' in graph_json:
-                    response_data['graph'] = graph_json
-            except Exception as e:
-                logger.warning("Failed to parse graph data: %s", e)
-                response_data['graph'] = None
-
-        return response_data
-
-    except json.JSONDecodeError as e:
-        logger.error("JSON parse error on final content: %s", e)
-        return {"text": "Sorry, I encountered an error reading the response."}
+            json_end = content.find('
