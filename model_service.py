@@ -285,54 +285,6 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "content": json.dumps(result_data)
                     })
 
-        # Check for direct content first
-        content = assistant_message.get("content", "")
-        if content and content.strip():
-            logger.info("Got final user-facing content, parsing and returning")
-            try:
-                final_json = json.loads(content)
-                return final_json
-            except json.JSONDecodeError:
-                logger.warning("Content was not JSON, returning as text")
-                return {"text": content}
-
-        # If no direct content, check for tool calls or code blocks
-        tool_calls = parse_tool_calls(assistant_message)
-        code_blocks = parse_code_blocks(content)
-        
-        handled_something = False
-        if tool_calls:
-            handled_something = True
-            # Tool calls are handled above
-        if code_blocks:
-            handled_something = True
-            for code in code_blocks:
-                if code.strip():
-                    logger.info("Running code block:\n%s", code)
-                    result = run_e2b_code_sandbox(code)
-                    messages.append({
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [{
-                            "function": {"name": "run_e2b_code", "arguments": json.dumps({"code": code})},
-                            "id": str(uuid.uuid4())
-                        }]
-                    })
-                    messages.append({
-                        "role": "tool",
-                        "name": "run_e2b_code",
-                        "tool_call_id": str(uuid.uuid4()),
-                        "content": json.dumps(result)
-                    })
-
-        if handled_something:
-            logger.info("Handled tool calls or code blocks, continuing loop")
-            continue
-
-        logger.info("No content and no tool calls/code blocks, returning empty")
-        return {}
-                    })
-
             if code_blocks:
                 handled_something = True
                 for i, block in enumerate(code_blocks):
