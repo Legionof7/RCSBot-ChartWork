@@ -1,0 +1,202 @@
+l AI models and APIs on Vertex AI, see [Google Models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models) and [Model Garden](https://cloud.google.com/vertex-ai/generative-ai/docs/model-garden/explore-models)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 35,
+      "metadata": {
+        "id": "41e499d90618"
+      },
+      "outputs": [],
+      "source": [
+        "MODEL_ID = \"gemini-2.0-flash-001\"  # @param {type: \"string\"}"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "jXHfaVS66_01"
+      },
+      "source": [
+        "### Import libraries\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 31,
+      "metadata": {
+        "id": "lslYAvw37JGQ"
+      },
+      "outputs": [],
+      "source": [
+        "from IPython.display import Markdown, display\n",
+        "from google.genai.types import FunctionDeclaration, GenerateContentConfig, Part, Tool\n",
+        "import requests"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "28f36bd968b4"
+      },
+      "source": [
+        "### Chat example: Using Function Calling in a chat session to answer user's questions about the Google Store"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2d28287bde87"
+      },
+      "source": [
+        "In this example, you'll use Function Calling along with the chat modality in the Gemini model to help customers get information about products in the Google Store.\n",
+        "\n",
+        "You'll start by defining three functions: one to get product information, another to get the location of the closest stores, and one more to place an order:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 20,
+      "metadata": {
+        "id": "3d4ed7ccc094"
+      },
+      "outputs": [],
+      "source": [
+        "get_product_info = FunctionDeclaration(\n",
+        "    name=\"get_product_info\",\n",
+        "    description=\"Get the stock amount and identifier for a given product\",\n",
+        "    parameters={\n",
+        "        \"type\": \"OBJECT\",\n",
+        "        \"properties\": {\n",
+        "            \"product_name\": {\"type\": \"STRING\", \"description\": \"Product name\"}\n",
+        "        },\n",
+        "    },\n",
+        ")\n",
+        "\n",
+        "get_store_location = FunctionDeclaration(\n",
+        "    name=\"get_store_location\",\n",
+        "    description=\"Get the location of the closest store\",\n",
+        "    parameters={\n",
+        "        \"type\": \"OBJECT\",\n",
+        "        \"properties\": {\"location\": {\"type\": \"STRING\", \"description\": \"Location\"}},\n",
+        "    },\n",
+        ")\n",
+        "\n",
+        "place_order = FunctionDeclaration(\n",
+        "    name=\"place_order\",\n",
+        "    description=\"Place an order\",\n",
+        "    parameters={\n",
+        "        \"type\": \"OBJECT\",\n",
+        "        \"properties\": {\n",
+        "            \"product\": {\"type\": \"STRING\", \"description\": \"Product name\"},\n",
+        "            \"address\": {\"type\": \"STRING\", \"description\": \"Shipping address\"},\n",
+        "        },\n",
+        "    },\n",
+        ")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "e7d7319febd8"
+      },
+      "source": [
+        "Note that function parameters are specified as a Python dictionary in accordance with the [OpenAPI JSON schema format](https://spec.openapis.org/oas/v3.0.3#schemawr).\n",
+        "\n",
+        "Define a tool that allows the Gemini model to select from the set of 3 functions:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 30,
+      "metadata": {
+        "id": "4b2d1900730d"
+      },
+      "outputs": [],
+      "source": [
+        "retail_tool = Tool(\n",
+        "    function_declarations=[\n",
+        "        get_product_info,\n",
+        "        get_store_location,\n",
+        "        place_order,\n",
+        "    ],\n",
+        ")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2b3781f6fd83"
+      },
+      "source": [
+        "Now you can initialize the Gemini model with Function Calling in a multi-turn chat session.\n",
+        "\n",
+        "You can specify the `tools` kwarg when initializing the chat session to avoid having to send it with every subsequent request:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 31,
+      "metadata": {
+        "id": "ef8c2d811321"
+      },
+      "outputs": [],
+      "source": [
+        "chat = client.chats.create(\n",
+        "    model=MODEL_ID,\n",
+        "    config=GenerateContentConfig(\n",
+        "        temperature=0,\n",
+        "        tools=[retail_tool],\n",
+        "    ),\n",
+        ")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "adc8022b2461"
+      },
+      "source": [
+        "**Note:** The `temperature` parameter controls the degree of randomness in this generation. Lower temperatures are good for functions that require deterministic parameter values, while higher temperatures are good for functions with parameters that accept more diverse or creative parameter values. A temperature of `0` is deterministic. In this case, responses for a given prompt are mostly deterministic, but a small amount of variation is still possible.\n",
+        "\n",
+        "We're ready to chat! Let's start the conversation by asking if a certain product is in stock:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 32,
+      "metadata": {
+        "id": "9556d1ebcc1f"
+      },
+      "outputs": [],
+      "source": [
+        "prompt = \"\"\"\n",
+        "Do you have the Pixel 9 in stock?\n",
+        "\"\"\"\n",
+        "\n",
+        "response = chat.send_message(prompt)\n",
+        "response.function_calls[0]"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3111780745fc"
+      },
+      "source": [
+        "The response from the Gemini API consists of a structured data object that contains the name and parameters of the function that Gemini selected out of the available functions.\n",
+        "\n",
+        "Since this notebook focuses on the ability to extract function parameters and generate function calls, you'll use mock data to feed synthetic responses back to the Gemini model rather than sending a request to an API server (not to worry, we'll make an actual API call in a later example!):"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 33,
+      "metadata": {
+        "id": "0c3f7b5474da"
+      },
+      "outputs": [],
+      "source": [
+        "# Here you can use your preferred method to make an API request and get a response.\n",
+        "# In this example, we'll use synthetic data to simulate a payload from an external API response.\n",
+        "\n",
