@@ -1,0 +1,92 @@
+response = chat.send_message(
+    Part.from_function_response(
+        name="place_order",
+        response={
+            "content": order_api_response,
+        },
+    ),
+)
+display(Markdown(response.text))
+
+And you're done!
+
+You were able to have a multi-turn conversation with the Gemini model using function calls, handling payloads, and generating natural language summaries that incorporated the information from the external systems.
+
+### Address example: Using Automatic Function Calling to geocode addresses with a maps API
+
+In this example, you'll define a function that takes multiple parameters as inputs. Then you'll use automatic function calling in the Gemini API to  make a live API call to convert an address to latitude and longitude coordinates.
+
+Start by writing a Python function:
+
+def get_location(
+    amenity: str | None = None,
+    street: str | None = None,
+    city: str | None = None,
+    county: str | None = None,
+    state: str | None = None,
+    country: str | None = None,
+    postalcode: str | None = None,
+) -> list[dict]:
+    """
+    Get latitude and longitude for a given location.
+
+    Args:
+        amenity (str | None): Amenity or Point of interest.
+        street (str | None): Street name.
+        city (str | None): City name.
+        county (str | None): County name.
+        state (str | None): State name.
+        country (str | None): Country name.
+        postalcode (str | None): Postal code.
+
+    Returns:
+        list[dict]: A list of dictionaries with the latitude and longitude of the given location.
+                    Returns an empty list if the location cannot be determined.
+    """
+    base_url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "amenity": amenity,
+        "street": street,
+        "city": city,
+        "county": county,
+        "state": state,
+        "country": country,
+        "postalcode": postalcode,
+        "format": "json",
+    }
+    # Filter out None values from parameters
+    params = {k: v for k, v in params.items() if v is not None}
+
+    try:
+        response = requests.get(base_url, params=params, headers={"User-Agent": "none"})
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching location data: {e}")
+        return []
+
+In this example, you're asking the Gemini model to extract components of the address into specific fields within a structured data object. These fields are then passed to the function you defined and the result is returned to Gemini to make a natural language response.
+
+Send a prompt that includes an address, such as:
+
+prompt = """
+I want to get the coordinates for the following address:
+1600 Amphitheatre Pkwy, Mountain View, CA 94043
+"""
+
+response = client.models.generate_content(
+    model=MODEL_ID,
+    contents=prompt,
+    config=GenerateContentConfig(tools=[get_location], temperature=0),
+)
+print(response.text)
+
+Great work! You were able to define a function that the Gemini model used to extract the relevant parameters from the prompt. Then you made a live API call to obtain the coordinates of the specified location.
+
+Here we used the [OpenStreetMap Nominatim API](https://nominatim.openstreetmap.org/ui/search.html) to geocode an address to keep the number of steps in this tutorial to a reasonable number. If you're working with large amounts of address or geolocation data, you can also use the [Google Maps Geocoding API](https://developers.google.com/maps/documentation/geocoding), or any mapping service with an API!
+
+## Conclusions
+
+You have explored the function calling feature through the Google Gen AI Python SDK.
+
+The next step is to enhance your skills by exploring this [documentation page](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling).
