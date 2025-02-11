@@ -66,13 +66,35 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                     parts=[types.Part(text=asst_msg["content"])]
                 ))
             
+        get_patient_data_tool = {
+            "function_declarations": [{
+                "name": "get_patient_data",
+                "description": "Get patient health data from FHIR database",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {
+                            "type": "string",
+                            "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                            "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                        }
+                    },
+                    "required": ["data_type"]
+                }
+            }]
+        }
+
         response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=formatted_messages,
             config=types.GenerateContentConfig(
-                tools=[types.Tool(
-                    code_execution=types.ToolCodeExecution()
-                )]
+                tools=[
+                    types.Tool(code_execution=types.ToolCodeExecution()),
+                    types.Tool(function_declarations=[
+                        types.FunctionDeclaration.from_dict(decl) 
+                        for decl in get_patient_data_tool["function_declarations"]
+                    ])
+                ]
             )
         )
 
