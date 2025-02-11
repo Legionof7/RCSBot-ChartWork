@@ -1,0 +1,489 @@
+ * Serving Flask app 'main'
+ * Debug mode: on
+2025-02-11 07:47:00,867 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://172.31.128.99:3000
+2025-02-11 07:47:00,867 - werkzeug - INFO - Press CTRL+C to quit
+2025-02-11 07:47:00,868 - werkzeug - INFO -  * Restarting with stat
+2025-02-11 07:47:02,848 - werkzeug - WARNING -  * Debugger is active!
+2025-02-11 07:47:02,851 - werkzeug - INFO -  * Debugger PIN: 676-989-259
+2025-02-11 07:47:02,991 - werkzeug - INFO - 172.31.128.99 - - [11/Feb/2025 07:47:02] "GET / HTTP/1.1" 200 -
+[2025-02-11 07:47:07,737] INFO    : ===== Iteration 1 =====
+2025-02-11 07:47:07,737 - model_service - INFO - ===== Iteration 1 =====
+[2025-02-11 07:47:07,740] INFO    : Sending to OpenRouter:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nY
+2025-02-11 07:47:07,740 - model_service - INFO - Sending to OpenRouter:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nYour goal is to respond in **JSON** format as shown below, using the available tools to retrieve patient data and perform computations. \nYou **do not** need user permission to call tools\u2014assume the user has already consented. \nIf the user asks a question about labs, vitals, or other FHIR data, **always** call `get_patient_data`. \nIf you must compute multiple values, do correlations, or generate code to handle the data, **use** `run_e2b_code`.\n\n**Example**: If the user says \"What is the sum of my HDL plus my LDL?\", immediately:\n1. Call `get_patient_data(data_type='labs')` and process the data\n2. Use `run_e2b_code` to sum the values\n3. Return final JSON response with results, card, and graph - no intermediate status messages\n\n---\n## Final JSON Reply Structure\n\n\"\"\"json\n{\n  \"text\": \"Main message text\",\n  \"cards\": [\n    {\n      \"title\": \"Card title\",\n      \"subtitle\": \"Card subtitle (main content)\",\n      \"media_url\": \"{GRAPH_URL_N}\",  \n      \"buttons\": [\n        {\n          \"title\": \"More Information\",\n          \"type\": \"trigger\",\n          \"payload\": \"more_info_[relevant_topic]\"\n        }\n      ]\n    }\n  ],\n  \"quick_replies\": [\n    {\n      \"title\": \"Quick reply text\",\n      \"type\": \"trigger\",\n      \"payload\": \"quick_reply_action\"\n    }\n  ],\n  \"graph\": {\n    \"type\": \"bar|line|scatter\",\n    \"data\": {}\n  }\n}\n\"\"\"\n\n---\n## Important Requirements\n\n1. Health info cards MUST include a \"See More\" button.\n2. Metric queries MUST include a graph (bar|line|scatter).\n3. Always include quick replies for user follow-up.\n4. Titles under 25 chars.\n5. To embed a graph, use:\n\"\"\"\nGRAPH_DATA:{\"type\":\"<graph_type>\",\"data\":<data_object>}END_GRAPH_DATA\n\"\"\"\n\n---\n## Tool Usage\n\n- Call `get_patient_data` for FHIR data.\n- Call `run_e2b_code` or produce a fenced code block for Python analysis (no extra permissions needed).\n- Then finalize your JSON response.\n\n\nGRAPH_DATA:{\"type\": \"<graph_type>\", \"data\": <data_object>}END_GRAPH_DATA\n\nSupported graph types and formats:\n\n1. Bar Chart:\nGRAPH_DATA:{\"type\": \"bar\", \"data\": {\n    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n    \"values\": [10, 20, 30],\n    \"title\": \"Bar Chart Title\",\n    \"xlabel\": \"Categories\",\n    \"ylabel\": \"Values\",\n    \"referenceLines\": {\"Label1\": 15, \"Label2\": 25}\n}}END_GRAPH_DATA\n\n2. Line Chart:\nGRAPH_DATA:{\"type\": \"line\", \"data\": {\n    \"x\": [\"2023-01\", \"2023-02\", \"2023-03\"],\n    \"y\": [10, 20, 15],\n    \"title\": \"Trend Analysis\",\n    \"xlabel\": \"Time Period\",\n    \"ylabel\": \"Values\"\n}}END_GRAPH_DATA\n\n3. Scatter Plot:\nGRAPH_DATA:{\"type\": \"scatter\", \"data\": {\n    \"x\": [1, 2, 3, 4, 5],\n    \"y\": [2, 4, 3, 5, 4],\n    \"title\": \"Correlation Plot\",\n    \"xlabel\": \"X Values\",\n    \"ylabel\": \"Y Values\"\n}}END_GRAPH_DATA"
+    },
+    {
+      "role": "user",
+      "content": "What is the sum of my Hdl added to my ldl"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "data_type": {
+              "type": "string",
+              "enum": [
+                "all",
+                "conditions",
+                "medications",
+                "vitals",
+                "labs"
+              ]
+            }
+          },
+          "required": [
+            "data_type"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_e2b_code",
+        "description": "Generate and run Python code in E2B for analysis",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Insert the Python code to run to do calculations here. Retrieve values from earlier get_patient_data tool call."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+[2025-02-11 07:47:07,740] INFO    : Sending request data:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nYo
+2025-02-11 07:47:07,740 - model_service - INFO - Sending request data:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nYour goal is to respond in **JSON** format as shown below, using the available tools to retrieve patient data and perform computations. \nYou **do not** need user permission to call tools\u2014assume the user has already consented. \nIf the user asks a question about labs, vitals, or other FHIR data, **always** call `get_patient_data`. \nIf you must compute multiple values, do correlations, or generate code to handle the data, **use** `run_e2b_code`.\n\n**Example**: If the user says \"What is the sum of my HDL plus my LDL?\", immediately:\n1. Call `get_patient_data(data_type='labs')` and process the data\n2. Use `run_e2b_code` to sum the values\n3. Return final JSON response with results, card, and graph - no intermediate status messages\n\n---\n## Final JSON Reply Structure\n\n\"\"\"json\n{\n  \"text\": \"Main message text\",\n  \"cards\": [\n    {\n      \"title\": \"Card title\",\n      \"subtitle\": \"Card subtitle (main content)\",\n      \"media_url\": \"{GRAPH_URL_N}\",  \n      \"buttons\": [\n        {\n          \"title\": \"More Information\",\n          \"type\": \"trigger\",\n          \"payload\": \"more_info_[relevant_topic]\"\n        }\n      ]\n    }\n  ],\n  \"quick_replies\": [\n    {\n      \"title\": \"Quick reply text\",\n      \"type\": \"trigger\",\n      \"payload\": \"quick_reply_action\"\n    }\n  ],\n  \"graph\": {\n    \"type\": \"bar|line|scatter\",\n    \"data\": {}\n  }\n}\n\"\"\"\n\n---\n## Important Requirements\n\n1. Health info cards MUST include a \"See More\" button.\n2. Metric queries MUST include a graph (bar|line|scatter).\n3. Always include quick replies for user follow-up.\n4. Titles under 25 chars.\n5. To embed a graph, use:\n\"\"\"\nGRAPH_DATA:{\"type\":\"<graph_type>\",\"data\":<data_object>}END_GRAPH_DATA\n\"\"\"\n\n---\n## Tool Usage\n\n- Call `get_patient_data` for FHIR data.\n- Call `run_e2b_code` or produce a fenced code block for Python analysis (no extra permissions needed).\n- Then finalize your JSON response.\n\n\nGRAPH_DATA:{\"type\": \"<graph_type>\", \"data\": <data_object>}END_GRAPH_DATA\n\nSupported graph types and formats:\n\n1. Bar Chart:\nGRAPH_DATA:{\"type\": \"bar\", \"data\": {\n    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n    \"values\": [10, 20, 30],\n    \"title\": \"Bar Chart Title\",\n    \"xlabel\": \"Categories\",\n    \"ylabel\": \"Values\",\n    \"referenceLines\": {\"Label1\": 15, \"Label2\": 25}\n}}END_GRAPH_DATA\n\n2. Line Chart:\nGRAPH_DATA:{\"type\": \"line\", \"data\": {\n    \"x\": [\"2023-01\", \"2023-02\", \"2023-03\"],\n    \"y\": [10, 20, 15],\n    \"title\": \"Trend Analysis\",\n    \"xlabel\": \"Time Period\",\n    \"ylabel\": \"Values\"\n}}END_GRAPH_DATA\n\n3. Scatter Plot:\nGRAPH_DATA:{\"type\": \"scatter\", \"data\": {\n    \"x\": [1, 2, 3, 4, 5],\n    \"y\": [2, 4, 3, 5, 4],\n    \"title\": \"Correlation Plot\",\n    \"xlabel\": \"X Values\",\n    \"ylabel\": \"Y Values\"\n}}END_GRAPH_DATA"
+    },
+    {
+      "role": "user",
+      "content": "What is the sum of my Hdl added to my ldl"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "data_type": {
+              "type": "string",
+              "enum": [
+                "all",
+                "conditions",
+                "medications",
+                "vitals",
+                "labs"
+              ]
+            }
+          },
+          "required": [
+            "data_type"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_e2b_code",
+        "description": "Generate and run Python code in E2B for analysis",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Insert the Python code to run to do calculations here. Retrieve values from earlier get_patient_data tool call."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+[2025-02-11 07:47:08,540] INFO    : Deepseek response:
+{
+  "id": "gen-1739260028-ImwOQMJCKOuZ09vOzSAg",
+  "provider": "Google AI Studio",
+  "model": "google/gemini-2.0-flash-001",
+  "object": "chat.completion",
+  "created": 1739260028,
+
+2025-02-11 07:47:08,540 - model_service - INFO - Deepseek response:
+{
+  "id": "gen-1739260028-ImwOQMJCKOuZ09vOzSAg",
+  "provider": "Google AI Studio",
+  "model": "google/gemini-2.0-flash-001",
+  "object": "chat.completion",
+  "created": 1739260028,
+  "choices": [
+    {
+      "logprobs": null,
+      "finish_reason": "tool_calls",
+      "native_finish_reason": "STOP",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "tool_0_get_patient_data",
+            "type": "function",
+            "function": {
+              "name": "get_patient_data",
+              "arguments": "{\"data_type\":\"labs\"}"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 996,
+    "completion_tokens": 9,
+    "total_tokens": 1005
+  }
+}
+[2025-02-11 07:47:08,540] INFO    : Assistant content: 
+2025-02-11 07:47:08,540 - model_service - INFO - Assistant content: 
+[2025-02-11 07:47:08,540] INFO    : Found 1 tool calls, 0 code blocks
+2025-02-11 07:47:08,540 - model_service - INFO - Found 1 tool calls, 0 code blocks
+[2025-02-11 07:47:08,540] INFO    : Handling tool call: {'index': 0, 'id': 'tool_0_get_patient_data', 'type': 'function', 'function': {'name': 'get_patient_data', 'arguments': '{"data_type":"labs"}'}}
+2025-02-11 07:47:08,540 - model_service - INFO - Handling tool call: {'index': 0, 'id': 'tool_0_get_patient_data', 'type': 'function', 'function': {'name': 'get_patient_data', 'arguments': '{"data_type":"labs"}'}}
+[2025-02-11 07:47:08,540] INFO    : Running get_patient_data(labs)
+2025-02-11 07:47:08,540 - model_service - INFO - Running get_patient_data(labs)
+[2025-02-11 07:47:08,541] INFO    : Handled something, looping again.
+
+2025-02-11 07:47:08,541 - model_service - INFO - Handled something, looping again.
+
+[2025-02-11 07:47:08,541] INFO    : ===== Iteration 2 =====
+2025-02-11 07:47:08,541 - model_service - INFO - ===== Iteration 2 =====
+[2025-02-11 07:47:08,541] INFO    : Sending to OpenRouter:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nY
+2025-02-11 07:47:08,541 - model_service - INFO - Sending to OpenRouter:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nYour goal is to respond in **JSON** format as shown below, using the available tools to retrieve patient data and perform computations. \nYou **do not** need user permission to call tools\u2014assume the user has already consented. \nIf the user asks a question about labs, vitals, or other FHIR data, **always** call `get_patient_data`. \nIf you must compute multiple values, do correlations, or generate code to handle the data, **use** `run_e2b_code`.\n\n**Example**: If the user says \"What is the sum of my HDL plus my LDL?\", immediately:\n1. Call `get_patient_data(data_type='labs')` and process the data\n2. Use `run_e2b_code` to sum the values\n3. Return final JSON response with results, card, and graph - no intermediate status messages\n\n---\n## Final JSON Reply Structure\n\n\"\"\"json\n{\n  \"text\": \"Main message text\",\n  \"cards\": [\n    {\n      \"title\": \"Card title\",\n      \"subtitle\": \"Card subtitle (main content)\",\n      \"media_url\": \"{GRAPH_URL_N}\",  \n      \"buttons\": [\n        {\n          \"title\": \"More Information\",\n          \"type\": \"trigger\",\n          \"payload\": \"more_info_[relevant_topic]\"\n        }\n      ]\n    }\n  ],\n  \"quick_replies\": [\n    {\n      \"title\": \"Quick reply text\",\n      \"type\": \"trigger\",\n      \"payload\": \"quick_reply_action\"\n    }\n  ],\n  \"graph\": {\n    \"type\": \"bar|line|scatter\",\n    \"data\": {}\n  }\n}\n\"\"\"\n\n---\n## Important Requirements\n\n1. Health info cards MUST include a \"See More\" button.\n2. Metric queries MUST include a graph (bar|line|scatter).\n3. Always include quick replies for user follow-up.\n4. Titles under 25 chars.\n5. To embed a graph, use:\n\"\"\"\nGRAPH_DATA:{\"type\":\"<graph_type>\",\"data\":<data_object>}END_GRAPH_DATA\n\"\"\"\n\n---\n## Tool Usage\n\n- Call `get_patient_data` for FHIR data.\n- Call `run_e2b_code` or produce a fenced code block for Python analysis (no extra permissions needed).\n- Then finalize your JSON response.\n\n\nGRAPH_DATA:{\"type\": \"<graph_type>\", \"data\": <data_object>}END_GRAPH_DATA\n\nSupported graph types and formats:\n\n1. Bar Chart:\nGRAPH_DATA:{\"type\": \"bar\", \"data\": {\n    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n    \"values\": [10, 20, 30],\n    \"title\": \"Bar Chart Title\",\n    \"xlabel\": \"Categories\",\n    \"ylabel\": \"Values\",\n    \"referenceLines\": {\"Label1\": 15, \"Label2\": 25}\n}}END_GRAPH_DATA\n\n2. Line Chart:\nGRAPH_DATA:{\"type\": \"line\", \"data\": {\n    \"x\": [\"2023-01\", \"2023-02\", \"2023-03\"],\n    \"y\": [10, 20, 15],\n    \"title\": \"Trend Analysis\",\n    \"xlabel\": \"Time Period\",\n    \"ylabel\": \"Values\"\n}}END_GRAPH_DATA\n\n3. Scatter Plot:\nGRAPH_DATA:{\"type\": \"scatter\", \"data\": {\n    \"x\": [1, 2, 3, 4, 5],\n    \"y\": [2, 4, 3, 5, 4],\n    \"title\": \"Correlation Plot\",\n    \"xlabel\": \"X Values\",\n    \"ylabel\": \"Y Values\"\n}}END_GRAPH_DATA"
+    },
+    {
+      "role": "user",
+      "content": "What is the sum of my Hdl added to my ldl"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "index": 0,
+          "id": "tool_0_get_patient_data",
+          "type": "function",
+          "function": {
+            "name": "get_patient_data",
+            "arguments": "{\"data_type\":\"labs\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "get_patient_data",
+      "tool_call_id": "tool_0_get_patient_data",
+      "content": "{\"labResults\": [{\"date\": \"2024-01-15\", \"test\": \"HbA1c\", \"value\": 6.8, \"unit\": \"%\", \"referenceRange\": \"4.0-5.6\", \"interpretation\": \"High\"}, {\"date\": \"2024-01-15\", \"test\": \"Cholesterol\", \"value\": 185, \"unit\": \"mg/dL\", \"referenceRange\": \"125-200\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"HDL\", \"value\": 55, \"unit\": \"mg/dL\", \"referenceRange\": \"40-60\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"LDL\", \"value\": 110, \"unit\": \"mg/dL\", \"referenceRange\": \"0-100\", \"interpretation\": \"Borderline High\"}, {\"date\": \"2024-01-15\", \"test\": \"Triglycerides\", \"value\": 150, \"unit\": \"mg/dL\", \"referenceRange\": \"0-150\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"Fasting Glucose\", \"value\": 110, \"unit\": \"mg/dL\", \"referenceRange\": \"70-100\", \"interpretation\": \"High\"}, {\"date\": \"2024-01-15\", \"test\": \"Creatinine\", \"value\": 1.1, \"unit\": \"mg/dL\", \"referenceRange\": \"0.7-1.3\", \"interpretation\": \"Normal\"}]}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "data_type": {
+              "type": "string",
+              "enum": [
+                "all",
+                "conditions",
+                "medications",
+                "vitals",
+                "labs"
+              ]
+            }
+          },
+          "required": [
+            "data_type"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_e2b_code",
+        "description": "Generate and run Python code in E2B for analysis",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Insert the Python code to run to do calculations here. Retrieve values from earlier get_patient_data tool call."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+[2025-02-11 07:47:08,541] INFO    : Sending request data:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nYo
+2025-02-11 07:47:08,541 - model_service - INFO - Sending request data:
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "# SlothMD System Prompt\n\nYou are an AI assistant for SlothMD. \n\nYour goal is to respond in **JSON** format as shown below, using the available tools to retrieve patient data and perform computations. \nYou **do not** need user permission to call tools\u2014assume the user has already consented. \nIf the user asks a question about labs, vitals, or other FHIR data, **always** call `get_patient_data`. \nIf you must compute multiple values, do correlations, or generate code to handle the data, **use** `run_e2b_code`.\n\n**Example**: If the user says \"What is the sum of my HDL plus my LDL?\", immediately:\n1. Call `get_patient_data(data_type='labs')` and process the data\n2. Use `run_e2b_code` to sum the values\n3. Return final JSON response with results, card, and graph - no intermediate status messages\n\n---\n## Final JSON Reply Structure\n\n\"\"\"json\n{\n  \"text\": \"Main message text\",\n  \"cards\": [\n    {\n      \"title\": \"Card title\",\n      \"subtitle\": \"Card subtitle (main content)\",\n      \"media_url\": \"{GRAPH_URL_N}\",  \n      \"buttons\": [\n        {\n          \"title\": \"More Information\",\n          \"type\": \"trigger\",\n          \"payload\": \"more_info_[relevant_topic]\"\n        }\n      ]\n    }\n  ],\n  \"quick_replies\": [\n    {\n      \"title\": \"Quick reply text\",\n      \"type\": \"trigger\",\n      \"payload\": \"quick_reply_action\"\n    }\n  ],\n  \"graph\": {\n    \"type\": \"bar|line|scatter\",\n    \"data\": {}\n  }\n}\n\"\"\"\n\n---\n## Important Requirements\n\n1. Health info cards MUST include a \"See More\" button.\n2. Metric queries MUST include a graph (bar|line|scatter).\n3. Always include quick replies for user follow-up.\n4. Titles under 25 chars.\n5. To embed a graph, use:\n\"\"\"\nGRAPH_DATA:{\"type\":\"<graph_type>\",\"data\":<data_object>}END_GRAPH_DATA\n\"\"\"\n\n---\n## Tool Usage\n\n- Call `get_patient_data` for FHIR data.\n- Call `run_e2b_code` or produce a fenced code block for Python analysis (no extra permissions needed).\n- Then finalize your JSON response.\n\n\nGRAPH_DATA:{\"type\": \"<graph_type>\", \"data\": <data_object>}END_GRAPH_DATA\n\nSupported graph types and formats:\n\n1. Bar Chart:\nGRAPH_DATA:{\"type\": \"bar\", \"data\": {\n    \"labels\": [\"Label1\", \"Label2\", \"Label3\"],\n    \"values\": [10, 20, 30],\n    \"title\": \"Bar Chart Title\",\n    \"xlabel\": \"Categories\",\n    \"ylabel\": \"Values\",\n    \"referenceLines\": {\"Label1\": 15, \"Label2\": 25}\n}}END_GRAPH_DATA\n\n2. Line Chart:\nGRAPH_DATA:{\"type\": \"line\", \"data\": {\n    \"x\": [\"2023-01\", \"2023-02\", \"2023-03\"],\n    \"y\": [10, 20, 15],\n    \"title\": \"Trend Analysis\",\n    \"xlabel\": \"Time Period\",\n    \"ylabel\": \"Values\"\n}}END_GRAPH_DATA\n\n3. Scatter Plot:\nGRAPH_DATA:{\"type\": \"scatter\", \"data\": {\n    \"x\": [1, 2, 3, 4, 5],\n    \"y\": [2, 4, 3, 5, 4],\n    \"title\": \"Correlation Plot\",\n    \"xlabel\": \"X Values\",\n    \"ylabel\": \"Y Values\"\n}}END_GRAPH_DATA"
+    },
+    {
+      "role": "user",
+      "content": "What is the sum of my Hdl added to my ldl"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "index": 0,
+          "id": "tool_0_get_patient_data",
+          "type": "function",
+          "function": {
+            "name": "get_patient_data",
+            "arguments": "{\"data_type\":\"labs\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "get_patient_data",
+      "tool_call_id": "tool_0_get_patient_data",
+      "content": "{\"labResults\": [{\"date\": \"2024-01-15\", \"test\": \"HbA1c\", \"value\": 6.8, \"unit\": \"%\", \"referenceRange\": \"4.0-5.6\", \"interpretation\": \"High\"}, {\"date\": \"2024-01-15\", \"test\": \"Cholesterol\", \"value\": 185, \"unit\": \"mg/dL\", \"referenceRange\": \"125-200\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"HDL\", \"value\": 55, \"unit\": \"mg/dL\", \"referenceRange\": \"40-60\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"LDL\", \"value\": 110, \"unit\": \"mg/dL\", \"referenceRange\": \"0-100\", \"interpretation\": \"Borderline High\"}, {\"date\": \"2024-01-15\", \"test\": \"Triglycerides\", \"value\": 150, \"unit\": \"mg/dL\", \"referenceRange\": \"0-150\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"Fasting Glucose\", \"value\": 110, \"unit\": \"mg/dL\", \"referenceRange\": \"70-100\", \"interpretation\": \"High\"}, {\"date\": \"2024-01-15\", \"test\": \"Creatinine\", \"value\": 1.1, \"unit\": \"mg/dL\", \"referenceRange\": \"0.7-1.3\", \"interpretation\": \"Normal\"}]}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_data",
+        "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "data_type": {
+              "type": "string",
+              "enum": [
+                "all",
+                "conditions",
+                "medications",
+                "vitals",
+                "labs"
+              ]
+            }
+          },
+          "required": [
+            "data_type"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_e2b_code",
+        "description": "Generate and run Python code in E2B for analysis",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Insert the Python code to run to do calculations here. Retrieve values from earlier get_patient_data tool call."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+[2025-02-11 07:47:12,232] INFO    : Deepseek response:
+{
+  "id": "gen-1739260028-C6yJNw0wWKrj5IbKCL0U",
+  "provider": "Google",
+  "model": "google/gemini-2.0-flash-001",
+  "object": "chat.completion",
+  "created": 1739260028,
+  "choices
+2025-02-11 07:47:12,232 - model_service - INFO - Deepseek response:
+{
+  "id": "gen-1739260028-C6yJNw0wWKrj5IbKCL0U",
+  "provider": "Google",
+  "model": "google/gemini-2.0-flash-001",
+  "object": "chat.completion",
+  "created": 1739260028,
+  "choices": [
+    {
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "MALFORMED_FUNCTION_CALL",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1218,
+    "completion_tokens": 0,
+    "total_tokens": 1218
+  }
+}
+[2025-02-11 07:47:12,232] ERROR   : Malformed function call detected. Last message content:
+2025-02-11 07:47:12,232 - model_service - ERROR - Malformed function call detected. Last message content:
+[2025-02-11 07:47:12,232] ERROR   : Last message: {
+  "role": "tool",
+  "name": "get_patient_data",
+  "tool_call_id": "tool_0_get_patient_data",
+  "content": "{\"labResults\": [{\"date\": \"2024-01-15\", \"test\": \"HbA1c\", \"value\": 
+2025-02-11 07:47:12,232 - model_service - ERROR - Last message: {
+  "role": "tool",
+  "name": "get_patient_data",
+  "tool_call_id": "tool_0_get_patient_data",
+  "content": "{\"labResults\": [{\"date\": \"2024-01-15\", \"test\": \"HbA1c\", \"value\": 6.8, \"unit\": \"%\", \"referenceRange\": \"4.0-5.6\", \"interpretation\": \"High\"}, {\"date\": \"2024-01-15\", \"test\": \"Cholesterol\", \"value\": 185, \"unit\": \"mg/dL\", \"referenceRange\": \"125-200\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"HDL\", \"value\": 55, \"unit\": \"mg/dL\", \"referenceRange\": \"40-60\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"LDL\", \"value\": 110, \"unit\": \"mg/dL\", \"referenceRange\": \"0-100\", \"interpretation\": \"Borderline High\"}, {\"date\": \"2024-01-15\", \"test\": \"Triglycerides\", \"value\": 150, \"unit\": \"mg/dL\", \"referenceRange\": \"0-150\", \"interpretation\": \"Normal\"}, {\"date\": \"2024-01-15\", \"test\": \"Fasting Glucose\", \"value\": 110, \"unit\": \"mg/dL\", \"referenceRange\": \"70-100\", \"interpretation\": \"High\"}, {\"date\": \"2024-01-15\", \"test\": \"Creatinine\", \"value\": 1.1, \"unit\": \"mg/dL\", \"referenceRange\": \"0.7-1.3\", \"interpretation\": \"Normal\"}]}"
+}
+[2025-02-11 07:47:12,233] ERROR   : Available tools: [
+  {
+    "type": "function",
+    "function": {
+      "name": "get_patient_data",
+      "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+ 
+2025-02-11 07:47:12,233 - model_service - ERROR - Available tools: [
+  {
+    "type": "function",
+    "function": {
+      "name": "get_patient_data",
+      "description": "Retrieve patient's FHIR data including name, conditions, meds, vitals, labs",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_type": {
+            "type": "string",
+            "enum": [
+              "all",
+              "conditions",
+              "medications",
+              "vitals",
+              "labs"
+            ]
+          }
+        },
+        "required": [
+          "data_type"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "run_e2b_code",
+      "description": "Generate and run Python code in E2B for analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Insert the Python code to run to do calculations here. Retrieve values from earlier get_patient_data tool call."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      }
+    }
+  }
+]
+[2025-02-11 07:47:12,233] INFO    : Assistant content: 
+2025-02-11 07:47:12,233 - model_service - INFO - Assistant content: 
+[2025-02-11 07:47:12,233] INFO    : Found 0 tool calls, 0 code blocks
