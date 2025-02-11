@@ -39,11 +39,28 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         formatted_messages = []
-        for msg in [{"role": "system", "content": create_context()}] + messages:
-            formatted_messages.append(types.Content(
-                role=msg["role"],
-                parts=[types.Part(text=msg["content"])]
-            ))
+        context_msg = {"role": "user", "content": create_context()}
+        user_messages = [msg for msg in messages if msg["role"] == "user"]
+        assistant_messages = [msg for msg in messages if msg["role"] == "assistant"]
+        
+        # Interleave messages to maintain conversation flow
+        formatted_messages = []
+        formatted_messages.append(types.Content(
+            role="user",
+            parts=[types.Part(text=context_msg["content"])]
+        ))
+        
+        for user_msg, asst_msg in zip(user_messages, assistant_messages + [None]):
+            if user_msg:
+                formatted_messages.append(types.Content(
+                    role="user",
+                    parts=[types.Part(text=user_msg["content"])]
+                ))
+            if asst_msg:
+                formatted_messages.append(types.Content(
+                    role="model",
+                    parts=[types.Part(text=asst_msg["content"])]
+                ))
             
         response = client.models.generate_content(
             model='gemini-2.0-flash',
