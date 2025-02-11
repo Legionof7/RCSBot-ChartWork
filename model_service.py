@@ -42,7 +42,7 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
         for msg in [{"role": "system", "content": create_context()}] + messages:
             formatted_messages.append(types.Content(
                 role=msg["role"],
-                parts=[types.Part.from_text(msg["content"])]
+                parts=[types.Part(text=msg["content"])]
             ))
             
         response = client.models.generate_content(
