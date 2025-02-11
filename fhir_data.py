@@ -104,28 +104,39 @@ SAMPLE_PATIENT = {
     ],
     "vitalSigns": [
         {
-            "date": "2024-01-15",
-            "bloodPressure": {
-                "systolic": 128,
-                "diastolic": 82,
-                "unit": "mmHg"
-            },
-            "heartRate": {
-                "value": 72,
-                "unit": "bpm"
-            },
-            "temperature": {
-                "value": 37.0,
-                "unit": "Celsius"
-            },
-            "weight": {
-                "value": 80.5,
-                "unit": "kg"
-            },
-            "height": {
-                "value": 180,
-                "unit": "cm"
-            }
+            "date": "2024-01-01",
+            "bloodPressure": {"systolic": 135, "diastolic": 88, "unit": "mmHg"},
+            "bloodGlucose": {"value": 142, "unit": "mg/dL"},
+            "exerciseMinutes": 15,
+            "weight": {"value": 82.5, "unit": "kg"}
+        },
+        {
+            "date": "2024-01-07",
+            "bloodPressure": {"systolic": 132, "diastolic": 85, "unit": "mmHg"},
+            "bloodGlucose": {"value": 138, "unit": "mg/dL"},
+            "exerciseMinutes": 20,
+            "weight": {"value": 82.0, "unit": "kg"}
+        },
+        {
+            "date": "2024-01-14",
+            "bloodPressure": {"systolic": 128, "diastolic": 82, "unit": "mmHg"},
+            "bloodGlucose": {"value": 130, "unit": "mg/dL"},
+            "exerciseMinutes": 25,
+            "weight": {"value": 81.2, "unit": "kg"}
+        },
+        {
+            "date": "2024-01-21",
+            "bloodPressure": {"systolic": 125, "diastolic": 80, "unit": "mmHg"},
+            "bloodGlucose": {"value": 125, "unit": "mg/dL"},
+            "exerciseMinutes": 30,
+            "weight": {"value": 80.8, "unit": "kg"}
+        },
+        {
+            "date": "2024-01-28",
+            "bloodPressure": {"systolic": 122, "diastolic": 78, "unit": "mmHg"},
+            "bloodGlucose": {"value": 120, "unit": "mg/dL"},
+            "exerciseMinutes": 35,
+            "weight": {"value": 80.5, "unit": "kg"}
         }
     ],
     "labResults": [
