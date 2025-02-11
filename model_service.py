@@ -105,6 +105,51 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                                     }
                                 },
                                 "required": ["data_type"]
+                            },
+                            response_schema={
+                                "type": "object",
+                                "properties": {
+                                    "medicalConditions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {"type": "string"},
+                                                "display": {"type": "string"},
+                                                "status": {"type": "string"}
+                                            }
+                                        }
+                                    },
+                                    "medications": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {"type": "string"},
+                                                "dosage": {"type": "string"},
+                                                "status": {"type": "string"}
+                                            }
+                                        }
+                                    },
+                                    "vitalSigns": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "labResults": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "test": {"type": "string"},
+                                                "value": {"type": "number"},
+                                                "unit": {"type": "string"},
+                                                "interpretation": {"type": "string"}
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         )
                     ])
