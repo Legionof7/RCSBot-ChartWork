@@ -92,8 +92,21 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                 tools=[
                     types.Tool(code_execution=types.ToolCodeExecution()),
                     types.Tool(function_declarations=[
-                        types.FunctionDeclaration.from_dict(decl) 
-                        for decl in get_patient_data_tool["function_declarations"]
+                        types.FunctionDeclaration(
+                            name="get_patient_data",
+                            description="Get patient health data from FHIR database",
+                            parameters={
+                                "type": "object",
+                                "properties": {
+                                    "data_type": {
+                                        "type": "string",
+                                        "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                                        "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                                    }
+                                },
+                                "required": ["data_type"]
+                            }
+                        )
                     ])
                 ]
             )
