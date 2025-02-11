@@ -2,8 +2,9 @@ import logging
 import json
 from typing import List, Dict, Any
 from fhir_data import get_patient_data
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai
+from google.genai import types
+import os 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -12,8 +13,6 @@ if not logger.handlers:
     formatter = logging.Formatter('[%(asctime)s] %(levelname)-8s: %(message).200s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
-genai.configure(api_key="AIzaSyDXsEl3C4d4hi7zJue8-_mmEhcDp0twRM8")
 
 def create_context() -> str:
     return """# SlothMD System Prompt
