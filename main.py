@@ -9,6 +9,7 @@ import requests
 
 from fhir_data import get_patient_data
 from graph_utils import generate_graph
+from model_service import call_gemini
 
 
 # --------------------------
@@ -219,7 +220,7 @@ def handle_webhook():
 
         # Call model and send response
         try:
-            response_data = call_openrouter(conversation_slice, FHIR_DATA)
+            response_data = call_gemini(conversation_slice)
             send_rcs_message(from_number, response_data)
             app.conversation_history[from_number].append(
                 {"role": "assistant", "content": json.dumps(response_data)}
