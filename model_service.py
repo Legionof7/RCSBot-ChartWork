@@ -22,7 +22,7 @@ def parse_code_blocks(text: str) -> list:
     blocks = re.findall(code_fence_pattern, text, flags=re.DOTALL)
     return blocks
 
-def parse_tool_calls(assistant_message: dict) -> list:
+    def parse_tool_calls(assistant_message: dict) -> list:
     return assistant_message.get("tool_calls", [])
 
 def create_context(query: str) -> str:

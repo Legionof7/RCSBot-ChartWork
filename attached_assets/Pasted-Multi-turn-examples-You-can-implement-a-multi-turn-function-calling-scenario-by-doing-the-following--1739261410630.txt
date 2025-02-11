@@ -1,0 +1,192 @@
+Multi-turn examples
+You can implement a multi-turn function calling scenario by doing the following:
+
+Get a function call response by calling the language model. This is the first turn.
+Call the language model using the function call response from the first turn and the function response you get from calling that function. This is the second turn.
+The response from the second turn either summarizes the results to answer your query in the first turn, or contains a second function call you can use to get more information for your query.
+
+This topic includes two multi-turn curl examples:
+
+Curl example that uses a function response from a previous turn
+Curl example that calls a language model multiple times
+Use a response from a previous turn
+The following curl sample calls the function and arguments returned by the previous single-turn example to get a response. The method and parameters returned by the single-turn example are in this JSON.
+
+
+"functionCall": {
+  "name": "find_theaters",
+  "args": {
+    "movie": "Barbie",
+    "location": "Mountain View, CA"
+  }
+}
+Multi-turn function calling curl example request
+The response to this curl example includes the result of calling the find_theaters method. The response might be similar to the following:
+
+Multi-turn function calling curl example response
+Call the model multiple times
+The following cURL example calls the generative AI model multiple times to call a function. Each time the model calls the function, it can use a different function to answer a different user query in the request.
+
+Multi-turn function calling curl example request
+
+curl https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$API_KEY \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "contents": [{
+      "role": "user",
+      "parts": [{
+        "text": "Which theaters in Mountain View show Barbie movie?"
+    }]
+  }, {
+    "role": "model",
+    "parts": [{
+      "functionCall": {
+        "name": "find_theaters",
+        "args": {
+          "location": "Mountain View, CA",
+          "movie": "Barbie"
+        }
+      }
+    }]
+  }, {
+    "role": "user",
+    "parts": [{
+      "functionResponse": {
+        "name": "find_theaters",
+        "response": {
+          "name": "find_theaters",
+          "content": {
+            "movie": "Barbie",
+            "theaters": [{
+              "name": "AMC Mountain View 16",
+              "address": "2000 W El Camino Real, Mountain View, CA 94040"
+            }, {
+              "name": "Regal Edwards 14",
+              "address": "245 Castro St, Mountain View, CA 94040"
+            }]
+          }
+        }
+      }
+    }]
+  },
+  {
+    "role": "model",
+    "parts": [{
+      "text": " OK. Barbie is showing in two theaters in Mountain View, CA: AMC Mountain View 16 and Regal Edwards 14."
+    }]
+  },{
+    "role": "user",
+    "parts": [{
+      "text": "Can we recommend some comedy movies on show in Mountain View?"
+    }]
+  }],
+  "tools": [{
+    "functionDeclarations": [{
+      "name": "find_movies",
+      "description": "find movie titles currently playing in theaters based on any description, genre, title words, etc.",
+      "parameters": {
+        "type": "OBJECT",
+        "properties": {
+          "location": {
+            "type": "STRING",
+            "description": "The city and state, e.g. San Francisco, CA or a zip code e.g. 95616"
+          },
+          "description": {
+            "type": "STRING",
+            "description": "Any kind of description including category or genre, title words, attributes, etc."
+          }
+        },
+        "required": ["description"]
+      }
+    }, {
+      "name": "find_theaters",
+      "description": "find theaters based on location and optionally movie title which is currently playing in theaters",
+      "parameters": {
+        "type": "OBJECT",
+        "properties": {
+          "location": {
+            "type": "STRING",
+            "description": "The city and state, e.g. San Francisco, CA or a zip code e.g. 95616"
+          },
+          "movie": {
+            "type": "STRING",
+            "description": "Any movie title"
+          }
+        },
+        "required": ["location"]
+      }
+    }, {
+      "name": "get_showtimes",
+      "description": "Find the start times for movies playing in a specific theater",
+      "parameters": {
+        "type": "OBJECT",
+        "properties": {
+          "location": {
+            "type": "STRING",
+            "description": "The city and state, e.g. San Francisco, CA or a zip code e.g. 95616"
+          },
+          "movie": {
+            "type": "STRING",
+            "description": "Any movie title"
+          },
+          "theater": {
+            "type": "STRING",
+            "description": "Name of the theater"
+          },
+          "date": {
+            "type": "STRING",
+            "description": "Date for requested showtime"
+          }
+        },
+        "required": ["location", "movie", "theater", "date"]
+      }
+    }]
+  }]
+}'
+    
+Multi-turn function calling curl example response
+
+[{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "name": "find_movies",
+              "args": {
+                "description": "comedy",
+                "location": "Mountain View, CA"
+              }
+            }
+          }
+        ]
+      },
+      "finishReason": "STOP",
+      "safetyRatings": [
+        {
+          "category": "HARM_CATEGORY_HARASSMENT",
+          "probability": "NEGLIGIBLE"
+        },
+        {
+          "category": "HARM_CATEGORY_HATE_SPEECH",
+          "probability": "NEGLIGIBLE"
+        },
+        {
+          "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          "probability": "NEGLIGIBLE"
+        },
+        {
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "probability": "NEGLIGIBLE"
+        }
+      ]
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 48,
+    "totalTokenCount": 48
+  }
+}
+]
+    
