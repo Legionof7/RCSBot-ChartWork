@@ -100,18 +100,33 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
 
 def parse_model_response(text: str) -> dict:
     try:
-        # Extract JSON response
-        json_str = text.split("```json")[1].split("```")[0].strip()
-        response_data = json.loads(json_str)
+        # First try to find JSON block
+        if "```json" in text:
+            json_parts = text.split("```json")
+            for part in json_parts[1:]:  # Skip the first part before ```json
+                try:
+                    json_str = part.split("```")[0].strip()
+                    response_data = json.loads(json_str)
+                    # If we successfully parsed JSON, check for graph data
+                    if "GRAPH_DATA:" in text:
+                        graph_str = text.split("GRAPH_DATA:")[1].split("END_GRAPH_DATA")[0]
+                        response_data["graph"] = json.loads(graph_str)
+                    return response_data
+                except:
+                    continue
+                    
+        # If no valid JSON found, create a basic response
+        return {
+            "text": text.replace("```json", "").replace("```", "").strip(),
+            "cards": [],
+            "quick_replies": [{
+                "title": "Try Again", 
+                "type": "trigger",
+                "payload": "retry_analysis"
+            }]
+        }
 
-        # Extract graph data if present
-        if "GRAPH_DATA:" in text:
-            graph_str = text.split("GRAPH_DATA:")[1].split("END_GRAPH_DATA")[0]
-            response_data["graph"] = json.loads(graph_str)
-
-        return response_data
-
-    except (json.JSONDecodeError, IndexError) as e:
+    except Exception as e:
         logger.error(f"Response parsing error: {str(e)}")
         return {
             "text": "Here's the analysis:",
