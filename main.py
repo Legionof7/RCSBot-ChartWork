@@ -9,7 +9,7 @@ import requests
 
 from fhir_data import get_patient_data
 from graph_utils import generate_graph
-from model_service import call_openrouter
+
 
 # --------------------------
 #      CONFIG & GLOBALS

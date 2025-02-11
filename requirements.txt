@@ -9,3 +9,7 @@ numpy
 e2b
 e2b-code-interpreter
 google-generativeai
+google-generativeai
+sift-stack-py
+google-generativeai
+sift-stack-py
