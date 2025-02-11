@@ -230,12 +230,19 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
         logger.info("Sending to OpenRouter:\n%s", json.dumps(data, indent=2))
         
         try:
+            logger.info("Sending request data:\n%s", json.dumps(data, indent=2))
             resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
                                headers=headers, json=data)
             resp.raise_for_status()
             response_json = resp.json()
 
             logger.info("Deepseek response:\n%s", json.dumps(response_json, indent=2))
+            
+            if response_json["choices"][0].get("native_finish_reason") == "MALFORMED_FUNCTION_CALL":
+                logger.error("Malformed function call detected. Last message content:")
+                last_message = data["messages"][-1] if data["messages"] else None
+                logger.error("Last message: %s", json.dumps(last_message, indent=2))
+                logger.error("Available tools: %s", json.dumps(tools, indent=2))
 
             assistant_message = response_json["choices"][0]["message"]
             content = assistant_message.get("content", "")
