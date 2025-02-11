@@ -1,4 +1,3 @@
-
 import requests
 import logging
 import json
@@ -69,9 +68,7 @@ You are an AI assistant for SlothMD.
 Your goal is to respond in **JSON** format as shown below, using the available tools to retrieve patient data and perform computations. 
 You **do not** need user permission to call tools—assume the user has already consented. 
 If the user asks a question about labs, vitals, or other FHIR data, **always** call `get_patient_data`. 
-If a user asks for calculations (e.g., "sum", "average", "difference", "trend analysis", "correlation"), then call `run_e2b_code` with Python logic.
-
-If no calculations are required, DO NOT generate empty code sections.
+If you must compute multiple values, do correlations, or generate code to handle the data, **use** `run_e2b_code`.
 
 **Example**: If the user says "What is the sum of my HDL plus my LDL?", immediately:
 1. Call `get_patient_data(data_type='labs')` and process the data
@@ -198,13 +195,13 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
             "type": "function",
             "function": {
                 "name": "run_e2b_code",
-                "description": "Run Python code in E2B for analysis",
+                "description": "Generate and run Python code in E2B for analysis",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "code": {
                             "type": "string",
-                            "description": "Python code to run"
+                            "description": "Insert the Python code to run to do calculations here. Retrieve values from earlier get_patient_data tool call."
                         }
                     },
                     "required": ["code"]
@@ -215,11 +212,12 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
     max_iterations = 10
     iteration_count = 0
-    handled_something_last_time = True
 
-    while iteration_count < max_iterations:
+    while True:
         iteration_count += 1
-        logger.info("===== Iteration %d =====", iteration_count)
+        if iteration_count > max_iterations:
+            logger.warning("Reached max iteration limit (%d). Stopping loop.", max_iterations)
+            return {"text": "Sorry, I'm stuck in a loop. Stopping now."}
 
         data = {
             "model": MODEL,
@@ -228,6 +226,7 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
             "tool_choice": "auto"
         }
 
+        logger.info("===== Iteration %d =====", iteration_count)
         logger.info("Sending to OpenRouter:\n%s", json.dumps(data, indent=2))
         
         try:
@@ -313,25 +312,16 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "content": json.dumps(result_data)
                     })
 
-            # If nothing was handled in two consecutive iterations, exit early
-            if not handled_something and not handled_something_last_time:
-                logger.info("No more tool calls or code blocks detected. Exiting loop.")
-                break
-
-            handled_something_last_time = handled_something
-            
             if handled_something:
                 logger.info("Handled something, looping again.\n")
                 continue
-
-            # Final parsing step after loop exits
-            final_json = parse_model_response(content)
-            logger.info("Final JSON Response:\n%s", json.dumps(final_json, indent=2))
-            return final_json
+            else:
+                final_json = parse_model_response(content)
+                logger.info("No more calls. Final JSON:\n%s", final_json)
+                return final_json
 
         except Exception as e:
             logger.error("OpenRouter/Deepseek API error: %s", e)
-            raise
             raise
 
 def extract_top_level_json(text: str) -> str:
