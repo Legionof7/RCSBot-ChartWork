@@ -322,13 +322,14 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                 logger.info("Handled something, looping again.\n")
                 continue
 
-    # Final parsing step after loop exits
-    final_json = parse_model_response(content)
-    logger.info("Final JSON Response:\n%s", json.dumps(final_json, indent=2))
-    return final_json
+            # Final parsing step after loop exits
+            final_json = parse_model_response(content)
+            logger.info("Final JSON Response:\n%s", json.dumps(final_json, indent=2))
+            return final_json
 
         except Exception as e:
             logger.error("OpenRouter/Deepseek API error: %s", e)
+            raise
             raise
 
 def extract_top_level_json(text: str) -> str:
