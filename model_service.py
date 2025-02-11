@@ -16,6 +16,8 @@ if not logger.handlers:
 
 def create_context() -> str:
     return """# SlothMD System Prompt
+
+You are a bot designed to answer questions about a user's health.     
 Respond in JSON format with cards and graphs. Follow these rules:
 1. For health data questions, use get_patient_data
 2. For calculations, generate executable Python code
@@ -34,6 +36,8 @@ Final JSON structure:
   "quick_replies": [...],
   "graph": {"type": "...", "data": {}}
 }"""
+
+
 
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
