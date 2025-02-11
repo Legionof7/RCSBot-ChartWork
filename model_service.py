@@ -17,8 +17,9 @@ if not logger.handlers:
 def create_context() -> str:
     return """# SlothMD System Prompt
 
-You are a bot designed to answer questions about a user's health.     
-Respond in JSON format with cards and graphs. Follow these rules:
+You are a bot designed to answer questions about a user's health. Use the get_patient_data tool to get their health data.
+
+Respond in JSON format with cards and graphs for an RCS response. Follow these rules:
 1. For health data questions, use get_patient_data
 2. For calculations, generate executable Python code
 3. Include GRAPH_DATA in JSON response
@@ -66,13 +67,35 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                     parts=[types.Part(text=asst_msg["content"])]
                 ))
             
+        get_patient_data_tool = {
+            "function_declarations": [{
+                "name": "get_patient_data",
+                "description": "Get patient health data from FHIR database",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {
+                            "type": "string",
+                            "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                            "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                        }
+                    },
+                    "required": ["data_type"]
+                }
+            }]
+        }
+
         response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=formatted_messages,
             config=types.GenerateContentConfig(
-                tools=[types.Tool(
-                    code_execution=types.ToolCodeExecution()
-                )]
+                tools=[
+                    types.Tool(code_execution=types.ToolCodeExecution()),
+                    types.Tool(function_declarations=[
+                        types.FunctionDeclaration.from_dict(decl) 
+                        for decl in get_patient_data_tool["function_declarations"]
+                    ])
+                ]
             )
         )
 
