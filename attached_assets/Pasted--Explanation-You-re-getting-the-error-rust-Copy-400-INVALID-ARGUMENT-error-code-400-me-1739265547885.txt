@@ -1,0 +1,102 @@
+
+Explanation
+
+You’re getting the error:
+
+rust
+Copy
+400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Unable to submit request because `get_patient_data` functionDeclaration does not have the response schema which is required for compositional function calling request...'}}
+because, with the latest Gemini function calling (“compositional function calling”), you must define both:
+
+The function parameters (request schema)
+The function result (response schema)
+in your FunctionDeclaration object.
+
+In other words, you now need something like:
+
+python
+Copy
+types.FunctionDeclaration(
+    name="get_patient_data",
+    description="Get patient health data from FHIR database",
+    parameters={  # <--- The request schema
+        "type": "OBJECT",
+        "properties": {
+            "data_type": {
+                "type": "STRING",
+                "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                "enum": ["all", "conditions", "medications", "vitals", "labs"]
+            }
+        },
+        "required": ["data_type"]
+    },
+    result={  # <--- The *new* result (response) schema you must define
+        "type": "OBJECT",
+        "additionalProperties": True
+    }
+)
+Without defining the result property in the function declaration, the Gemini API will return the 400 INVALID_ARGUMENT error you saw.
+
+How to Fix
+Add a result object to your FunctionDeclaration.
+Make sure you have type="OBJECT" (or "object" in JSON schema style) and, to keep it simple, "additionalProperties": true, so you can return any shape of data from get_patient_data without having to define every field.
+Minimal Example
+Below is a minimal fix for your function-declaration list, where we simply allow any JSON shape for the result:
+
+python
+Copy
+tools = [
+    types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="get_patient_data",
+                description="Get patient health data from FHIR database",
+                parameters={
+                    "type": "OBJECT",
+                    "properties": {
+                        "data_type": {
+                            "type": "STRING",
+                            "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                            "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                        }
+                    },
+                    "required": ["data_type"]
+                },
+                # Must define the "result" schema too
+                result={
+                    "type": "OBJECT",
+                    "additionalProperties": True
+                }
+            )
+        ]
+    )
+]
+Then pass tools=tools into the GenerateContentConfig (or however you’re configuring it). For example:
+
+python
+Copy
+response = client.models.generate_content(
+    model='gemini-2.0-flash',
+    contents=formatted_messages,
+    config=types.GenerateContentConfig(
+        tools=tools
+    )
+)
+This ensures that get_patient_data now has both the input (parameters) schema and the output (result) schema. Gemini requires both for compositional function calling.
+
+Why the result Schema Is Required Now
+Gemini’s newer “Compositional Function Calling” requires the model to reason about function chaining and referencing outputs from one function call in a subsequent function call. For that reason, the model needs an explicit schema for what the function returns. Having a schema for both “parameters” and “result” allows Gemini to orchestrate multiple function calls within a single turn—knowing exactly what type of output is produced by each function.
+
+Hence, you see the error functionDeclaration does not have the response schema, which is Gemini’s way of telling you it can’t do compositional chaining without knowing the shape of the response.
+
+By specifying "additionalProperties": True in the result schema, you’re telling the model:
+
+“I don’t care exactly what keys or values the function returns, just treat it as a standard JSON object with possible dynamic properties.”
+
+That’s enough to unblock the function-calling flow.
+
+Summary:
+
+Add a result schema to your FunctionDeclaration.
+Set "additionalProperties": True if you don’t want to define every property in detail.
+That’s all you need to fix the 400 INVALID_ARGUMENT error from Gemini.
