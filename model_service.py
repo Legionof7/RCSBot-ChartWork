@@ -213,12 +213,11 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
 
     max_iterations = 10
     iteration_count = 0
+    handled_something_last_time = True
 
-    while True:
+    while iteration_count < max_iterations:
         iteration_count += 1
-        if iteration_count > max_iterations:
-            logger.warning("Reached max iteration limit (%d). Stopping loop.", max_iterations)
-            return {"text": "Sorry, I'm stuck in a loop. Stopping now."}
+        logger.info("===== Iteration %d =====", iteration_count)
 
         data = {
             "model": MODEL,
@@ -227,7 +226,6 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
             "tool_choice": "auto"
         }
 
-        logger.info("===== Iteration %d =====", iteration_count)
         logger.info("Sending to OpenRouter:\n%s", json.dumps(data, indent=2))
         
         try:
@@ -313,13 +311,21 @@ def call_openrouter(messages: List[Dict[str, str]], fhir_data: dict = None) -> d
                         "content": json.dumps(result_data)
                     })
 
+            # If nothing was handled in two consecutive iterations, exit early
+            if not handled_something and not handled_something_last_time:
+                logger.info("No more tool calls or code blocks detected. Exiting loop.")
+                break
+
+            handled_something_last_time = handled_something
+            
             if handled_something:
                 logger.info("Handled something, looping again.\n")
                 continue
-            else:
-                final_json = parse_model_response(content)
-                logger.info("No more calls. Final JSON:\n%s", final_json)
-                return final_json
+
+    # Final parsing step after loop exits
+    final_json = parse_model_response(content)
+    logger.info("Final JSON Response:\n%s", json.dumps(final_json, indent=2))
+    return final_json
 
         except Exception as e:
             logger.error("OpenRouter/Deepseek API error: %s", e)
