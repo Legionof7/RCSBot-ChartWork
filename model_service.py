@@ -16,6 +16,8 @@ if not logger.handlers:
 
 def create_context() -> str:
     return """# SlothMD System Prompt
+
+You are a bot designed to answer questions about a user's health.     
 Respond in JSON format with cards and graphs. Follow these rules:
 1. For health data questions, use get_patient_data
 2. For calculations, generate executable Python code
@@ -35,12 +37,38 @@ Final JSON structure:
   "graph": {"type": "...", "data": {}}
 }"""
 
+
+
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        formatted_messages = []
+        context_msg = {"role": "user", "content": create_context()}
+        user_messages = [msg for msg in messages if msg["role"] == "user"]
+        assistant_messages = [msg for msg in messages if msg["role"] == "assistant"]
+        
+        # Interleave messages to maintain conversation flow
+        formatted_messages = []
+        formatted_messages.append(types.Content(
+            role="user",
+            parts=[types.Part(text=context_msg["content"])]
+        ))
+        
+        for user_msg, asst_msg in zip(user_messages, assistant_messages + [None]):
+            if user_msg:
+                formatted_messages.append(types.Content(
+                    role="user",
+                    parts=[types.Part(text=user_msg["content"])]
+                ))
+            if asst_msg:
+                formatted_messages.append(types.Content(
+                    role="model",
+                    parts=[types.Part(text=asst_msg["content"])]
+                ))
+            
         response = client.models.generate_content(
             model='gemini-2.0-flash',
-            contents=[create_context()] + messages,
+            contents=formatted_messages,
             config=types.GenerateContentConfig(
                 tools=[types.Tool(
                     code_execution=types.ToolCodeExecution()
@@ -76,18 +104,33 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
 
 def parse_model_response(text: str) -> dict:
     try:
-        # Extract JSON response
-        json_str = text.split("```json")[1].split("```")[0].strip()
-        response_data = json.loads(json_str)
+        # First try to find JSON block
+        if "```json" in text:
+            json_parts = text.split("```json")
+            for part in json_parts[1:]:  # Skip the first part before ```json
+                try:
+                    json_str = part.split("```")[0].strip()
+                    response_data = json.loads(json_str)
+                    # If we successfully parsed JSON, check for graph data
+                    if "GRAPH_DATA:" in text:
+                        graph_str = text.split("GRAPH_DATA:")[1].split("END_GRAPH_DATA")[0]
+                        response_data["graph"] = json.loads(graph_str)
+                    return response_data
+                except:
+                    continue
+                    
+        # If no valid JSON found, create a basic response
+        return {
+            "text": text.replace("```json", "").replace("```", "").strip(),
+            "cards": [],
+            "quick_replies": [{
+                "title": "Try Again", 
+                "type": "trigger",
+                "payload": "retry_analysis"
+            }]
+        }
 
-        # Extract graph data if present
-        if "GRAPH_DATA:" in text:
-            graph_str = text.split("GRAPH_DATA:")[1].split("END_GRAPH_DATA")[0]
-            response_data["graph"] = json.loads(graph_str)
-
-        return response_data
-
-    except (json.JSONDecodeError, IndexError) as e:
+    except Exception as e:
         logger.error(f"Response parsing error: {str(e)}")
         return {
             "text": "Here's the analysis:",
