@@ -1,0 +1,78 @@
+In cases like this when two or more functions are defined (or when the model predicts multiple function calls to the same function), the Gemini model might sometimes return back-to-back or parallel function call responses within a single conversation turn.
+
+This is expected behavior since the Gemini model predicts which functions it should call at runtime, what order it should call dependent functions in, and which function calls can be parallelized, so that the model can gather enough information to generate a natural language response.
+
+Not to worry! You can repeat the same steps as before and build synthetic payloads that would come from an external APIs:
+
+
+# Here you can use your preferred method to make an API request and get a response.
+# In this example, we'll use synthetic data to simulate a payload from an external API response.
+
+product_info_api_response = {"sku": "GA08475-US", "in_stock": "yes"}
+store_location_api_response = {
+    "store": "2000 N Shoreline Blvd, Mountain View, CA 94043, US"
+}
+     
+Again, you can pass the responses from the (mock) API requests back to the Gemini model:
+
+
+response = chat.send_message(
+    [
+        Part.from_function_response(
+            name="get_product_info",
+            response={
+                "content": product_info_api_response,
+            },
+        ),
+        Part.from_function_response(
+            name="get_store_location",
+            response={
+                "content": store_location_api_response,
+            },
+        ),
+    ]
+)
+display(Markdown(response.text))
+     
+Nice work!
+
+Within a single conversation turn, the Gemini model requested 2 function calls in a row before returning a natural language summary. In reality, you might follow this pattern if you need to make an API call to an inventory management system, and another call to a store location database, customer management system, or document repository.
+
+Finally, the user might ask to order a phone and have it shipped to their address:
+
+
+prompt = """
+I'd like to order a Pixel 9 Pro XL and have it shipped to 1155 Borregas Ave, Sunnyvale, CA 94089.
+"""
+
+response = chat.send_message(prompt)
+response.function_calls
+     
+Perfect! The Gemini model extracted the user's selected product and their address. Now you can call an API to place the order:
+
+
+# This is where you would make an API request to return the status of their order.
+# Use synthetic data to simulate a response payload from an external API.
+
+order_api_response = {
+    "payment_status": "paid",
+    "order_number": 12345,
+    "est_arrival": "2 days",
+}
+     
+And send the payload from the external API call so that the Gemini API returns a natural language summary to the end user.
+
+
+response = chat.send_message(
+    Part.from_function_response(
+        name="place_order",
+        response={
+            "content": order_api_response,
+        },
+    ),
+)
+display(Markdown(response.text))
+     
+And you're done!
+
+You were able to have a multi-turn conversation with the Gemini model using function calls, handling payloads, and generating natural language summaries that incorporated the information from the external systems.
