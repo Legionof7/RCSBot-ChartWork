@@ -1,0 +1,57 @@
+Key Change
+Right now, your code does this at the end of each iteration:
+
+python
+Copy
+if tool_calls or code_blocks:
+    # handle them
+    # then loop again
+    continue
+else:
+    # parse model response as final
+    return final_json
+This works only if the assistant message is purely a function call (or code block) with no user-facing content. But in your logs, sometimes the model’s message can contain both a final user-facing answer and an attempted function call. That leads to a loop, because you always see a function call or empty code snippet and never treat the message as “final.”
+
+To fix this, first check if the assistant’s content is non-empty. If so, treat it as the final user-facing answer, parse it, and return. Only if the content is empty (or purely function calls) do you proceed to handle those calls and loop.
+
+Example Pseudocode
+Below is an outline of how to adjust the loop near the bottom:
+
+python
+Copy
+while True:
+    # ... get your response from the model ...
+    assistant_message = response_json["choices"][0]["message"]
+    content = assistant_message.get("content", "")
+    tool_calls = parse_tool_calls(assistant_message)
+    code_blocks = parse_code_blocks(content)
+    
+    # 1) If the model gave final user-facing content, parse & return immediately
+    if content.strip():
+        final_json = parse_model_response(content)
+        logger.info("Got final user-facing content. Returning:\n%s", final_json)
+        return final_json
+
+    # 2) Otherwise, if we have tool calls or code blocks, handle them, then loop
+    handled_something = False
+
+    if tool_calls:
+        handled_something = True
+        # ... handle each tool call, append to `messages` ...
+    if code_blocks:
+        handled_something = True
+        # ... handle each code block, append to `messages` ...
+
+    if handled_something:
+        logger.info("Handled something, looping again.\n")
+        continue
+
+    # 3) If there's truly nothing—no content, no tool calls—just return or break
+    logger.info("No content and no tool calls. Returning empty.")
+    return {}
+Why This Helps
+If the model actually produces a final answer in assistant_message["content"], you won’t ignore it just because it also appended an empty run_e2b_code call. The moment you see non-empty text, you parse and return it.
+If the model wants you to do more function calls (and gives you no final text to show the user), you handle them. Then you loop back to ask the model for the next step.
+Eventually, the model should produce a final answer with non-empty content. As soon as it does, you break out.
+In Practice
+Just move your “parse-and-return” logic before the part where you check for function calls/code blocks. Then, if you do find tool_calls or code_blocks, handle them and continue the loop. That ensures you don’t get stuck in an endless iteration if the assistant message includes both code and an actual final answer.
