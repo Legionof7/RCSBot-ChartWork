@@ -4,6 +4,8 @@ from typing import List, Dict, Any
 from fhir_data import get_patient_data
 from google import genai
 from google.genai import types
+from google.genai.types import FunctionDeclaration, GenerateContentConfig, Part, Tool
+
 import os 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ Respond in JSON format with cards and graphs for an RCS response. Follow these r
 
 Final JSON structure:
 {
-  "text": "Main message",
+  "text": "Main message and data insights",
   "cards": [{
     "title": "...", 
     "subtitle": "...",
@@ -43,6 +45,12 @@ def process_user_input(user_input: dict) -> dict:
     messages = [{"role": "user", "content": user_input.get("text", "")}]
     return call_gemini(messages)
 
+def get_patient_datas(data_type: str = 'all') -> dict:
+    """Get patient data from the FHIR server"""
+
+    a = get_patient_data(data_type)
+    return a
+
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -52,10 +60,8 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
         assistant_messages = [msg for msg in messages if msg["role"] == "assistant"]
 
         # Interleave messages to maintain conversation flow
-        fhir_data = get_patient_data()
-        print(json.dumps(fhir_data))
+        # fhir_data = get_patient_data()
         formatted_messages = []
-        formatted_messages.append(json.dumps(fhir_data))
         formatted_messages.append(types.Content(
             role="user",
             parts=[types.Part(text=context_msg["content"])]
@@ -72,90 +78,77 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                     role="model",
                     parts=[types.Part(text=asst_msg["content"])]
                 ))
-        
-        # get_patient_data_tool = {
-        #         "name": "get_patient_data",
-        #         "description": "Get patient health data from FHIR database",
-        #             "type": "object",
-        #             "property": {
-        #                 "data_type": {
-        #                     "type": "string",
-        #                     "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
-        #                     "enum": ["all", "conditions", "medications", "vitals", "labs"]
-        #                 }
-        #             },
-        #             "required": ["description"]
+        # print(formatted_messages)
+        # "data_type": {
+        #     "type": "string",
+        #     "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+        #     "enum": ["all", "conditions", "medications", "vitals", "labs"]
         # }
+        get_patient_data = FunctionDeclaration(
+            name="get_patient_data",
+            description="Retrieves patient data based on the provided query.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "data": {"type": "STRING", "description": "Retrieves patient data."}
+                },
+            },
+        )
 
+        patient_tool = Tool(
+            function_declarations=[
+                get_patient_data
+            ],
+        )
         response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=formatted_messages,
             config=types.GenerateContentConfig(
-                system_instruction=create_context(),
-                tools=[
-                    types.Tool(code_execution=types.ToolCodeExecution),
-                    types.Tool(function_declarations=[
-                        types.FunctionDeclaration(
-                            name="get_patient_data",
-                            description="Get patient health data from FHIR database",
-                            parameters={
-                                "type": "OBJECT",
-                                "properties": {
-                                    "data_type": {
-                                        "type": "STRING",
-                                        "description": "Type of data to retrieve",
-                                        "enum": ["all", "conditions", "medications", "vitals", "labs"]
-                                    }
-                                }
-                            }
-                        )
-                    ])
-                ]
+                tools=[patient_tool]
             )
-            # config=types.GenerateContentConfig(
-            #     tools=[
-            #         types.Tool(code_execution=types.ToolCodeExecution()),
-            #         types.Tool(function_declarations=[
-            #             types.FunctionDeclaration(
-            #                 name="get_patient_data", 
-            #                 description="Get patient health data from FHIR database",
-            #                 parameters={
-            #                     "type": "OBJECT",
-            #                     "properties": {
-            #                         "data_type": {
-            #                             "type": "STRING",
-            #                             "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
-            #                             "enum": ["all", "conditions", "medications", "vitals", "labs"]
-            #                         }
-            #                     },
-            #                     "required": ["data_type"]
-            #                 },
-            #                 result={
-            #                     "type": "OBJECT",
-            #                     "additionalProperties": True
-            #                 }
-            #             )
-            #         ])
-            #     ]
-            # )
         )
-
         # Process code execution results
         graph_images = []
         code_output = ""
-        print(response)
+        text_response = ""
         for part in response.candidates[0].content.parts:
+            if part.function_call:
+                print("Function call detected:", part.function_call)
+                function_name = part.function_call.name
+                arguments = part.function_call.args
+
+                if function_name == "get_patient_data":
+                    result = get_patient_data(data_type='all') 
+                    patient_details = json.dumps(result)
+                    format = '''Final JSON structure:
+                    {
+                      "text": "Main message and main insights",
+                      "cards": [{
+                        "title": "...", 
+                        "subtitle": "...",
+                        "media_url": "{{GRAPH_URL}}",
+                        "buttons": [...]
+                      }],
+                      "quick_replies": [...],
+                      "graph": {"type": "...", "data": {}}
+                    }'''
+                    follow_up_prompt = f'''Based on this data, provide a {arguments}: {patient_details} Here is the final format :{format}. 
+                    
+                    '''
+                    response = client.models.generate_content(            model='gemini-2.0-flash',
+contents=follow_up_prompt)
+                    print(response)
+                    text_response = response.candidates[0].content.parts[0].text
             if part.code_execution_result:
                 code_output += f"\n{part.code_execution_result.output}"
             if part.inline_data:
                 graph_images.append(part.inline_data.data)
-
+        text_response = "\n".join(part.text for part in response.candidates[0].content.parts if part.text)
         # Combine text response with code output
-        full_response = response.text + "\n" + code_output
+        full_response = text_response + "\n" + code_output
 
         # Parse the combined response
         final_response = parse_model_response(full_response)
-
         # Attach first graph image if available
         if graph_images:
             final_response['graph_image'] = graph_images[0]
