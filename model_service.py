@@ -90,10 +90,28 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
         response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=formatted_messages,
-            config=types.GenerateContentConfig(system_instruction=create_context(),
-                                              tools=[types.Tool(
-                                                code_execution=types.ToolCodeExecution
-                                              )])
+            config=types.GenerateContentConfig(
+                system_instruction=create_context(),
+                tools=[
+                    types.Tool(code_execution=types.ToolCodeExecution),
+                    types.Tool(function_declarations=[
+                        types.FunctionDeclaration(
+                            name="get_patient_data",
+                            description="Get patient health data from FHIR database",
+                            parameters={
+                                "type": "OBJECT",
+                                "properties": {
+                                    "data_type": {
+                                        "type": "STRING",
+                                        "description": "Type of data to retrieve",
+                                        "enum": ["all", "conditions", "medications", "vitals", "labs"]
+                                    }
+                                }
+                            }
+                        )
+                    ])
+                ]
+            )
             # config=types.GenerateContentConfig(
             #     tools=[
             #         types.Tool(code_execution=types.ToolCodeExecution()),
