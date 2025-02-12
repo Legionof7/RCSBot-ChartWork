@@ -53,7 +53,10 @@ def get_patient_datas(data_type: str = 'all') -> dict:
 
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        client = genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY"),
+            http_options={'api_version': 'v1alpha'}
+        )
         formatted_messages = []
         context_msg = {"role": "user", "content": create_context()}
         user_messages = [msg for msg in messages if msg["role"] == "user"]
