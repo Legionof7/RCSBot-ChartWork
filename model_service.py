@@ -1,21 +1,26 @@
-import logging
+import asyncio
 import json
-from typing import List, Dict, Any
-from fhir_data import get_patient_data
+import logging
+import os
+
 from google import genai
 from google.genai import types
-from google.genai.types import FunctionDeclaration, GenerateContentConfig, Part, Tool
+from google.genai.types import (
+    FunctionDeclaration,
+    GenerateContentConfig,
+    Part,
+    Tool,
+    LiveClientToolResponse,
+    FunctionResponse
+)
 
-import os 
+# Example import for your FHIR data retrieval
+from fhir_data import get_patient_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)-8s: %(message).200s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
+# 1. SlothMD System Prompt
 def create_context() -> str:
     return """# SlothMD System Prompt
 
@@ -31,7 +36,7 @@ Final JSON structure:
 {
   "text": "Main message and data insights",
   "cards": [{
-    "title": "...", 
+    "title": "...",
     "subtitle": "...",
     "media_url": "{{GRAPH_URL}}",
     "buttons": [...]
@@ -40,180 +45,132 @@ Final JSON structure:
   "graph": {"type": "...", "data": {}}
 }"""
 
-def process_user_input(user_input: dict) -> dict:
-    """Main entry point for console-based processing"""
-    messages = [{"role": "user", "content": user_input.get("text", "")}]
-    return call_gemini(messages)
 
-def get_patient_datas(data_type: str = 'all') -> dict:
-    """Get patient data from the FHIR server"""
+# 2. Define a function declaration for get_patient_data
+get_patient_data_declaration = {
+    "name": "get_patient_data",
+    "description": "Retrieves patient data from FHIR server based on the provided query.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "data_type": {
+                "type": "string",
+                "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                "enum": ["all", "conditions", "medications", "vitals", "labs"]
+            }
+        },
+        "required": []
+    }
+}
 
-    a = get_patient_data(data_type)
-    return a
 
-def call_gemini(messages: List[Dict[str, str]]) -> dict:
-    try:
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        formatted_messages = []
-        context_msg = {"role": "user", "content": create_context()}
-        user_messages = [msg for msg in messages if msg["role"] == "user"]
-        assistant_messages = [msg for msg in messages if msg["role"] == "assistant"]
+# 3. Handle function calls from the model
+async def handle_tool_call(session, tool_call):
+    """
+    Captures any function calls (tool calls) from the model.
+    If it's get_patient_data, we invoke our Python function and respond with the result.
+    The code_execution tool is automatically handled by the API unless you want
+    to intercept or modify code/results yourself.
+    """
+    for fc in tool_call.function_calls:
+        if fc.name == "get_patient_data":
+            data_type = fc.args.get("data_type", "all")
+            try:
+                # Call your FHIR retrieval function
+                result = get_patient_data(data_type)
+            except Exception as e:
+                # Return error if needed
+                result = {"error": str(e)}
 
-        # Interleave messages to maintain conversation flow
-        # fhir_data = get_patient_data()
-        formatted_messages = []
-        formatted_messages.append(types.Content(
-            role="user",
-            parts=[types.Part(text=context_msg["content"])]
-        ))
-
-        for user_msg, asst_msg in zip(user_messages, assistant_messages + [None]):
-            if user_msg:
-                formatted_messages.append(types.Content(
-                    role="user",
-                    parts=[types.Part(text=user_msg["content"])]
-                ))
-            if asst_msg:
-                formatted_messages.append(types.Content(
-                    role="model",
-                    parts=[types.Part(text=asst_msg["content"])]
-                ))
-        # print(formatted_messages)
-        # "data_type": {
-        #     "type": "string",
-        #     "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
-        #     "enum": ["all", "conditions", "medications", "vitals", "labs"]
-        # }
-        get_product_info = FunctionDeclaration(
-            name="get_patient_data",
-            description="Retrieves patient data based on the provided query.",
-            parameters={
-                "type": "OBJECT",
-                "properties": {
-                    "data": {"type": "STRING", "description": "Retrieves patient data."}
-                },
-            },
-        )
-
-        patient_tool = Tool(
-            function_declarations=[
-                get_product_info
-            ],
-        )
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=formatted_messages,
-            config=types.GenerateContentConfig(
-                tools=[patient_tool]
+            # Send the tool response back to the model
+            tool_response = LiveClientToolResponse(
+                function_responses=[
+                    FunctionResponse(
+                        name=fc.name,
+                        id=fc.id,
+                        response=result
+                    )
+                ]
             )
-        )
-        # Process code execution results
-        graph_images = []
-        code_output = ""
-        text_response = ""
-        for part in response.candidates[0].content.parts:
-            if part.function_call:
-                print("Function call detected:", part.function_call)
-                function_name = part.function_call.name
-                arguments = part.function_call.args
+            await session.send(input=tool_response)
 
-                if function_name == "get_patient_data":
-                    result = get_patient_data(data_type='all') 
-                    patient_details = json.dumps(result)
-                    format = '''Final JSON structure:
-                    {
-                      "text": "Main message and main insights",
-                      "cards": [{
-                        "title": "...", 
-                        "subtitle": "...",
-                        "media_url": "{{GRAPH_URL}}",
-                        "buttons": [...]
-                      }],
-                      "quick_replies": [...],
-                      "graph": {"type": "...", "data": {}}
-                    }'''
-                    follow_up_prompt = f'''Based on this data, provide a {arguments}: {patient_details} Here is the final format :{format}. 
-                    
-                    '''
-                    response = client.models.generate_content(            model='gemini-2.0-flash',
-contents=follow_up_prompt)
-                    print(response)
-                    text_response = response.candidates[0].content.parts[0].text
-            if part.code_execution_result:
-                code_output += f"\n{part.code_execution_result.output}"
-            if part.inline_data:
-                graph_images.append(part.inline_data.data)
-        text_response = "\n".join(part.text for part in response.candidates[0].content.parts if part.text)
-        # Combine text response with code output
-        full_response = text_response + "\n" + code_output
+        else:
+            # If we had another function, handle it here.
+            tool_response = LiveClientToolResponse(
+                function_responses=[
+                    FunctionResponse(
+                        name=fc.name,
+                        id=fc.id,
+                        response={"error": "Unknown function call"}
+                    )
+                ]
+            )
+            await session.send(input=tool_response)
 
-        # Parse the combined response
-        final_response = parse_model_response(full_response)
-        # Attach first graph image if available
-        if graph_images:
-            final_response['graph_image'] = graph_images[0]
 
-        return final_response
+# 4. Main async function that runs the conversation for one user query
+async def run_conversation(system_prompt: str, user_message: str):
+    # Create a client (replace with your actual API key)
+    client = genai.Client(
+        api_key=os.getenv('GEMINI_API_KEY'),
+        http_options={'api_version': 'v1alpha'}  # Live API
+    )
 
-    except Exception as e:
-        logger.error(f"Gemini API error: {str(e)}")
-        return {"text": "Sorry, I encountered an error processing your request."}
+    # Combine system + user content into a single prompt
+    combined_prompt = f"{system_prompt}\n\nUser: {user_message}"
 
-def parse_model_response(text: str) -> dict:
-    try:
-        # First try to find JSON block
-        if "```json" in text:
-            json_parts = text.split("```json")
-            for part in json_parts[1:]:  # Skip the first part before ```json
-                try:
-                    json_str = part.split("```")[0].strip()
-                    response_data = json.loads(json_str)
-                    # If we successfully parsed JSON, check for graph data
-                    if "GRAPH_DATA:" in text:
-                        graph_str = text.split("GRAPH_DATA:")[1].split("END_GRAPH_DATA")[0]
-                        response_data["graph"] = json.loads(graph_str)
-                    return response_data
-                except:
-                    continue
-
-        # If no valid JSON found, create a basic response
-        return {
-            "text": text.replace("```json", "").replace("```", "").strip(),
-            "cards": [],
-            "quick_replies": [{
-                "title": "Try Again", 
-                "type": "trigger",
-                "payload": "retry_analysis"
-            }]
+    # Tools array: we declare our custom function, plus code_execution
+    config = {
+        "tools": [
+            {"function_declarations": [get_patient_data_declaration]},  # custom function
+            {"code_execution": {}}                                      # model-run Python
+        ],
+        "generation_config": {
+            "response_modalities": ["TEXT"]  # just text back (no audio)
         }
+    }
 
-    except Exception as e:
-        logger.error(f"Response parsing error: {str(e)}")
-        return {
-            "text": "Here's the analysis:",
-            "cards": [],
-            "quick_replies": [{
-                "title": "Try Again", 
-                "type": "trigger",
-                "payload": "retry_analysis"
-            }]
-        }
-if __name__ == "__main__":
-    """Console interface for testing"""
-    print("Health Assistant Console - Type 'exit' to quit")
+    # Open a Live Chat session with the Gemini model
+    async with client.aio.live.connect(model="gemini-2.0-flash-exp", config=config) as session:
+        # Send our prompt
+        await session.send(input=combined_prompt, end_of_turn=True)
+
+        # Receive messages from the model
+        async for response in session.receive():
+            # 1. Normal text from the assistant
+            if response.text:
+                print("\nAssistant says:\n", response.text)
+
+            # 2. If the model calls a function (tool)
+            if response.tool_call:
+                await handle_tool_call(session, response.tool_call)
+
+            # 3. If the model sends code to execute or returns code-execution results
+            if response.server_content:
+                model_turn = response.server_content.model_turn
+                if model_turn:
+                    for part in model_turn.parts:
+                        # The model’s generated Python code
+                        if part.executable_code:
+                            print("Generated Python code:\n", part.executable_code.code)
+                        # The results of that code execution
+                        if part.code_execution_result:
+                            print("Code execution result:\n", part.code_execution_result.output)
+
+
+# 5. Entry point with a loop for multiple user inputs
+async def main():
+    system_prompt = create_context()
+
     while True:
-        try:
-            user_input = input("\nUser: ")
-            if user_input.lower() == 'exit':
-                break
+        user_input = input("\nUser> ")
+        if user_input.strip().lower() in ("exit", "quit"):
+            print("Exiting...")
+            break
 
-            # Process as JSON input
-            input_json = {"text": user_input}
-            response = process_user_input(input_json)
+        # Call the conversation runner for each user input
+        await run_conversation(system_prompt, user_input)
 
-            # Print raw JSON output
-            print("\nAssistant JSON:")
-            print(json.dumps(response, indent=2))
 
-        except Exception as e:
-            print(f"Error: {str(e)}")
+if __name__ == "__main__":
+    asyncio.run(main())
