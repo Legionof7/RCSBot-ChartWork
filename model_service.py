@@ -53,10 +53,7 @@ def get_patient_datas(data_type: str = 'all') -> dict:
 
 def call_gemini(messages: List[Dict[str, str]]) -> dict:
     try:
-        client = genai.Client(
-            api_key=os.getenv("GEMINI_API_KEY"),
-            http_options={'api_version': 'v1alpha'}
-        )
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         formatted_messages = []
         context_msg = {"role": "user", "content": create_context()}
         user_messages = [msg for msg in messages if msg["role"] == "user"]
@@ -87,10 +84,21 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
         #     "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
         #     "enum": ["all", "conditions", "medications", "vitals", "labs"]
         # }
-        get_patient_data = {'name': 'get_patient_data'}
-        
+        get_product_info = FunctionDeclaration(
+            name="get_patient_data",
+            description="Retrieves patient data based on the provided query.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "data": {"type": "STRING", "description": "Retrieves patient data."}
+                },
+            },
+        )
+
         patient_tool = Tool(
-            function_declarations=[get_patient_data]
+            function_declarations=[
+                get_product_info
+            ],
         )
         response = client.models.generate_content(
             model='gemini-2.0-flash',
