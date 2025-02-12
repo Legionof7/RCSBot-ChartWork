@@ -210,17 +210,20 @@ import logging
 
 def get_patient_data(data_type='all'):
     logging.info(f"Retrieving FHIR patient data for type: {data_type}")
-    
-    if data_type == 'all':
-        return SAMPLE_PATIENT
-    elif data_type == 'conditions':
-        return {"medicalConditions": SAMPLE_PATIENT["medicalConditions"]}
-    elif data_type == 'medications':
-        return {"medications": SAMPLE_PATIENT["medications"]}
-    elif data_type == 'vitals':
-        return {"vitalSigns": SAMPLE_PATIENT["vitalSigns"]}
-    elif data_type == 'labs':
-        return {"labResults": SAMPLE_PATIENT["labResults"]}
-    else:
-        logging.warning(f"Unknown data type: {data_type}, returning all data")
-        return SAMPLE_PATIENT
+
+    data_type = data_type.lower()  # Normalize input to lowercase
+    data_mapping = {
+        "all": SAMPLE_PATIENT,
+        "conditions": {"medicalConditions": SAMPLE_PATIENT.get("medicalConditions", [])},
+        "medications": {"medications": SAMPLE_PATIENT.get("medications", [])},
+        "vitals": {"vitalSigns": SAMPLE_PATIENT.get("vitalSigns", [])},
+        "labs": {"labResults": SAMPLE_PATIENT.get("labResults", [])}
+    }
+
+    if data_type not in data_mapping:
+        logging.warning(f"Unknown data type: {data_type}. Returning an empty dictionary.")
+        return {}
+
+    return data_mapping[data_type]
+# a = get_patient_data()
+# print(a)
