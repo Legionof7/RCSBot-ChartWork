@@ -107,15 +107,6 @@ def call_gemini(messages: List[Dict[str, str]]) -> dict:
                                         "enum": ["all", "conditions", "medications", "vitals", "labs"]
                                     }
                                 }
-                            },
-                            responses={
-                                "type": "OBJECT",
-                                "properties": {
-                                    "medicalConditions": {"type": "ARRAY"},
-                                    "medications": {"type": "ARRAY"},
-                                    "vitalSigns": {"type": "ARRAY"},
-                                    "labResults": {"type": "ARRAY"}
-                                }
                             }
                         )
                     ])
