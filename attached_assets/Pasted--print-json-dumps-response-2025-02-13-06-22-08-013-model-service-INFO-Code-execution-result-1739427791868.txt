@@ -1,0 +1,188 @@
+
+print(json.dumps(response))
+
+2025-02-13 06:22:08,013 - model_service - INFO - Code execution result:
+Traceback (most recent call last):
+  File "<string>", line 95, in <module>
+NameError: name 'conditions' is not defined
+
+2025-02-13 06:22:18,475 - model_service - INFO - Generated Python code:
+import json
+
+patient_data = default_api.get_patient_data(data_type='all')
+
+hba1c_data = []
+for lab in patient_data.get('labResults', []):
+    if lab.get('test') == 'HbA1c':
+        hba1c_data.append({'date': lab.get('date'), 'value': lab.get('value')})
+
+hba1c_data.sort(key=lambda x: x['date'])
+hba1c_labels = [item['date'] for item in hba1c_data]
+hba1c_values = [item['value'] for item in hba1c_data]
+
+
+blood_pressure_data = []
+for vital in patient_data.get('vitalSigns', []):
+  if vital.get('bloodPressure'):
+      blood_pressure_data.append({
+        'date': vital.get('date'),
+        'systolic': vital['bloodPressure'].get('systolic'),
+        'diastolic': vital['bloodPressure'].get('diastolic')
+    })
+blood_pressure_data.sort(key=lambda x: x['date'])
+bp_labels = [item['date'] for item in blood_pressure_data]
+systolic_bp = [item['systolic'] for item in blood_pressure_data]
+diastolic_bp = [item['diastolic'] for item in blood_pressure_data]
+
+
+
+heart_rate_data = []
+for vital in patient_data.get('vitalSigns', []):
+  if vital.get('heartRate'):
+      heart_rate_data.append({'date': vital.get('date'), 'value': vital['heartRate'].get('value')})
+
+heart_rate_data.sort(key=lambda x: x['date'])
+heart_rate_labels = [item['date'] for item in heart_rate_data]
+heart_rate_values = [item['value'] for item in heart_rate_data]
+
+weight_data = []
+for vital in patient_data.get('vitalSigns', []):
+    if vital.get('weight'):
+        weight_data.append({'date': vital.get('date'), 'value': vital['weight'].get('value')})
+
+weight_data.sort(key=lambda x: x['date'])
+weight_labels = [item['date'] for item in weight_data]
+weight_values = [item['value'] for item in weight_data]
+
+conditions = [condition['display'] for condition in patient_data.get('medicalConditions', [])]
+medications = [med['name'] for med in patient_data.get('medications',[])]
+
+
+response = {
+  "text": "Here's an overview of your health:",
+  "cards": [
+        {
+            "title": "HbA1c Trend",
+            "subtitle": "Your HbA1c levels have been trending down.",
+            "media_url": "{{GRAPH_URL}}",
+              "buttons": [
+                  {
+                      "text": "See More",
+                      "url": "https://example.com/hba1c-trend"
+                  }
+              ]
+        },
+        {
+            "title": "Blood Pressure Trend",
+            "subtitle": "Your blood pressure has been fluctuating. Systolic (top number) and Diastolic (bottom number).",
+             "media_url": "{{GRAPH_URL}}",
+            "buttons": [
+                  {
+                      "text": "See More",
+                      "url": "https://example.com/blood-pressure-trend"
+                  }
+              ]
+        },
+        {
+            "title": "Heart Rate Trend",
+            "subtitle": "Your heart rate has been fluctuating.",
+             "media_url": "{{GRAPH_URL}}",
+            "buttons": [
+                  {
+                      "text": "See More",
+                      "url": "https://example.com/heart-rate-trend"
+                  }
+              ]
+        },
+        {
+            "title": "Weight Trend",
+            "subtitle": "Your weight has been decreasing.",
+              "media_url":"{{GRAPH_URL}}",
+             "buttons": [
+                  {
+                      "text": "See More",
+                      "url": "https://example.com/weight-trend"
+                  }
+              ]
+        },
+        {
+          "title": "Conditions",
+          "subtitle": f"You have the following conditions: {', '.join(conditions)}",
+           "buttons": [
+                  {
+                      "text": "See More",
+                      "url": "https://example.com/conditions"
+                  }
+              ]
+        },
+          {
+          "title": "Medications",
+          "subtitle": f"You are currently taking: {', '.join(medications)}",
+           "buttons": [
+                  {
+                      "text": "See More",
+                      "url": "https://example.com/medications"
+                  }
+              ]
+        }
+    ],
+    "quick_replies": [],
+    "graph": {
+        "hba1c": {
+            "type": "line",
+            "data": {
+                "labels": hba1c_labels,
+                "datasets": [{"label": "HbA1c (%)", "data": hba1c_values}]
+            }
+        },
+          "blood_pressure": {
+                "type": "line",
+                "data": {
+                    "labels": bp_labels,
+                     "datasets": [
+                        {"label": "Systolic BP (mmHg)", "data": systolic_bp},
+                         {"label": "Diastolic BP (mmHg)", "data": diastolic_bp}
+                     ]
+                }
+            },
+        "heart_rate": {
+            "type": "line",
+            "data": {
+                "labels": heart_rate_labels,
+                "datasets": [{"label": "Heart Rate (bpm)", "data": heart_rate_values}]
+            }
+        },
+        "weight": {
+            "type": "line",
+            "data": {
+              "labels": weight_labels,
+               "datasets": [{"label": "Weight (kg)", "data": weight_values}]
+            }
+        }
+    }
+}
+
+print(json.dumps(response))
+
+2025-02-13 06:22:18,531 - model_service - INFO - Code execution result:
+{"text": "Here's an overview of your health:", "cards": [{"title": "HbA1c Trend", "subtitle": "Your HbA1c levels have been trending down.", "media_url": "{{GRAPH_URL}}", "buttons": [{"text": "See More", "url": "https://example.com/hba1c-trend"}]}, {"title": "Blood Pressure Trend", "subtitle": "Your blood pressure has been fluctuating. Systolic (top number) and Diastolic (bottom number).", "media_url": "{{GRAPH_URL}}", "buttons": [{"text": "See More", "url": "https://example.com/blood-pressure-trend"}]}, {"title": "Heart Rate Trend", "subtitle": "Your heart rate has been fluctuating.", "media_url": "{{GRAPH_URL}}", "buttons": [{"text": "See More", "url": "https://example.com/heart-rate-trend"}]}, {"title": "Weight Trend", "subtitle": "Your weight has been decreasing.", "media_url": "{{GRAPH_URL}}", "buttons": [{"text": "See More", "url": "https://example.com/weight-trend"}]}, {"title": "Conditions", "subtitle": "You have the following conditions: Type 2 Diabetes, Hypertension", "buttons": [{"text": "See More", "url": "https://example.com/conditions"}]}, {"title": "Medications", "subtitle": "You are currently taking: Metformin, Lisinopril", "buttons": [{"text": "See More", "url": "https://example.com/medications"}]}], "quick_replies": [], "graph": {"hba1c": {"type": "line", "data": {"labels": ["2023-04-15", "2023-07-15", "2023-10-15", "2024-01-15"], "datasets": [{"label": "HbA1c (%)", "data": [7.6, 7.4, 7.1, 6.8]}]}}, "blood_pressure": {"type": "line", "data": {"labels": ["2023-04-15", "2023-07-15", "2023-10-15", "2024-01-15"], "datasets": [{"label": "Systolic BP (mmHg)", "data": [138, 135, 132, 128]}, {"label": "Diastolic BP (mmHg)", "data": [88, 86, 84, 82]}]}}, "heart_rate": {"type": "line", "data": {"labels": ["2023-04-15", "2023-07-15", "2023-10-15", "2024-01-15"], "datasets": [{"label": "Heart Rate (bpm)", "data": [76, 78, 75, 72]}]}}, "weight": {"type": "line", "data": {"labels": ["2023-04-15", "2023-07-15", "2023-10-15", "2024-01-15"], "datasets": [{"label": "Weight (kg)", "data": [84.2, 83.4, 82.1, 80.5]}]}}}}
+
+2025-02-13 06:22:18,572 - model_service - ERROR - Failed to parse Gemini response as JSON. Response was:
+
+2025-02-13 06:22:18,572 - __main__ - ERROR - Error processing user message: Expecting value: line 1 column 1 (char 0)
+2025-02-13 06:22:18,573 - __main__ - ERROR - Full traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 236, in handle_webhook
+    response_data = call_gemini(conversation_slice)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/model_service.py", line 194, in call_gemini
+    response_data = json.loads(final_text)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 
