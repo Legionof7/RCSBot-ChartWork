@@ -220,7 +220,7 @@ def handle_webhook():
 
         # Call model and send response
         try:
-            response_data = call_gemini_sync(conversation_slice)
+            response_data = call_gemini(conversation_slice)
             if not isinstance(response_data, dict):
                 logger.error("Invalid response format from model service")
                 return "Error: Invalid response format", 500
