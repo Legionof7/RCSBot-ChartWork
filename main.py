@@ -106,8 +106,17 @@ def send_rcs_message(to_number: str, response_data: dict):
         clean_card = {
             "title": card.get("title", "Information"),
             "subtitle": card.get("description", "") or card.get("subtitle", ""),
-            "buttons": card.get("buttons", [])
         }
+
+        # Only add buttons if they are properly formatted
+        buttons = card.get("buttons", [])
+        if buttons:
+            valid_buttons = []
+            for button in buttons:
+                if isinstance(button, dict) and "title" in button and "type" in button:
+                    valid_buttons.append(button)
+            if valid_buttons:
+                clean_card["buttons"] = valid_buttons
 
         media_url = card.get("media_url")
         # If the card has a placeholder for the graph, replace it with the actual URL

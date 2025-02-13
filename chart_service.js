@@ -224,8 +224,14 @@ async function renderChart(type, data) {
 app.post('/render-chart', async (req, res) => {
   try {
     const { type, data } = req.body;
+    if (!type || !data) {
+      return res.status(400).json({ error: 'Missing type or data parameter' });
+    }
     console.log('Received chart request:', { type, data });
     const base64Image = await renderChart(type, data);
+    if (!base64Image) {
+      return res.status(500).json({ error: 'Failed to generate chart' });
+    }
     res.json({ image_base64: base64Image });
   } catch (error) {
     console.error('Chart generation error:', error);
