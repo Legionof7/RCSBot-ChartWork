@@ -186,20 +186,23 @@ def call_gemini(conversation_slice):
         run_gemini_conversation(system_prompt, conversation_text)
     )
 
-    # Extract the last valid JSON output from code execution
-    lines = final_text.split('\n')
-    last_json = ""
-    for line in reversed(lines):
-        if line.strip().startswith('{') and line.strip().endswith('}'):
-            try:
-                response_data = json.loads(line.strip())
-                if isinstance(response_data, dict):
-                    return response_data
-            except:
-                continue
-
-    # If no valid JSON found, raise error
-    logger.error("Failed to find valid JSON in response:\n" + final_text)
-    raise ValueError("No valid JSON response found")
-
-    return response_data
+    # Look for JSON content between ```json markers
+    json_pattern = r'```json\s*(.*?)\s*```'
+    matches = re.findall(json_pattern, final_text, re.DOTALL)
+    
+    if matches:
+        try:
+            response_data = json.loads(matches[-1].strip())
+            if isinstance(response_data, dict):
+                return response_data
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON: {str(e)}")
+            
+    # If no valid JSON found in code blocks, try parsing the entire response
+    try:
+        response_data = json.loads(final_text.strip())
+        if isinstance(response_data, dict):
+            return response_data
+    except json.JSONDecodeError:
+        logger.error("Failed to find valid JSON in response:\n" + final_text)
+        raise ValueError("No valid JSON response found")
