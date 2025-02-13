@@ -34,7 +34,6 @@ async function renderChart(type, data) {
 
   if (Array.isArray(data)) {
     // Already an array of { x, y } objects?
-    // Or at least something we can pass to Victory.
     if (data.every(d => d.x !== undefined && d.y !== undefined)) {
       chartData = data;
       console.log('Using array data directly as chartData');
@@ -43,8 +42,16 @@ async function renderChart(type, data) {
       throw new Error('Invalid array format for chart data');
     }
   } else if (data && typeof data === 'object') {
-    // Possibly an object with { labels: [...], values: [...] }?
-    if (data.labels && data.values && Array.isArray(data.labels) && Array.isArray(data.values)) {
+    // Handle both simple labels/values and datasets format
+    if (data.datasets && Array.isArray(data.datasets)) {
+      // Format from chart libraries like Chart.js
+      console.log('Converting datasets format to Victory format');
+      chartData = data.labels.map((label, index) => ({
+        x: label,
+        y: data.datasets[0].data[index]
+      }));
+    } else if (data.labels && data.values && Array.isArray(data.labels) && Array.isArray(data.values)) {
+      // Simple labels/values format
       if (data.labels.length !== data.values.length) {
         console.error('Mismatch in length of labels and values');
         throw new Error('labels and values array length mismatch');
@@ -54,7 +61,6 @@ async function renderChart(type, data) {
         x: label,
         y: data.values[index]
       }));
-      console.log('Converted chart data:', JSON.stringify(chartData, null, 2));
     } else {
       console.error('Invalid data object: expected { labels, values } or an array of { x, y }');
       throw new Error('Invalid data format');
