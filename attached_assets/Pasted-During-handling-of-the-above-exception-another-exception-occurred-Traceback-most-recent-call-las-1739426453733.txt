@@ -1,0 +1,20 @@
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 94, in send_rcs_message
+    generate_graph(g_type, g_data)
+  File "/home/runner/workspace/graph_utils.py", line 30, in generate_graph
+    raise RuntimeError(f"Failed to contact chart service: {str(e)}")
+RuntimeError: Failed to contact chart service: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+
+2025-02-13 05:59:20,407 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Required\nError Field: cards.0.buttons.0.title\nAdditional Info: {"expected":"string","received":"undefined"}\n', 'Error Code: invalid_type\nError Message: Required\nError Field: cards.0.buttons.0.type\nAdditional Info: {"expected":"\'openUrl\' | \'call\' | \'trigger\' | \'requestUserLocation\' | \'scheduleEvent\' | \'sendLocation\'","received":"undefined"}\n']}
+2025-02-13 05:59:20,408 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Required\nError Field: cards.0.buttons.0.title\nAdditional Info: {"expected":"string","received":"undefined"}\n', 'Error Code: invalid_type\nError Message: Required\nError Field: cards.0.buttons.0.type\nAdditional Info: {"expected":"\'openUrl\' | \'call\' | \'trigger\' | \'requestUserLocation\' | \'scheduleEvent\' | \'sendLocation\'","received":"undefined"}\n']}
+2025-02-13 05:59:20,408 - __main__ - ERROR - Full traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 238, in handle_webhook
+    send_rcs_message(from_number, response_data)
+  File "/home/runner/workspace/main.py", line 137, in send_rcs_message
+    rcs_response = client.send.rcs(**rcs_params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/rcs/send/client.py", line 139, in rcs
+    raise BadRequestError(
+rcs.errors.bad_request_error.BadRequestError: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Required\nError Field: cards.0.buttons.0.title\nAdditional Info: {"expected":"string","received":"undefined"}\n', 'Error Code: invalid_type\nError Message: Required\nError Field: cards.0.buttons.0.type\nAdditional Info: {"expected":"\'openUrl\' | \'call\' | \'trigger\' | \'requestUserLocation\' | \'scheduleEvent\' | \'sendLocation\'","received":"undefined"}\n']}
