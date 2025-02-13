@@ -16,8 +16,16 @@ from google.genai.types import (
 
 def call_gemini(conversation_history):
     """Process conversation history with Gemini and return response"""
-    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-    model = genai.GenerativeModel('gemini-pro')
+    generation_config = {
+        "temperature": 0.9,
+        "top_p": 1,
+        "top_k": 1,
+        "max_output_tokens": 2048,
+    }
+    
+    model = genai.GenerativeModel(model_name='gemini-pro', 
+                                generation_config=generation_config,
+                                api_key=os.getenv('GEMINI_API_KEY'))
     
     # Format conversation for Gemini
     gemini_messages = []
