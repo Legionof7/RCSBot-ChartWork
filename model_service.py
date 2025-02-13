@@ -3,16 +3,45 @@ import json
 import logging
 import os
 
-from google import genai
-from google.genai import types
-from google.genai.types import (
-    FunctionDeclaration,
-    GenerateContentConfig,
-    Part,
-    Tool,
-    LiveClientToolResponse,
-    FunctionResponse
-)
+import google.generativeai as genai
+
+def call_gemini(conversation_history):
+    """Process conversation history with Gemini and return response"""
+    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+    
+    generation_config = {
+        "temperature": 0.9,
+        "top_p": 1,
+        "top_k": 1,
+        "max_output_tokens": 2048,
+    }
+    
+    model = genai.GenerativeModel(model_name='gemini-pro',
+                                generation_config=generation_config)
+    
+    # Format conversation for Gemini
+    gemini_messages = []
+    for msg in conversation_history:
+        gemini_messages.append({
+            "role": msg["role"],
+            "parts": [{"text": msg["content"]}]
+        })
+    
+    # Call Gemini model
+    chat = model.start_chat(history=gemini_messages[:-1])  # All messages except the last one
+    response = chat.send_message(gemini_messages[-1]["parts"][0]["text"])  # Send the last message
+    
+    try:
+        # Parse response into expected format
+        response_data = json.loads(response.text)
+        return response_data
+    except json.JSONDecodeError:
+        # Fallback if response is not valid JSON
+        return {
+            "text": response.text,
+            "cards": [],
+            "quick_replies": []
+        }
 
 # Example import for your FHIR data retrieval
 from fhir_data import get_patient_data
@@ -63,6 +92,27 @@ get_patient_data_declaration = {
     }
 }
 
+
+def validate_rcs_response(response_data):
+    """Validate and format response data for RCS"""
+    if not isinstance(response_data, dict):
+        raise ValueError("Response must be a dictionary")
+        
+    # Ensure minimum required structure
+    if "text" not in response_data and "cards" not in response_data:
+        raise ValueError("Response must contain either 'text' or 'cards'")
+        
+    # Format cards if present
+    if "cards" in response_data:
+        for card in response_data["cards"]:
+            if not isinstance(card, dict):
+                raise ValueError("Each card must be a dictionary")
+            if "title" not in card:
+                card["title"] = "Information"
+            if "subtitle" not in card and "description" in card:
+                card["subtitle"] = card.pop("description")
+                
+    return response_data
 
 # 3. Handle function calls from the model
 async def handle_tool_call(session, tool_call):

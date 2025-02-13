@@ -14,3 +14,4 @@ sift-stack-py
 google-generativeai
 sift-stack-py
 google-generativeai
+google-generativeai
