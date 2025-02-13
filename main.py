@@ -96,7 +96,7 @@ def send_rcs_message(to_number: str, response_data: dict):
             image_url = save_and_upload_image('debug_chart.png')
             logger.info(f"Image uploaded successfully, URL: {image_url}")
         except Exception as e:
-            logger.error(f"Graph generation/upload failed:")
+            logger.error("Graph generation/upload failed:")
             logger.error(traceback.format_exc())
 
     # Clean and validate cards
@@ -110,16 +110,18 @@ def send_rcs_message(to_number: str, response_data: dict):
         }
 
         media_url = card.get("media_url")
+        # If the card has a placeholder for the graph, replace it with the actual URL
         if image_url and media_url and isinstance(media_url, str) and media_url.startswith("{GRAPH_URL_"):
             logger.info(f"Setting media_url to image_url: {image_url}")
             clean_card["media_url"] = image_url
+
         valid_cards.append(clean_card)
 
     # Send final RCS message
     try:
         rcs_params = {
             "to": to_number,
-            "from_": "test"
+            "from_": "test"   # Adjust this if needed
         }
 
         if quick_replies:
@@ -213,9 +215,11 @@ def handle_webhook():
             'parsed': parsed_data.__dict__ if parsed_data else "Parse error"
         })
 
-        # Conversation logic
+        # Conversation logic: store the user's message
         app.conversation_history.setdefault(from_number, [])
         app.conversation_history[from_number].append({"role": "user", "content": user_text})
+
+        # We'll keep only the last 6 turns for brevity
         conversation_slice = app.conversation_history[from_number][-6:]
 
         # Call model and send response
@@ -224,12 +228,12 @@ def handle_webhook():
             if not isinstance(response_data, dict):
                 logger.error("Invalid response format from model service")
                 return "Error: Invalid response format", 500
-                
+
             required_keys = {"text", "cards", "quick_replies"}
             if not any(key in response_data for key in required_keys):
                 logger.error(f"Missing required keys in response: {response_data}")
                 return "Error: Invalid response structure", 500
-                
+
             logger.info(f"Received valid response from model: {json.dumps(response_data, indent=2)}")
             send_rcs_message(from_number, response_data)
             app.conversation_history[from_number].append(
@@ -242,7 +246,7 @@ def handle_webhook():
 
         return "Webhook received", 200
     else:
-        # Display recent messages table
+        # Display recent messages in a table
         html_content = '''
             <h1>RCS Webhook Receiver</h1>
             <meta http-equiv="refresh" content="20">

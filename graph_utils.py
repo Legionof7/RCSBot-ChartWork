@@ -1,63 +1,61 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-import io
-import base64
-import logging
-import traceback
-import json
 import requests
-from typing import List, Dict, Any
+import base64
+import os
 
-logger = logging.getLogger(__name__)
+def generate_graph(graph_type: str, data: dict):
+    """
+    Calls the external Node.js chart service (Victory + Puppeteer) to generate a PNG chart.
+    Saves the chart locally as 'debug_chart.png'.
 
-def generate_graph(graph_type: str, data: Dict[str, Any]) -> None:
-    """Generate a graph using Victory Charts service, return base64 image"""
-    logger.info(f"Generating {graph_type} graph with data type: {type(data)}")
-    logger.debug(f"Full data content: {data}")
+    :param graph_type:  e.g. "line", "bar", or "scatter"
+    :param data: a dict that either:
+        - has 'labels' and 'values' arrays, OR
+        - is an array of { x, y } points, OR
+        - includes optional 'xlabel', 'ylabel' fields for axis labels
+    """
+    # The URL to your Node "chart service"
+    CHART_SERVICE_URL = "http://localhost:3001/render-chart"  # adjust if different
 
-    if data is None:
-        logging.error("Data is None")
-        raise ValueError("Data cannot be None")
-
-    if not isinstance(data, dict):
-        logging.error(f"Invalid data type: {type(data)}. Expected dict. Data: {str(data)}")
-        raise ValueError(f"Data must be a dictionary, got {type(data)}")
-
-    # Transform data for Victory Charts format
-    victory_data = []
-    if graph_type == "bar":
-        victory_data = [{"x": label, "y": value} for label, value in zip(data["labels"], data["values"])]
-    elif graph_type in ["line", "scatter"]:
-        victory_data = [{"x": x, "y": y} for x, y in zip(data["x"], data["y"])]
+    # Prepare the payload
+    payload = {
+        "type": graph_type,
+        "data": data
+    }
 
     try:
-        response = requests.post("http://localhost:3001/render-chart", 
-                               json={"type": graph_type, "data": victory_data})
+        print(f"[graph_utils] Sending chart request to Node service: {payload}")
+        response = requests.post(CHART_SERVICE_URL, json=payload)
         response.raise_for_status()
-        return response.json()["image_base64"]
-    except Exception as e:
-        logger.error(f"Error generating graph: {str(e)}")
-        raise ValueError(f"Failed to generate graph: {str(e)}")
-    except Exception as e:
-        plt.close()  # Ensure figure is closed even on error
-        logger.error(f"Graph generation failed")
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        logger.error(f"Graph type: {graph_type}")
-        logger.error(f"Graph data: {json.dumps(data, indent=2)}")
-        logger.error(f"Matplotlib version: {matplotlib.__version__}")
-        raise ValueError(f"Graph generation failed: {str(e)}")
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Failed to contact chart service: {str(e)}")
 
-def plot_patient_metrics(metric_name: str, values: List[float], dates: List[str]) -> str:
-    """Generate specific health metric graphs"""
-    data = {
-        "x": dates,
-        "y": values,
-        "title": f"{metric_name} Over Time",
-        "xlabel": "Date",
-        "ylabel": metric_name
-    }
-    return generate_graph("line", data)
+    # The chart service returns JSON with { "image_base64": "data:image/png;base64,..." }
+    json_resp = response.json()
+    if "image_base64" not in json_resp:
+        raise ValueError(f"Chart service did not return 'image_base64': {json_resp}")
+
+    # Typically "image_base64" is something like "data:image/png;base64, iVBORw0KGgoAAA..."
+    image_base64 = json_resp["image_base64"]
+
+    # Strip off data URI prefix if present
+    prefix = "data:image/png;base64,"
+    if image_base64.startswith(prefix):
+        image_base64 = image_base64[len(prefix):]
+
+    # Decode and save as debug_chart.png
+    try:
+        decoded_bytes = base64.b64decode(image_base64, validate=True)
+    except Exception as e:
+        raise ValueError(f"Invalid base64 data returned by chart service: {str(e)}")
+
+    if len(decoded_bytes) < 1000:
+        raise ValueError("Generated image is too small (less than 1000 bytes). Possibly invalid PNG.")
+
+    with open("debug_chart.png", "wb") as f:
+        f.write(decoded_bytes)
+
+    # Double-check that file got created
+    if not os.path.exists("debug_chart.png") or os.path.getsize("debug_chart.png") < 1000:
+        raise ValueError("debug_chart.png was created but is invalid (too small).")
+
+    print("[graph_utils] Chart saved to debug_chart.png successfully")
