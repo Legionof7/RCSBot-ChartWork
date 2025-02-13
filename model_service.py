@@ -14,6 +14,35 @@ from google.genai.types import (
     FunctionResponse
 )
 
+def call_gemini(conversation_history):
+    """Process conversation history with Gemini and return response"""
+    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+    
+    # Format conversation for Gemini
+    gemini_messages = []
+    for msg in conversation_history:
+        gemini_messages.append({
+            "role": msg["role"],
+            "parts": [{"text": msg["content"]}]
+        })
+    
+    # Call Gemini model
+    model = client.get_model('gemini-pro')
+    chat = model.start_chat(history=gemini_messages)
+    response = chat.send_message("")
+    
+    try:
+        # Parse response into expected format
+        response_data = json.loads(response.text)
+        return response_data
+    except json.JSONDecodeError:
+        # Fallback if response is not valid JSON
+        return {
+            "text": response.text,
+            "cards": [],
+            "quick_replies": []
+        }
+
 # Example import for your FHIR data retrieval
 from fhir_data import get_patient_data
 
