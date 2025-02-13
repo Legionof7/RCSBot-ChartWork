@@ -20,16 +20,15 @@ def call_gemini(conversation_history):
                                 generation_config=generation_config)
     
     # Format conversation for Gemini
-    gemini_messages = []
-    for msg in conversation_history:
-        gemini_messages.append({
-            "role": msg["role"],
-            "parts": [{"text": msg["content"]}]
-        })
+    chat = model.start_chat()
     
-    # Call Gemini model
-    chat = model.start_chat(history=gemini_messages[:-1])  # All messages except the last one
-    response = chat.send_message(gemini_messages[-1]["parts"][0]["text"])  # Send the last message
+    # Process conversation history
+    for msg in conversation_history[:-1]:  # All messages except the last one
+        role = "model" if msg["role"] == "assistant" else "user"
+        chat.send_message(msg["content"])
+    
+    # Send the last message
+    response = chat.send_message(conversation_history[-1]["content"])
     
     try:
         # Parse response into expected format
