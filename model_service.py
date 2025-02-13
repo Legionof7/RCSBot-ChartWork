@@ -16,7 +16,8 @@ from google.genai.types import (
 
 def call_gemini(conversation_history):
     """Process conversation history with Gemini and return response"""
-    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+    model = genai.GenerativeModel('gemini-pro')
     
     # Format conversation for Gemini
     gemini_messages = []
@@ -27,7 +28,6 @@ def call_gemini(conversation_history):
         })
     
     # Call Gemini model
-    model = client.get_model('gemini-pro')
     chat = model.start_chat(history=gemini_messages)
     response = chat.send_message("")
     
