@@ -64,6 +64,27 @@ get_patient_data_declaration = {
 }
 
 
+def validate_rcs_response(response_data):
+    """Validate and format response data for RCS"""
+    if not isinstance(response_data, dict):
+        raise ValueError("Response must be a dictionary")
+        
+    # Ensure minimum required structure
+    if "text" not in response_data and "cards" not in response_data:
+        raise ValueError("Response must contain either 'text' or 'cards'")
+        
+    # Format cards if present
+    if "cards" in response_data:
+        for card in response_data["cards"]:
+            if not isinstance(card, dict):
+                raise ValueError("Each card must be a dictionary")
+            if "title" not in card:
+                card["title"] = "Information"
+            if "subtitle" not in card and "description" in card:
+                card["subtitle"] = card.pop("description")
+                
+    return response_data
+
 # 3. Handle function calls from the model
 async def handle_tool_call(session, tool_call):
     """
