@@ -105,27 +105,29 @@ SAMPLE_PATIENT = {
     "vitalSigns": [
         {
             "date": "2024-01-15",
-            "bloodPressure": {
-                "systolic": 128,
-                "diastolic": 82,
-                "unit": "mmHg"
-            },
-            "heartRate": {
-                "value": 72,
-                "unit": "bpm"
-            },
-            "temperature": {
-                "value": 37.0,
-                "unit": "Celsius"
-            },
-            "weight": {
-                "value": 80.5,
-                "unit": "kg"
-            },
-            "height": {
-                "value": 180,
-                "unit": "cm"
-            }
+            "bloodPressure": {"systolic": 128, "diastolic": 82, "unit": "mmHg"},
+            "heartRate": {"value": 72, "unit": "bpm"},
+            "temperature": {"value": 37.0, "unit": "Celsius"},
+            "weight": {"value": 80.5, "unit": "kg"},
+            "height": {"value": 180, "unit": "cm"}
+        },
+        {
+            "date": "2023-10-15",
+            "bloodPressure": {"systolic": 132, "diastolic": 84, "unit": "mmHg"},
+            "heartRate": {"value": 75, "unit": "bpm"},
+            "weight": {"value": 82.1, "unit": "kg"}
+        },
+        {
+            "date": "2023-07-15",
+            "bloodPressure": {"systolic": 135, "diastolic": 86, "unit": "mmHg"},
+            "heartRate": {"value": 78, "unit": "bpm"},
+            "weight": {"value": 83.4, "unit": "kg"}
+        },
+        {
+            "date": "2023-04-15",
+            "bloodPressure": {"systolic": 138, "diastolic": 88, "unit": "mmHg"},
+            "heartRate": {"value": 76, "unit": "bpm"},
+            "weight": {"value": 84.2, "unit": "kg"}
         }
     ],
     "labResults": [
@@ -133,6 +135,30 @@ SAMPLE_PATIENT = {
             "date": "2024-01-15",
             "test": "HbA1c",
             "value": 6.8,
+            "unit": "%",
+            "referenceRange": "4.0-5.6",
+            "interpretation": "High"
+        },
+        {
+            "date": "2023-10-15",
+            "test": "HbA1c",
+            "value": 7.1,
+            "unit": "%",
+            "referenceRange": "4.0-5.6",
+            "interpretation": "High"
+        },
+        {
+            "date": "2023-07-15",
+            "test": "HbA1c",
+            "value": 7.4,
+            "unit": "%",
+            "referenceRange": "4.0-5.6",
+            "interpretation": "High"
+        },
+        {
+            "date": "2023-04-15",
+            "test": "HbA1c",
+            "value": 7.6,
             "unit": "%",
             "referenceRange": "4.0-5.6",
             "interpretation": "High"

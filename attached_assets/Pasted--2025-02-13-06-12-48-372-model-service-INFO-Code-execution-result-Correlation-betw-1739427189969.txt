@@ -1,0 +1,24 @@
+        })
+
+2025-02-13 06:12:48,372 - model_service - INFO - Code execution result:
+Correlation between weight and heart rate: 0.85
+GRAPH_DATA: {'type': 'scatter', 'data': {'datasets': [{'label': 'Heart Rate vs. Weight', 'data': [{'x': 80.5, 'y': 72.0}, {'x': 82.1, 'y': 75.0}, {'x': 83.4, 'y': 78.0}, {'x': 84.2, 'y': 76.0}], 'pointBackgroundColor': 'blue'}]}, 'options': {'scales': {'x': {'title': {'display': True, 'text': 'Weight (kg)'}}, 'y': {'title': {'display': True, 'text': 'Heart Rate (bpm)'}}}}}
+{'text': 'The correlation between your heart rate and weight is 0.85.', 'cards': [{'title': 'Heart Rate vs. Weight', 'subtitle': 'Correlation: 0.85', 'media_url': '{{GRAPH_URL}}', 'buttons': [{'text': 'See More', 'url': 'https://example.com/hr-weight-correlation'}]}], 'quick_replies': [], 'graph': {'type': 'scatter', 'data': {'datasets': [{'label': 'Heart Rate vs. Weight', 'data': [{'x': 80.5, 'y': 72.0}, {'x': 82.1, 'y': 75.0}, {'x': 83.4, 'y': 78.0}, {'x': 84.2, 'y': 76.0}], 'pointBackgroundColor': 'blue'}]}, 'options': {'scales': {'x': {'title': {'display': True, 'text': 'Weight (kg)'}}, 'y': {'title': {'display': True, 'text': 'Heart Rate (bpm)'}}}}}}
+
+[graph_utils] Sending chart request to Node service: {'type': 'scatter', 'data': {'datasets': [{'label': 'Heart Rate vs. Weight', 'data': [{'x': 80.5, 'y': 72.0}, {'x': 82.1, 'y': 75.0}, {'x': 83.4, 'y': 78.0}, {'x': 84.2, 'y': 76.0}], 'pointBackgroundColor': 'blue'}]}}
+2025-02-13 06:12:51,462 - __main__ - ERROR - Graph generation/upload failed:
+2025-02-13 06:12:51,463 - __main__ - ERROR - Traceback (most recent call last):
+  File "/home/runner/workspace/graph_utils.py", line 28, in generate_graph
+    response.raise_for_status()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 94, in send_rcs_message
+    generate_graph(g_type, g_data)
+  File "/home/runner/workspace/graph_utils.py", line 30, in generate_graph
+    raise RuntimeError(f"Failed to contact chart service: {str(e)}")
+RuntimeError: Failed to contact chart service: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
