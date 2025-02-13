@@ -202,6 +202,14 @@ def call_gemini(conversation_slice):
     try:
         response_data = json.loads(final_text.strip())
         if isinstance(response_data, dict):
+            # Ensure quick_replies are in correct format
+            if "quick_replies" in response_data:
+                quick_replies = response_data["quick_replies"]
+                if isinstance(quick_replies, list):
+                    response_data["quick_replies"] = [
+                        {"title": qr} if isinstance(qr, str) else qr 
+                        for qr in quick_replies
+                    ]
             return response_data
     except json.JSONDecodeError:
         logger.error("Failed to find valid JSON in response:\n" + final_text)
