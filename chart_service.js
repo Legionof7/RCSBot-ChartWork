@@ -42,14 +42,10 @@ async function renderChart(type, data) {
       throw new Error('Invalid array format for chart data');
     }
   } else if (data && typeof data === 'object') {
-    // Handle both simple labels/values and datasets format
+    // Handle datasets format for scatter plots
     if (data.datasets && Array.isArray(data.datasets)) {
-      // Format from chart libraries like Chart.js
-      console.log('Converting datasets format to Victory format');
-      chartData = data.labels.map((label, index) => ({
-        x: label,
-        y: data.datasets[0].data[index]
-      }));
+      chartData = data.datasets[0].data;
+      console.log('Using dataset data points:', chartData);
     } else if (data.labels && data.values && Array.isArray(data.labels) && Array.isArray(data.values)) {
       // Simple labels/values format
       if (data.labels.length !== data.values.length) {
