@@ -28,8 +28,8 @@ def call_gemini(conversation_history):
         })
     
     # Call Gemini model
-    chat = model.start_chat(history=gemini_messages)
-    response = chat.send_message("")
+    chat = model.start_chat(history=gemini_messages[:-1])  # All messages except the last one
+    response = chat.send_message(gemini_messages[-1]["parts"][0]["text"])  # Send the last message
     
     try:
         # Parse response into expected format
