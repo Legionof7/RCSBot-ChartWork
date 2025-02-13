@@ -221,12 +221,24 @@ def handle_webhook():
         # Call model and send response
         try:
             response_data = call_gemini(conversation_slice)
+            if not isinstance(response_data, dict):
+                logger.error("Invalid response format from model service")
+                return "Error: Invalid response format", 500
+                
+            required_keys = {"text", "cards", "quick_replies"}
+            if not any(key in response_data for key in required_keys):
+                logger.error(f"Missing required keys in response: {response_data}")
+                return "Error: Invalid response structure", 500
+                
+            logger.info(f"Received valid response from model: {json.dumps(response_data, indent=2)}")
             send_rcs_message(from_number, response_data)
             app.conversation_history[from_number].append(
                 {"role": "assistant", "content": json.dumps(response_data)}
             )
         except Exception as e:
-            logger.error(f"Error processing user message: {e}")
+            logger.error(f"Error processing user message: {str(e)}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            return "Error processing message", 500
 
         return "Webhook received", 200
     else:
