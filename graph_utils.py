@@ -14,7 +14,7 @@ def generate_graph(graph_type: str, data: dict):
         - includes optional 'xlabel', 'ylabel' fields for axis labels
     """
     # The URL to your Node "chart service"
-    CHART_SERVICE_URL = "http://localhost:3001/render-chart"  # adjust if different
+    CHART_SERVICE_URL = "http://0.0.0.0:3001/render-chart"  # adjust if different
 
     # Prepare the payload
     payload = {
