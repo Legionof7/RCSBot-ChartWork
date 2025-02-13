@@ -1,0 +1,39 @@
+2025-02-13 07:53:08,724 - werkzeug - INFO - 172.31.128.57 - - [13/Feb/2025 07:53:08] "GET / HTTP/1.1" 200 -
+/home/runner/workspace/model_service.py:118: ExperimentalWarning: The live API is experimental and may change in future versions.
+  async with client.aio.live.connect(model="gemini-2.0-flash-exp", config=config) as session:
+2025-02-13 07:53:25,222 - model_service - INFO - Generated Python code:
+print(default_api.get_patient_data(data_type='all'))
+
+2025-02-13 07:53:25,280 - model_service - INFO - Code execution result:
+{'meta': {'profile': ['http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient'], 'lastUpdated': '2024-01-22T12:00:00Z'}, 'telecom': [{'use': 'home', 'system': 'phone', 'value': '+1-555-555-5555'}, {'value': 'john.smith@email.com', 'use': 'work', 'system': 'email'}], 'medications': [{'system': 'RxNorm', 'frequency': 'twice daily', 'startDate': '2020-03-15', 'status': 'active', 'dosage': '500mg', 'code': '860975', 'name': 'Metformin'}, {'dosage': '10mg', 'status': 'active', 'startDate': '2019-06-22', 'system': 'RxNorm', 'frequency': 'once daily', 'name': 'Lisinopril', 'code': '203644'}], 'deceasedBoolean': False, 'maritalStatus': {'coding': [{'system': 'http://terminology.hl7.org/CodeSystem/v3-MaritalStatus', 'display': 'Married', 'code': 'M'}]}, 'resourceType': 'Patient', 'identifier': [{'value': '12345', 'system': 'urn:oid:2.16.840.1.113883.19.5', 'type': {'coding': [{'system': 'http://terminology.hl7.org/CodeSystem/v2-0203', 'code': 'MR', 'display': 'Medical Record Number'}]}}], 'nextAppointment': '2024-02-15', 'medicalConditions': [{'dateRecorded': '2020-03-15', 'code': 'E11.9', 'display': 'Type 2 Diabetes', 'system': 'ICD-10', 'status': 'active'}, {'status': 'active', 'system': 'ICD-10', 'dateRecorded': '2019-06-22', 'display': 'Hypertension', 'code': 'I10'}], 'address': [{'type': 'physical', 'state': 'MA', 'city': 'Boston', 'line': ['123 Main St'], 'country': 'USA', 'postalCode': '02115', 'use': 'home'}], 'emergencyContact': {'relationship': 'Spouse', 'phone': '+1-555-555-5556', 'name': 'Jane Smith'}, 'vitalSigns': [{'height': {'unit': 'cm', 'value': 180}, 'heartRate': {'value': 72, 'unit': 'bpm'}, 'bloodPressure': {'diastolic': 82, 'unit': 'mmHg', 'systolic': 128}, 'date': '2024-01-15', 'weight': {'unit': 'kg', 'value': 80.5}, 'temperature': {'value': 37, 'unit': 'Celsius'}}, {'weight': {'value': 82.1, 'unit': 'kg'}, 'date': '2023-10-15', 'heartRate': {'value': 75, 'unit': 'bpm'}, 'bloodPressure': {'systolic': 132, 'unit': 'mmHg', 'diastolic': 84}}, {'date': '2023-07-15', 'bloodPressure': {'systolic': 135, 'diastolic': 86, 'unit': 'mmHg'}, 'heartRate': {'value': 78, 'unit': 'bpm'}, 'weight': {'value': 83.4, 'unit': 'kg'}}, {'heartRate': {'value': 76, 'unit': 'bpm'}, 'weight': {'unit': 'kg', 'value': 84.2}, 'bloodPressure': {'diastolic': 88, 'unit': 'mmHg', 'systolic': 138}, 'date': '2023-04-15'}], 'name': [{'family': 'Smith', 'given': ['John', 'Edward'], 'prefix': ['Mr.'], 'use': 'official'}], 'communication': [{'language': {'coding': [{'code': 'en', 'system': 'urn:ietf:bcp:47', 'display': 'English'}]}, 'preferred': True}], 'labResults': [{'unit': '%', 'date': '2024-01-15', 'test': 'HbA1c', 'interpretation': 'High', 'value': 6.8, 'referenceRange': '4.0-5.6'}, {'referenceRange': '4.0-5.6', 'value': 7.1, 'test': 'HbA1c', 'interpretation': 'High', 'unit': '%', 'date': '2023-10-15'}, {'interpretation': 'High', 'value': 7.4, 'test': 'HbA1c', 'referenceRange': '4.0-5.6', 'date': '2023-07-15', 'unit': '%'}, {'value': 7.6, 'test': 'HbA1c', 'referenceRange': '4.0-5.6', 'interpretation': 'High', 'unit': '%', 'date': '2023-04-15'}, {'interpretation': 'Normal', 'test': 'Cholesterol', 'value': 185, 'unit': 'mg/dL', 'date': '2024-01-15', 'referenceRange': '125-200'}, {'referenceRange': '40-60', 'unit': 'mg/dL', 'date': '2024-01-15', 'interpretation': 'Normal', 'test': 'HDL', 'value': 55}, {'value': 110, 'unit': 'mg/dL', 'referenceRange': '0-100', 'test': 'LDL', 'date': '2024-01-15', 'interpretation': 'Borderline High'}, {'interpretation': 'Normal', 'value': 150, 'referenceRange': '0-150', 'date': '2024-01-15', 'test': 'Triglycerides', 'unit': 'mg/dL'}, {'referenceRange': '70-100', 'interpretation': 'High', 'unit': 'mg/dL', 'value': 110, 'date': '2024-01-15', 'test': 'Fasting Glucose'}, {'date': '2024-01-15', 'interpretation': 'Normal', 'value': 1.1, 'test': 'Creatinine', 'referenceRange': '0.7-1.3', 'unit': 'mg/dL'}], 'carePlan': {'created': '2024-01-15', 'nextReview': '2024-04-15', 'goals': ['Maintain HbA1c below 7.0%', 'Blood pressure control below 130/80', 'Regular exercise 30 minutes daily', 'Follow diabetic diet plan'], 'status': 'active'}, 'active': True, 'id': 'example', 'gender': 'male', 'lastVisit': '2024-01-15', 'birthDate': '1970-01-25'}
+
+[graph_utils] Sending chart request to Node service: {'type': 'none', 'data': {}}
+2025-02-13 07:53:28,574 - __main__ - ERROR - Graph generation/upload failed:
+2025-02-13 07:53:28,576 - __main__ - ERROR - Traceback (most recent call last):
+  File "/home/runner/workspace/graph_utils.py", line 28, in generate_graph
+    response.raise_for_status()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 94, in send_rcs_message
+    generate_graph(g_type, g_data)
+  File "/home/runner/workspace/graph_utils.py", line 30, in generate_graph
+    raise RuntimeError(f"Failed to contact chart service: {str(e)}")
+RuntimeError: Failed to contact chart service: 500 Server Error: Internal Server Error for url: http://0.0.0.0:3001/render-chart
+
+2025-02-13 07:53:29,057 - werkzeug - INFO - 172.31.128.57 - - [13/Feb/2025 07:53:29] "GET / HTTP/1.1" 200 -
+2025-02-13 07:53:29,342 - __main__ - ERROR - Failed to send RCS message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected object, received string\nError Field: quickReplies.0\nAdditional Info: {"expected":"object","received":"string"}\n', 'Error Code: invalid_type\nError Message: Expected object, received string\nError Field: quickReplies.1\nAdditional Info: {"expected":"object","received":"string"}\n']}
+2025-02-13 07:53:29,342 - __main__ - ERROR - Error processing user message: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected object, received string\nError Field: quickReplies.0\nAdditional Info: {"expected":"object","received":"string"}\n', 'Error Code: invalid_type\nError Message: Expected object, received string\nError Field: quickReplies.1\nAdditional Info: {"expected":"object","received":"string"}\n']}
+2025-02-13 07:53:29,345 - __main__ - ERROR - Full traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 247, in handle_webhook
+    send_rcs_message(from_number, response_data)
+  File "/home/runner/workspace/main.py", line 146, in send_rcs_message
+    rcs_response = client.send.rcs(**rcs_params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/rcs/send/client.py", line 139, in rcs
+    raise BadRequestError(
+rcs.errors.bad_request_error.BadRequestError: status_code: 400, body: {'errors': ['Error Code: invalid_type\nError Message: Expected object, received string\nError Field: quickReplies.0\nAdditional Info: {"expected":"object","received":"string"}\n', 'Error Code: invalid_type\nError Message: Expected object, received string\nError Field: quickReplies.1\nAdditional Info: {"expected":"object","received":"string"}\n']}
