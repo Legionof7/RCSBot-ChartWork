@@ -186,16 +186,20 @@ def call_gemini(conversation_slice):
         run_gemini_conversation(system_prompt, conversation_text)
     )
 
-    # Strip out ```markdown fences```
-    final_text = remove_markdown_code_fences(final_text)
+    # Extract the last valid JSON output from code execution
+    lines = final_text.split('\n')
+    last_json = ""
+    for line in reversed(lines):
+        if line.strip().startswith('{') and line.strip().endswith('}'):
+            try:
+                response_data = json.loads(line.strip())
+                if isinstance(response_data, dict):
+                    return response_data
+            except:
+                continue
 
-    # Expect valid JSON from Gemini
-    try:
-        response_data = json.loads(final_text)
-        if not isinstance(response_data, dict):
-            raise ValueError("Gemini final text is not a JSON object.")
-    except json.JSONDecodeError:
-        logger.error("Failed to parse Gemini response as JSON. Response was:\n" + final_text)
-        raise
+    # If no valid JSON found, raise error
+    logger.error("Failed to find valid JSON in response:\n" + final_text)
+    raise ValueError("No valid JSON response found")
 
     return response_data

@@ -1,0 +1,91 @@
+/home/runner/workspace/model_service.py:118: ExperimentalWarning: The live API is experimental and may change in future versions.
+  async with client.aio.live.connect(model="gemini-2.0-flash-exp", config=config) as session:
+2025-02-13 06:28:04,314 - model_service - INFO - Generated Python code:
+print(default_api.get_patient_data(data_type='all'))
+
+2025-02-13 06:28:04,389 - model_service - INFO - Code execution result:
+{'id': 'example', 'address': [{'state': 'MA', 'line': ['123 Main St'], 'country': 'USA', 'use': 'home', 'type': 'physical', 'city': 'Boston', 'postalCode': '02115'}], 'identifier': [{'type': {'coding': [{'code': 'MR', 'display': 'Medical Record Number', 'system': 'http://terminology.hl7.org/CodeSystem/v2-0203'}]}, 'system': 'urn:oid:2.16.840.1.113883.19.5', 'value': '12345'}], 'name': [{'prefix': ['Mr.'], 'use': 'official', 'family': 'Smith', 'given': ['John', 'Edward']}], 'telecom': [{'use': 'home', 'value': '+1-555-555-5555', 'system': 'phone'}, {'use': 'work', 'value': 'john.smith@email.com', 'system': 'email'}], 'medications': [{'code': '860975', 'frequency': 'twice daily', 'startDate': '2020-03-15', 'name': 'Metformin', 'system': 'RxNorm', 'status': 'active', 'dosage': '500mg'}, {'dosage': '10mg', 'status': 'active', 'name': 'Lisinopril', 'frequency': 'once daily', 'system': 'RxNorm', 'startDate': '2019-06-22', 'code': '203644'}], 'vitalSigns': [{'weight': {'unit': 'kg', 'value': 80.5}, 'temperature': {'unit': 'Celsius', 'value': 37}, 'bloodPressure': {'systolic': 128, 'unit': 'mmHg', 'diastolic': 82}, 'height': {'unit': 'cm', 'value': 180}, 'heartRate': {'value': 72, 'unit': 'bpm'}, 'date': '2024-01-15'}, {'bloodPressure': {'diastolic': 84, 'systolic': 132, 'unit': 'mmHg'}, 'date': '2023-10-15', 'heartRate': {'value': 75, 'unit': 'bpm'}, 'weight': {'unit': 'kg', 'value': 82.1}}, {'date': '2023-07-15', 'heartRate': {'unit': 'bpm', 'value': 78}, 'weight': {'unit': 'kg', 'value': 83.4}, 'bloodPressure': {'diastolic': 86, 'unit': 'mmHg', 'systolic': 135}}, {'date': '2023-04-15', 'weight': {'value': 84.2, 'unit': 'kg'}, 'heartRate': {'value': 76, 'unit': 'bpm'}, 'bloodPressure': {'diastolic': 88, 'unit': 'mmHg', 'systolic': 138}}], 'lastVisit': '2024-01-15', 'emergencyContact': {'relationship': 'Spouse', 'phone': '+1-555-555-5556', 'name': 'Jane Smith'}, 'birthDate': '1970-01-25', 'carePlan': {'goals': ['Maintain HbA1c below 7.0%', 'Blood pressure control below 130/80', 'Regular exercise 30 minutes daily', 'Follow diabetic diet plan'], 'nextReview': '2024-04-15', 'status': 'active', 'created': '2024-01-15'}, 'labResults': [{'test': 'HbA1c', 'value': 6.8, 'referenceRange': '4.0-5.6', 'unit': '%', 'interpretation': 'High', 'date': '2024-01-15'}, {'test': 'HbA1c', 'interpretation': 'High', 'date': '2023-10-15', 'unit': '%', 'value': 7.1, 'referenceRange': '4.0-5.6'}, {'date': '2023-07-15', 'value': 7.4, 'test': 'HbA1c', 'referenceRange': '4.0-5.6', 'interpretation': 'High', 'unit': '%'}, {'test': 'HbA1c', 'unit': '%', 'value': 7.6, 'referenceRange': '4.0-5.6', 'date': '2023-04-15', 'interpretation': 'High'}, {'date': '2024-01-15', 'test': 'Cholesterol', 'interpretation': 'Normal', 'referenceRange': '125-200', 'value': 185, 'unit': 'mg/dL'}, {'value': 55, 'unit': 'mg/dL', 'referenceRange': '40-60', 'interpretation': 'Normal', 'test': 'HDL', 'date': '2024-01-15'}, {'value': 110, 'unit': 'mg/dL', 'referenceRange': '0-100', 'test': 'LDL', 'interpretation': 'Borderline High', 'date': '2024-01-15'}, {'test': 'Triglycerides', 'unit': 'mg/dL', 'value': 150, 'date': '2024-01-15', 'interpretation': 'Normal', 'referenceRange': '0-150'}, {'unit': 'mg/dL', 'date': '2024-01-15', 'test': 'Fasting Glucose', 'interpretation': 'High', 'referenceRange': '70-100', 'value': 110}, {'test': 'Creatinine', 'unit': 'mg/dL', 'value': 1.1, 'interpretation': 'Normal', 'referenceRange': '0.7-1.3', 'date': '2024-01-15'}], 'active': True, 'nextAppointment': '2024-02-15', 'gender': 'male', 'deceasedBoolean': False, 'meta': {'lastUpdated': '2024-01-22T12:00:00Z', 'profile': ['http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient']}, 'maritalStatus': {'coding': [{'code': 'M', 'display': 'Married', 'system': 'http://terminology.hl7.org/CodeSystem/v3-MaritalStatus'}]}, 'medicalConditions': [{'status': 'active', 'code': 'E11.9', 'display': 'Type 2 Diabetes', 'dateRecorded': '2020-03-15', 'system': 'ICD-10'}, {'status': 'active', 'dateRecorded': '2019-06-22', 'display': 'Hypertension', 'system': 'ICD-10', 'code': 'I10'}], 'communication': [{'language': {'coding': [{'display': 'English', 'code': 'en', 'system': 'urn:ietf:bcp:47'}]}, 'preferred': True}], 'resourceType': 'Patient'}
+
+2025-02-13 06:28:09,661 - model_service - ERROR - Failed to find valid JSON in response:
+```json
+{
+  "text": "Here's an overview of your health:\n\n**Key Health Indicators:**\n- **Weight:** Trending downwards from 84.2 kg to 80.5 kg over the last year.\n- **Blood Pressure:** Consistently elevated, with recent readings around 128/82 mmHg.\n- **HbA1c:** Has slightly improved, but still elevated at 6.8%, suggesting ongoing diabetes management.\n- **Cholesterol:** Total cholesterol is normal, but LDL ('bad' cholesterol) is borderline high.\n- **Fasting Glucose:** High at 110 mg/dL.\n\n**Active Conditions:** You are currently being treated for Type 2 Diabetes and Hypertension.\n\n**Medications:** You are actively taking Metformin and Lisinopril.\n\nIt's important to maintain a healthy diet and active lifestyle, follow your care plan, and keep your upcoming appointment on Feb 15, 2024.",
+  "cards": [
+    {
+      "title": "Weight Trend",
+      "subtitle": "Weight changes over time",
+       "media_url": "{{GRAPH_URL}}",
+      "buttons": [
+        {
+          "text": "See More",
+          "postback": "show_weight_details"
+        }
+      ]
+    },
+    {
+      "title": "Blood Pressure Trend",
+      "subtitle": "Systolic and diastolic readings",
+       "media_url": "{{GRAPH_URL}}",
+      "buttons": [
+        {
+          "text": "See More",
+          "postback": "show_bp_details"
+        }
+      ]
+    },
+    {
+      "title": "HbA1c Trend",
+      "subtitle": "Glycemic control over time",
+      "media_url": "{{GRAPH_URL}}",
+      "buttons": [
+          {
+            "text": "See More",
+            "postback": "show_hba1c_details"
+          }
+       ]
+    },
+    {
+      "title": "Cholesterol Profile",
+       "subtitle": "Breakdown of Cholesterol Values",
+       "media_url": "{{GRAPH_URL}}",
+      "buttons": [
+          {
+            "text": "See More",
+            "postback": "show_cholesterol_details"
+          }
+        ]
+    }
+  ],
+    "quick_replies": [
+        {
+          "text": "Show Weight Details",
+          "postback": "show_weight_details"
+        },
+      {
+          "text": "Show Blood Pressure Details",
+          "postback": "show_bp_details"
+        },
+      {
+          "text": "Show HbA1c Details",
+          "postback": "show_hba1c_details"
+        },
+      {
+          "text": "Show Cholesterol Details",
+           "postback": "show_cholesterol_details"
+      }
+    ],
+  "graph": {
+    "type": "none",
+     "data": {}
+  }
+}
+```
+
+2025-02-13 06:28:09,661 - __main__ - ERROR - Error processing user message: No valid JSON response found
+2025-02-13 06:28:09,662 - __main__ - ERROR - Full traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 236, in handle_webhook
+    response_data = call_gemini(conversation_slice)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/model_service.py", line 203, in call_gemini
+    raise ValueError("No valid JSON response found")
+ValueError: No valid JSON response found
