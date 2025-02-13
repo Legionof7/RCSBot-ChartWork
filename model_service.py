@@ -3,44 +3,16 @@ import json
 import logging
 import os
 
-import google.generativeai as genai
-
-def call_gemini(conversation_history):
-    """Process conversation history with Gemini and return response"""
-    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-    
-    generation_config = {
-        "temperature": 0.9,
-        "top_p": 1,
-        "top_k": 1,
-        "max_output_tokens": 2048,
-    }
-    
-    model = genai.GenerativeModel(model_name='gemini-pro',
-                                generation_config=generation_config)
-    
-    # Format conversation for Gemini
-    chat = model.start_chat()
-    
-    # Process conversation history
-    for msg in conversation_history[:-1]:  # All messages except the last one
-        role = "model" if msg["role"] == "assistant" else "user"
-        chat.send_message(msg["content"])
-    
-    # Send the last message
-    response = chat.send_message(conversation_history[-1]["content"])
-    
-    try:
-        # Parse response into expected format
-        response_data = json.loads(response.text)
-        return response_data
-    except json.JSONDecodeError:
-        # Fallback if response is not valid JSON
-        return {
-            "text": response.text,
-            "cards": [],
-            "quick_replies": []
-        }
+from google import genai
+from google.genai import types
+from google.genai.types import (
+    FunctionDeclaration,
+    GenerateContentConfig,
+    Part,
+    Tool,
+    LiveClientToolResponse,
+    FunctionResponse
+)
 
 # Example import for your FHIR data retrieval
 from fhir_data import get_patient_data
