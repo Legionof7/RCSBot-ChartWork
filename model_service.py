@@ -3,16 +3,7 @@ import json
 import logging
 import os
 
-from google import genai
-from google.genai import types
-from google.genai.types import (
-    FunctionDeclaration,
-    GenerateContentConfig,
-    Part,
-    Tool,
-    LiveClientToolResponse,
-    FunctionResponse
-)
+import google.generativeai as genai
 
 def call_gemini(conversation_history):
     """Process conversation history with Gemini and return response"""
