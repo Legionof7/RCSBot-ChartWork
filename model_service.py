@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 
 from google import genai
 from google.genai import types
@@ -14,13 +15,11 @@ from google.genai.types import (
     FunctionResponse
 )
 
-# Example import for your FHIR data retrieval
 from fhir_data import get_patient_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# 1. SlothMD System Prompt
 def create_context() -> str:
     return """# SlothMD System Prompt
 
@@ -45,8 +44,6 @@ Final JSON structure:
   "graph": {"type": "...", "data": {}}
 }"""
 
-
-# 2. Define a function declaration for get_patient_data
 get_patient_data_declaration = {
     "name": "get_patient_data",
     "description": "Retrieves patient data from FHIR server based on the provided query.",
@@ -63,47 +60,16 @@ get_patient_data_declaration = {
     }
 }
 
-
-def validate_rcs_response(response_data):
-    """Validate and format response data for RCS"""
-    if not isinstance(response_data, dict):
-        raise ValueError("Response must be a dictionary")
-        
-    # Ensure minimum required structure
-    if "text" not in response_data and "cards" not in response_data:
-        raise ValueError("Response must contain either 'text' or 'cards'")
-        
-    # Format cards if present
-    if "cards" in response_data:
-        for card in response_data["cards"]:
-            if not isinstance(card, dict):
-                raise ValueError("Each card must be a dictionary")
-            if "title" not in card:
-                card["title"] = "Information"
-            if "subtitle" not in card and "description" in card:
-                card["subtitle"] = card.pop("description")
-                
-    return response_data
-
-# 3. Handle function calls from the model
 async def handle_tool_call(session, tool_call):
-    """
-    Captures any function calls (tool calls) from the model.
-    If it's get_patient_data, we invoke our Python function and respond with the result.
-    The code_execution tool is automatically handled by the API unless you want
-    to intercept or modify code/results yourself.
-    """
+    """Handle function calls (tool calls) from the model."""
     for fc in tool_call.function_calls:
         if fc.name == "get_patient_data":
             data_type = fc.args.get("data_type", "all")
             try:
-                # Call your FHIR retrieval function
                 result = get_patient_data(data_type)
             except Exception as e:
-                # Return error if needed
                 result = {"error": str(e)}
 
-            # Send the tool response back to the model
             tool_response = LiveClientToolResponse(
                 function_responses=[
                     FunctionResponse(
@@ -114,9 +80,7 @@ async def handle_tool_call(session, tool_call):
                 ]
             )
             await session.send(input=tool_response)
-
         else:
-            # If we had another function, handle it here.
             tool_response = LiveClientToolResponse(
                 function_responses=[
                     FunctionResponse(
@@ -128,70 +92,110 @@ async def handle_tool_call(session, tool_call):
             )
             await session.send(input=tool_response)
 
-
-# 4. Main async function that runs the conversation for one user query
-async def run_conversation(system_prompt: str, user_message: str):
-    # Create a client (replace with your actual API key)
+async def run_gemini_conversation(system_prompt: str, conversation_text: str) -> str:
+    """
+    Open a live session with the Gemini model, feed it the system prompt + user/assistant messages,
+    handle function calls, and return the final text. The streaming ends automatically once the
+    model is done sending messages.
+    """
     client = genai.Client(
         api_key=os.getenv('GEMINI_API_KEY'),
-        http_options={'api_version': 'v1alpha'}  # Live API
+        http_options={'api_version': 'v1alpha'}  # Live (experimental)
     )
 
-    # Combine system + user content into a single prompt
-    combined_prompt = f"{system_prompt}\n\nUser: {user_message}"
-
-    # Tools array: we declare our custom function, plus code_execution
     config = {
         "tools": [
-            {"function_declarations": [get_patient_data_declaration]},  # custom function
-            {"code_execution": {}}                                      # model-run Python
+            {"function_declarations": [get_patient_data_declaration]},
+            {"code_execution": {}}
         ],
         "generation_config": {
-            "response_modalities": ["TEXT"]  # just text back (no audio)
+            "response_modalities": ["TEXT"]
         }
     }
 
-    # Open a Live Chat session with the Gemini model
+    final_text = ""
+
     async with client.aio.live.connect(model="gemini-2.0-flash-exp", config=config) as session:
-        # Send our prompt
-        await session.send(input=combined_prompt, end_of_turn=True)
+        # Send the combined prompt
+        await session.send(input=f"{system_prompt}\n\n{conversation_text}", end_of_turn=True)
 
-        # Receive messages from the model
+        # Receive partial responses in a loop
         async for response in session.receive():
-            # 1. Normal text from the assistant
+            # 1. If there's text, accumulate it
             if response.text:
-                print("\nAssistant says:\n", response.text)
+                final_text += response.text
 
-            # 2. If the model calls a function (tool)
+            # 2. If there's a tool call, handle it
             if response.tool_call:
                 await handle_tool_call(session, response.tool_call)
 
-            # 3. If the model sends code to execute or returns code-execution results
-            if response.server_content:
-                model_turn = response.server_content.model_turn
-                if model_turn:
-                    for part in model_turn.parts:
-                        # The model’s generated Python code
-                        if part.executable_code:
-                            print("Generated Python code:\n", part.executable_code.code)
-                        # The results of that code execution
-                        if part.code_execution_result:
-                            print("Code execution result:\n", part.code_execution_result.output)
+            # 3. If there's code execution info, log it
+            if response.server_content and response.server_content.model_turn:
+                for part in response.server_content.model_turn.parts:
+                    if part.executable_code:
+                        logger.info(f"Generated Python code:\n{part.executable_code.code}")
+                    if part.code_execution_result:
+                        logger.info(f"Code execution result:\n{part.code_execution_result.output}")
 
+        # Once the loop finishes, we have the full response in final_text
+    return final_text
 
-# 5. Entry point with a loop for multiple user inputs
-async def main():
+def build_conversation_text(conversation_slice):
+    """
+    Convert conversation_slice into a text block, e.g.:
+        User: Hello, I'd like my latest vitals
+        Assistant: Sure, do you have any date in mind?
+        ...
+    """
+    convo_lines = []
+    for turn in conversation_slice:
+        role = turn['role'].capitalize()  # "User" or "Assistant"
+        content = turn['content']
+        convo_lines.append(f"{role}: {content}")
+    return "\n".join(convo_lines)
+
+def remove_markdown_code_fences(text: str) -> str:
+    """
+    Removes triple backtick code fences of the form:
+        ```json
+        { ... }
+        ```
+    or
+        ```
+        { ... }
+        ```
+    Returns the cleaned string without the fences.
+    """
+    pattern = r"```(?:[a-zA-Z0-9]+)?\s*(.*?)\s*```"  # DOTALL will match across lines
+    cleaned = re.sub(pattern, r"\1", text, flags=re.DOTALL)
+    return cleaned.strip()
+
+def call_gemini(conversation_slice):
+    """
+    Called from main.py:
+      1) Build system prompt + conversation context
+      2) Run the async conversation with Gemini
+      3) Remove any markdown fences
+      4) Parse as JSON
+      5) Return the final JSON dict
+    """
     system_prompt = create_context()
+    conversation_text = build_conversation_text(conversation_slice)
 
-    while True:
-        user_input = input("\nUser> ")
-        if user_input.strip().lower() in ("exit", "quit"):
-            print("Exiting...")
-            break
+    final_text = asyncio.run(
+        run_gemini_conversation(system_prompt, conversation_text)
+    )
 
-        # Call the conversation runner for each user input
-        await run_conversation(system_prompt, user_input)
+    # Strip out ```markdown fences```
+    final_text = remove_markdown_code_fences(final_text)
 
+    # Expect valid JSON from Gemini
+    try:
+        response_data = json.loads(final_text)
+        if not isinstance(response_data, dict):
+            raise ValueError("Gemini final text is not a JSON object.")
+    except json.JSONDecodeError:
+        logger.error("Failed to parse Gemini response as JSON. Response was:\n" + final_text)
+        raise
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    return response_data
