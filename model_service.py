@@ -124,7 +124,12 @@ async def call_gemini(conversation_history: List[Dict[str, str]]) -> Dict[str, A
 
 def call_gemini_sync(conversation_history: List[Dict[str, str]]) -> Dict[str, Any]:
     """Synchronous wrapper for call_gemini"""
-    return asyncio.run(call_gemini(conversation_history))
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(call_gemini(conversation_history))
 
 
 async def main():
