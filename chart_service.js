@@ -142,14 +142,14 @@ async function renderChart(type, data) {
 
   // 5) Build an HTML string that includes the rendered React content
   const htmlContent = `
-    <html>
-      <body style="margin:0; background:white;">
-        <div id="root" style="width:600px; height:400px; background:white; padding:20px; box-sizing:border-box;">
-          ${chartHTML}
-        </div>
-      </body>
-    </html>
-  `;
+  <html>
+    <head>
+      <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: 'unsafe-inline'">
+    </head>
+    <body style="margin:0; background:white;">
+      <div id="root">${chartHTML}</div>
+    </body>
+  </html>`;
 
   // Save HTML for debugging
   const fs = require('fs');
@@ -243,5 +243,5 @@ app.post('/render-chart', async (req, res) => {
 
 // Start server
 app.listen(3002, '0.0.0.0', () => {
-  console.log('Chart service running on port 3001');
+  console.log('Chart service running on port 3002');
 });
