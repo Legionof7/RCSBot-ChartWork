@@ -2,60 +2,61 @@ import requests
 import base64
 import os
 
-def generate_graph(graph_type: str, data: dict):
-    """
-    Calls the external Node.js chart service (Victory + Puppeteer) to generate a PNG chart.
-    Saves the chart locally as 'debug_chart.png'.
-
-    :param graph_type:  e.g. "line", "bar", or "scatter"
-    :param data: a dict that either:
-        - has 'labels' and 'values' arrays, OR
-        - is an array of { x, y } points, OR
-        - includes optional 'xlabel', 'ylabel' fields for axis labels
-    """
-    # The URL to your Node "chart service"
-    CHART_SERVICE_URL = "http://0.0.0.0:3002/render-chart"  # matches chart_service.js port
-
-    # Prepare the payload
-    payload = {
-        "type": graph_type,
-        "data": data
+def upload_to_pinnacle(image_bytes: bytes) -> str:
+    """Uploads image bytes to Pinnacle CDN"""
+    PINNACLE_UPLOAD_URL = "https://api.pinnacle.com/v1/uploads"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('PINNACLE_API_KEY')}",
+        "Content-Type": "image/png"
     }
 
     try:
-        print(f"[graph_utils] Sending chart request to Node service: {payload}")
-        response = requests.post(CHART_SERVICE_URL, json=payload)
+        response = requests.post(PINNACLE_UPLOAD_URL, 
+                               data=image_bytes, 
+                               headers=headers)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        raise RuntimeError(f"Failed to contact chart service: {str(e)}")
-
-    # The chart service returns JSON with { "image_base64": "data:image/png;base64,..." }
-    json_resp = response.json()
-    if "image_base64" not in json_resp:
-        raise ValueError(f"Chart service did not return 'image_base64': {json_resp}")
-
-    # Typically "image_base64" is something like "data:image/png;base64, iVBORw0KGgoAAA..."
-    image_base64 = json_resp["image_base64"]
-
-    # Strip off data URI prefix if present
-    prefix = "data:image/png;base64,"
-    if image_base64.startswith(prefix):
-        image_base64 = image_base64[len(prefix):]
-
-    # Decode and save as debug_chart.png
-    try:
-        decoded_bytes = base64.b64decode(image_base64, validate=True)
+        return response.json()["url"]
     except Exception as e:
-        raise ValueError(f"Invalid base64 data returned by chart service: {str(e)}")
+        raise RuntimeError(f"Pinnacle upload failed: {str(e)}")
+def generate_graph(graph_type: str, data: dict) -> str:
+    """Generates chart and returns Pinnacle URL"""
+    # Convert numpy arrays to lists if needed
+    if 'labels' in data and hasattr(data['labels'], 'tolist'):
+        data['labels'] = data['labels'].tolist()
 
-    if len(decoded_bytes) < 1000:
-        raise ValueError("Generated image is too small (less than 1000 bytes). Possibly invalid PNG.")
+    if 'values' in data and hasattr(data['values'], 'tolist'):
+        data['values'] = data['values'].tolist()
 
-    with open("debug_chart.png", "wb") as f:
-        f.write(decoded_bytes)
+    # Handle datetime objects in x-values
+    if 'x' in data and isinstance(data['x'], (pd.Timestamp, datetime)):
+        data['x'] = data['x'].isoformat()
+    CHART_SERVICE_URL = "http://0.0.0.0:3002/render-chart"
 
-    # Double-check that file got created
-    if not os.path.exists("debug_chart.png") or os.path.getsize("debug_chart.png") < 1000:
-        raise ValueError("debug_chart.png was created but is invalid (too small).")
+    # 1. Generate chart image
+    try:
+        print(f"[graph_utils] Requesting chart: {graph_type}")
+        response = requests.post(
+            CHART_SERVICE_URL,
+            json={"type": graph_type, "data": data},
+            timeout=15  # Seconds
+        )
+        response.raise_for_status()
+        chart_data = response.json()
+    except Exception as e:
+        raise RuntimeError(f"Chart service error: {str(e)}")
 
-    print("[graph_utils] Chart saved to debug_chart.png successfully")
+    # 2. Save debug image
+    try:
+        image_bytes = base64.b64decode(chart_data["image_base64"].split(",")[-1])
+        with open("debug_chart.png", "wb") as f:
+            f.write(image_bytes)
+    except Exception as e:
+        print(f"Warning: Failed to save debug image - {str(e)}")
+
+    # 3. Upload to Pinnacle CDN
+    try:
+        pinnacle_url = upload_to_pinnacle(image_bytes)
+        return pinnacle_url
+    except Exception as e:
+        print(f"Error uploading to Pinnacle: {str(e)}")
+        return "https://pinnacle.com/fallback-chart.png"
