@@ -238,10 +238,18 @@ def handle_webhook():
                 logger.error("Invalid response format from model service")
                 return "Error: Invalid response format", 500
 
-            required_keys = {"text", "cards", "quick_replies"}
-            if not any(key in response_data for key in required_keys):
-                logger.error(f"Missing required keys in response: {response_data}")
+            # Validate response has at least one of: text, cards, or quick_replies
+            valid_keys = {"text", "cards", "quick_replies"}
+            if not any(key in response_data for key in valid_keys):
+                logger.error(f"Response missing any valid content keys: {response_data}")
                 return "Error: Invalid response structure", 500
+
+            # If quick_replies present, validate their structure
+            if "quick_replies" in response_data:
+                for qr in response_data["quick_replies"]:
+                    if not isinstance(qr, dict) or "title" not in qr:
+                        logger.error(f"Invalid quick reply format: {qr}")
+                        return "Error: Invalid quick reply format", 500
 
             logger.info(f"Received valid response from model: {json.dumps(response_data, indent=2)}")
             send_rcs_message(from_number, response_data)
