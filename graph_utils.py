@@ -26,7 +26,6 @@ def generate_graph(react_code: str) -> str:
 
     print("Generating graph...")
     print("********************************")
-    print("********************************")
     print(react_code)
     print("********************************")
 
