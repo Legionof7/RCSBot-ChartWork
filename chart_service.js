@@ -1,247 +1,133 @@
-const express = require('express');
-const puppeteer = require('puppeteer-core');
-const React = require('react');
-const ReactDOMServer = require('react-dom/server');
+// chart_service2.js
+const express = require("express");
+const puppeteer = require("puppeteer-core");
+const React = require("react");
+const ReactDOMServer = require("react-dom/server");
+const fs = require("fs");
 const {
   VictoryChart,
   VictoryLine,
   VictoryBar,
   VictoryScatter,
   VictoryAxis,
-  VictoryTheme
-} = require('victory');
+  VictoryTheme,
+  VictoryPie,
+  VictoryLegend,
+} = require("victory");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 
-// Simple endpoint for health checks
-app.get('/', (req, res) => {
-  res.send('Chart service is running');
+app.get("/", (req, res) => {
+  res.send("Chart service (v2 - accepting reactCode) is running");
 });
 
-// Serve debug HTML for manual inspection in a browser
-app.get('/debug_chart.html', (req, res) => {
-  res.sendFile(__dirname + '/debug_chart.html');
-});
+async function renderChartFromReactCode(
+  reactCode,
+  filename = "test_image.png",
+) {
+  try {
+    // NO MORE HARDCODED reactCode
 
-async function renderChart(type, data) {
-  console.log('\n=== Chart Generation Debug ===');
-  console.log('Received chart type:', type);
-  console.log('Received data:', JSON.stringify(data, null, 2));
+    // Dynamically create the React component
+    let MyChart;
+    try {
+      const wrapper = `(function(React, VictoryChart, VictoryLine, VictoryBar, VictoryScatter, VictoryAxis, VictoryTheme, VictoryPie, VictoryLegend) {
+            ${reactCode}
+            return MyChart;
+        })`;
+      MyChart = eval(wrapper)(
+        React,
+        VictoryChart,
+        VictoryLine,
+        VictoryBar,
+        VictoryScatter,
+        VictoryAxis,
+        VictoryTheme,
+        VictoryPie,
+        VictoryLegend,
+      );
 
-  // 1) Parse the data into an array of { x, y }
-  let chartData;
-
-  if (Array.isArray(data)) {
-    // Already an array of { x, y } objects?
-    if (data.every(d => d.x !== undefined && d.y !== undefined)) {
-      chartData = data;
-      console.log('Using array data directly as chartData');
-    } else {
-      console.error('Invalid array format: each item must have { x, y }');
-      throw new Error('Invalid array format for chart data');
-    }
-  } else if (data && typeof data === 'object') {
-    // Handle datasets format for scatter plots
-    if (data.datasets && Array.isArray(data.datasets)) {
-      chartData = data.datasets[0].data;
-      console.log('Using dataset data points:', chartData);
-    } else if (data.labels && data.values && Array.isArray(data.labels) && Array.isArray(data.values)) {
-      // Simple labels/values format
-      if (data.labels.length !== data.values.length) {
-        console.error('Mismatch in length of labels and values');
-        throw new Error('labels and values array length mismatch');
+      if (typeof MyChart !== "function") {
+        throw new Error("Invalid React code: MyChart is not a function");
       }
-      console.log('Converting labels/values to chart data');
-      chartData = data.labels.map((label, index) => ({
-        x: label,
-        y: data.values[index]
-      }));
-    } else {
-      console.error('Invalid data object: expected { labels, values } or an array of { x, y }');
-      throw new Error('Invalid data format');
+    } catch (evalError) {
+      console.error("Error evaluating React code:", evalError);
+      throw new Error(`Error evaluating React code: ${evalError.message}`);
     }
-  } else {
-    console.error('Data is neither an object nor an array');
-    throw new Error('Invalid data format');
-  }
 
-  // 2) Pick the Victory chart component by type
-  const ChartMap = {
-    'line': VictoryLine,
-    'bar': VictoryBar,
-    'scatter': VictoryScatter
-  };
-  const SelectedChart = ChartMap[type];
-  if (!SelectedChart) {
-    console.error(`Unsupported chart type: ${type}`);
-    throw new Error(`Unsupported chart type: ${type}`);
-  }
+    // Render the React component to HTML
+    let chartHTML;
+    try {
+      chartHTML = ReactDOMServer.renderToString(React.createElement(MyChart));
+    } catch (renderError) {
+      console.error("Error rendering component:", renderError);
+      throw new Error(
+        `Error rendering React component: ${renderError.message}`,
+      );
+    }
 
-  // 3) Define a React component to render the chart
-  const ChartComponent = ({ chartType, chartProps, chartData }) => {
-    return React.createElement(
-      VictoryChart,
-      {
-        theme: VictoryTheme.material,
-        domainPadding: 20,
-        height: 400,
-        width: 600,
-        padding: { top: 50, bottom: 50, left: 60, right: 40 }
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Generated Chart</title>
+          <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: 'unsafe-inline'">
+        </head>
+        <body style="margin: 0; background: white;">
+          <div id="root">${chartHTML}</div>
+        </body>
+      </html>`;
+
+    // Launch Puppeteer to render the chart and take a screenshot
+    const browser = await puppeteer.launch({
+      executablePath:
+        "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: "new",
+    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 800, height: 900 });
+    await page.setContent(htmlContent, { waitUntil: "domcontentloaded" });
+
+    // Wait for Victory to render the chart
+    await page.waitForFunction(
+      () => {
+        const svg = document.querySelector("#root svg");
+        return svg && svg.querySelectorAll("path, rect, circle, g").length > 0;
       },
-      React.createElement(VictoryAxis, {
-        label: chartProps.xlabel || 'X Axis',
-        style: { axisLabel: { padding: 35 } }
-      }),
-      React.createElement(VictoryAxis, {
-        dependentAxis: true,
-        label: chartProps.ylabel || 'Y Axis',
-        style: { axisLabel: { padding: 45 } }
-      }),
-      React.createElement(SelectedChart, {
-        data: chartData,
-        style: { data: { fill: '#4287f5' } }
-      })
+      { timeout: 10000 },
     );
-  };
 
-  // 4) Render the React component to static HTML
-  const chartHTML = ReactDOMServer.renderToString(
-    React.createElement(ChartComponent, {
-      chartType: type,
-      chartProps: data,  // might contain { xlabel, ylabel }
-      chartData
-    })
-  );
+    // Capture a screenshot of the rendered chart
+    await page.screenshot({ path: filename, type: "png" });
+    await browser.close();
 
-  // Puppeteer logic
-  console.log('Launching Puppeteer browser...');
-  const browser = await puppeteer.launch({
-    executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--single-process'
-    ],
-    ignoreDefaultArgs: ['--disable-extensions'],
-    headless: 'new' // or 'true' / 'false' depending on your environment
-  }).catch(err => {
-    console.error('Failed to launch browser:', err);
-    throw err;
-  });
-
-  console.log('Browser launched successfully');
-  console.log('Creating new page...');
-  const page = await browser.newPage().catch(err => {
-    console.error('Failed to create new page:', err);
-    throw err;
-  });
-  console.log('Page created successfully');
-
-  // 5) Build an HTML string that includes the rendered React content
-  const htmlContent = `
-  <html>
-    <head>
-      <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: 'unsafe-inline'">
-    </head>
-    <body style="margin:0; background:white;">
-      <div id="root">${chartHTML}</div>
-    </body>
-  </html>`;
-
-  // Save HTML for debugging
-  const fs = require('fs');
-  const debugPath = 'debug_chart.html';
-  fs.writeFileSync(debugPath, htmlContent);
-  console.log(`Debug HTML saved to: ${debugPath}`);
-
-  // 6) Load the HTML into Puppeteer
-  await page.setViewport({ width: 600, height: 400 });
-  await page.setContent(htmlContent);
-
-  // Wait until the Victory SVG is rendered
-  await page.waitForFunction(() => {
-    const svg = document.querySelector('#root svg');
-    // Ensure there's at least some path or shape elements
-    return svg && svg.querySelectorAll('path, rect, circle').length > 0;
-  }, { timeout: 5000 });
-
-  // A small delay to ensure final layout
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // 7) Take a screenshot
-  console.log('Taking screenshot...');
-  const imageBuffer = await page.screenshot({
-    type: 'png',
-    fullPage: false,
-    omitBackground: false,
-    path: 'debug_chart.png'  // Save to local file
-  }).catch(err => {
-    console.error('Failed to take screenshot:', err);
-    throw err;
-  });
-
-  // Validate screenshot
-  if (!imageBuffer || imageBuffer.length < 1000) {
-    console.error('Screenshot appears invalid - size too small');
-    throw new Error('Invalid screenshot generated');
+    return filename;
+  } catch (error) {
+    console.error("renderChartFromReactCode Error:", error);
+    throw error;
   }
-  console.log('Screenshot captured successfully');
-
-  const savedFileSize = fs.statSync('debug_chart.png').size;
-  console.log('Saved PNG file size:', savedFileSize, 'bytes');
-
-  // Close the browser
-  console.log('Closing browser...');
-  await browser.close();
-  console.log('Browser closed successfully');
-
-  // 8) Validate the PNG header
-  const headerBytes = Array.from(imageBuffer.slice(0, 4));
-  console.log('PNG header bytes:', headerBytes);  // Should be [137, 80, 78, 71] for a PNG
-
-  if (headerBytes[0] !== 0x89 ||
-      headerBytes[1] !== 0x50 ||
-      headerBytes[2] !== 0x4E ||
-      headerBytes[3] !== 0x47) {
-    console.error('Invalid PNG header detected');
-    throw new Error('Invalid PNG format');
-  }
-
-  // 9) Convert to base64 with data URI
-  const base64Data = imageBuffer.toString('base64');
-  const cleanBase64 = base64Data.replace(/[^A-Za-z0-9+/]/g, '');
-  const padding = '='.repeat((4 - cleanBase64.length % 4) % 4);
-  const validBase64 = cleanBase64 + padding;
-  console.log('Base64 validation:', {
-    length: validBase64.length,
-    startsWithiVBOR: validBase64.startsWith('iVBOR')
-  });
-
-  return `data:image/png;base64,${validBase64}`;
 }
 
-app.post('/render-chart', async (req, res) => {
+// Endpoint to trigger the chart rendering, accepting reactCode
+app.post("/render-react-chart", async (req, res) => {
+  console.log("##heyy!!!!!!!!!!!!!");
+  const { reactCode, filename } = req.body; // Get reactCode from the request
+  console.log(reactCode);
+
   try {
-    const { type, data } = req.body;
-    if (!type || !data) {
-      return res.status(400).json({ error: 'Missing type or data parameter' });
-    }
-    console.log('Received chart request:', { type, data });
-    const base64Image = await renderChart(type, data);
-    if (!base64Image) {
-      return res.status(500).json({ error: 'Failed to generate chart' });
-    }
-    res.json({ image_base64: base64Image });
+    const savedFilename = await renderChartFromReactCode(reactCode, filename);
+    res.json({ message: `Chart saved as ${savedFilename}` });
   } catch (error) {
-    console.error('Chart generation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Start server
-app.listen(3002, '0.0.0.0', () => {
-  console.log('Chart service running on port 3002');
+const PORT = 3002;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `Chart service (v2 - accepting reactCode) listening on port ${PORT}`,
+  );
 });

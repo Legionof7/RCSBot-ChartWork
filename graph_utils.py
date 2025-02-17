@@ -21,34 +21,40 @@ def upload_to_pinnacle(image_bytes: bytes) -> str:
         raise RuntimeError(f"Pinnacle upload failed: {str(e)}")
 
 
-def generate_graph(graph_type: str, data: dict) -> str:
+def generate_graph(react_code: str) -> str:
     """Generates chart and returns Pinnacle URL"""
+
+    print("Generating graph...")
+    print("********************************")
+    print("********************************")
+    print(react_code)
+    print("********************************")
+
     # Convert numpy arrays to lists if needed
-    if 'labels' in data and hasattr(data['labels'], 'tolist'):
-        data['labels'] = data['labels'].tolist()
+    # if 'labels' in data and hasattr(data['labels'], 'tolist'):
+    #     data['labels'] = data['labels'].tolist()
 
-    if 'values' in data and hasattr(data['values'], 'tolist'):
-        data['values'] = data['values'].tolist()
+    # if 'values' in data and hasattr(data['values'], 'tolist'):
+    #     data['values'] = data['values'].tolist()
 
-    # Handle datetime objects in x-values
-    if 'x' in data and isinstance(data['x'], (pd.Timestamp, datetime)):
-        data['x'] = data['x'].isoformat()
-    CHART_SERVICE_URL = "https://e84195c7-0bce-4bb6-8d08-d9dd7128af03-00-3nf0smkfdbxlk.pike.replit.dev:3002/render-chart"
+    # # Handle datetime objects in x-values
+    # if 'x' in data and isinstance(data['x'], (pd.Timestamp, datetime)):
+    #     data['x'] = data['x'].isoformat()
+    CHART_SERVICE_URL = "https://e84195c7-0bce-4bb6-8d08-d9dd7128af03-00-3nf0smkfdbxlk.pike.replit.dev:3002/render-react-chart"
     # CHART_SERVICE_URL = "http://0.0.0.0:3002/render-chart"
 
     # 1. Generate chart image
     try:
-        print(f"[graph_utils] Requesting chart: {graph_type}")
+        # print(f"[graph_utils] Requesting chart: {graph_type}")
         response = requests.post(
             CHART_SERVICE_URL,
-            json={
-                "type": graph_type,
-                "data": data
-            },
-            timeout=15  # Seconds
+            json={"reactCode": react_code},
+            timeout=30  # Seconds
         )
         response.raise_for_status()
         chart_data = response.json()
+        return "https://www.example.com/image"
+
     except Exception as e:
         raise RuntimeError(f"Chart service error: {str(e)}")
 
