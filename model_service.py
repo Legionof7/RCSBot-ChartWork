@@ -6,19 +6,16 @@ import re
 
 from google import genai
 from google.genai import types
-from google.genai.types import (
-    FunctionDeclaration,
-    GenerateContentConfig,
-    Part,
-    Tool,
-    LiveClientToolResponse,
-    FunctionResponse
-)
+from google.genai.types import (FunctionDeclaration, GenerateContentConfig,
+                                Part, Tool, LiveClientToolResponse,
+                                FunctionResponse)
 
 from fhir_data import get_patient_data
 from graph_utils import generate_graph
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 def create_context() -> str:
     return """
@@ -89,7 +86,7 @@ You are SlothMD, a consumer-facing medical bot. You must respond to user queries
 4. **Charts and GRAPH_DATA**  
    - When including a chart, store its type ("line", "bar", or "scatter") in graph.type.  
    - Provide all relevant data points in graph.data.  
-   - Use the generate_graph function (in your Python code) to create the chart image, then upload it with upload_to_pinnacle.  
+   - Use the generate_graph tool to create the chart image, then upload it with upload_to_pinnacle.  
    - The returned Pinnacle URL should appear in the "mediaUrl" of a card or potentially in the main message's "mediaUrl" if no cards are used.
 
 5. **Health Cards with “See More” Button**  
@@ -209,19 +206,22 @@ Below is an **illustrative** (not strictly mandated) example combining various e
 
 get_patient_data_declaration = {
     "name": "get_patient_data",
-    "description": "Retrieves patient data from FHIR server based on the provided query.",
+    "description":
+    "Retrieves patient data from FHIR server based on the provided query.",
     "parameters": {
         "type": "object",
         "properties": {
             "data_type": {
                 "type": "string",
-                "description": "Type of data to retrieve (all, conditions, medications, vitals, labs)",
+                "description":
+                "Type of data to retrieve (all, conditions, medications, vitals, labs)",
                 "enum": ["all", "conditions", "medications", "vitals", "labs"]
             }
         },
         "required": []
     }
 }
+
 
 async def handle_tool_call(session, tool_call):
     """Handle function calls (tool calls) from the model."""
@@ -233,29 +233,21 @@ async def handle_tool_call(session, tool_call):
             except Exception as e:
                 result = {"error": str(e)}
 
-            tool_response = LiveClientToolResponse(
-                function_responses=[
-                    FunctionResponse(
-                        name=fc.name,
-                        id=fc.id,
-                        response=result
-                    )
-                ]
-            )
+            tool_response = LiveClientToolResponse(function_responses=[
+                FunctionResponse(name=fc.name, id=fc.id, response=result)
+            ])
             await session.send(input=tool_response)
         else:
-            tool_response = LiveClientToolResponse(
-                function_responses=[
-                    FunctionResponse(
-                        name=fc.name,
-                        id=fc.id,
-                        response={"error": "Unknown function call"}
-                    )
-                ]
-            )
+            tool_response = LiveClientToolResponse(function_responses=[
+                FunctionResponse(name=fc.name,
+                                 id=fc.id,
+                                 response={"error": "Unknown function call"})
+            ])
             await session.send(input=tool_response)
 
-async def run_gemini_conversation(system_prompt: str, conversation_text: str) -> str:
+
+async def run_gemini_conversation(system_prompt: str,
+                                  conversation_text: str) -> str:
     """
     Open a live session with the Gemini model, feed it the system prompt + user/assistant messages,
     handle function calls, and return the final text. The streaming ends automatically once the
@@ -267,10 +259,11 @@ async def run_gemini_conversation(system_prompt: str, conversation_text: str) ->
     )
 
     config = {
-        "tools": [
-            {"function_declarations": [get_patient_data_declaration]},
-            {"code_execution": {}}
-        ],
+        "tools": [{
+            "function_declarations": [get_patient_data_declaration]
+        }, {
+            "code_execution": {}
+        }],
         "generation_config": {
             "response_modalities": ["TEXT"]
         }
@@ -278,9 +271,11 @@ async def run_gemini_conversation(system_prompt: str, conversation_text: str) ->
 
     final_text = ""
 
-    async with client.aio.live.connect(model="gemini-2.0-flash-exp", config=config) as session:
+    async with client.aio.live.connect(model="gemini-2.0-flash-exp",
+                                       config=config) as session:
         # Send the combined prompt
-        await session.send(input=f"{system_prompt}\n\n{conversation_text}", end_of_turn=True)
+        await session.send(input=f"{system_prompt}\n\n{conversation_text}",
+                           end_of_turn=True)
 
         # Receive partial responses in a loop
         async for response in session.receive():
@@ -290,18 +285,24 @@ async def run_gemini_conversation(system_prompt: str, conversation_text: str) ->
 
             # 2. If there's a tool call, handle it
             if response.tool_call:
+                print("-----------------------------", response)
                 await handle_tool_call(session, response.tool_call)
 
             # 3. If there's code execution info, log it
             if response.server_content and response.server_content.model_turn:
                 for part in response.server_content.model_turn.parts:
                     if part.executable_code:
-                        logger.info(f"Generated Python code:\n{part.executable_code.code}")
+                        logger.info(
+                            f"Generated Python code:\n{part.executable_code.code}"
+                        )
                     if part.code_execution_result:
-                        logger.info(f"Code execution result:\n{part.code_execution_result.output}")
+                        logger.info(
+                            f"Code execution result:\n{part.code_execution_result.output}"
+                        )
 
         # Once the loop finishes, we have the full response in final_text
     return final_text
+
 
 def build_conversation_text(conversation_slice):
     """
@@ -316,6 +317,7 @@ def build_conversation_text(conversation_slice):
         content = turn['content']
         convo_lines.append(f"{role}: {content}")
     return "\n".join(convo_lines)
+
 
 def remove_markdown_code_fences(text: str) -> str:
     """
@@ -333,6 +335,7 @@ def remove_markdown_code_fences(text: str) -> str:
     cleaned = re.sub(pattern, r"\1", text, flags=re.DOTALL)
     return cleaned.strip()
 
+
 def call_gemini(conversation_slice):
     """
     Called from main.py:
@@ -342,17 +345,18 @@ def call_gemini(conversation_slice):
       4) Parse as JSON
       5) Return the final JSON dict
     """
+    print("########################################################START",
+          conversation_slice)
     system_prompt = create_context()
     conversation_text = build_conversation_text(conversation_slice)
 
     final_text = asyncio.run(
-        run_gemini_conversation(system_prompt, conversation_text)
-    )
+        run_gemini_conversation(system_prompt, conversation_text))
 
     # Look for JSON content between ```json markers
     json_pattern = r'```json\s*(.*?)\s*```'
     matches = re.findall(json_pattern, final_text, re.DOTALL)
-    
+
     if matches:
         try:
             response_data = json.loads(matches[-1].strip())
@@ -360,7 +364,7 @@ def call_gemini(conversation_slice):
                 return response_data
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON: {str(e)}")
-            
+
     # If no valid JSON found in code blocks, try parsing the entire response
     try:
         response_data = json.loads(final_text.strip())
@@ -369,10 +373,9 @@ def call_gemini(conversation_slice):
             if "quick_replies" in response_data:
                 quick_replies = response_data["quick_replies"]
                 if isinstance(quick_replies, list):
-                    response_data["quick_replies"] = [
-                        {"title": qr} if isinstance(qr, str) else qr 
-                        for qr in quick_replies
-                    ]
+                    response_data["quick_replies"] = [{
+                        "title": qr
+                    } if isinstance(qr, str) else qr for qr in quick_replies]
 
             # Check if there's graph data to process
             if "graph" in response_data:
@@ -387,13 +390,16 @@ def call_gemini(conversation_slice):
 
                         # Replace placeholder in all cards
                         for card in response_data.get("cards", []):
-                            if "media_url" in card and card["media_url"] == "{{GRAPH_URL}}":
+                            if "media_url" in card and card[
+                                    "media_url"] == "{{GRAPH_URL}}":
                                 card["media_url"] = graph_url
                     except Exception as e:
                         logger.error(f"Graph generation failed: {e}")
                         # Handle error state (e.g., remove invalid cards)
-                        response_data["cards"] = [c for c in response_data.get("cards", []) 
-                                                if c.get("media_url") != "{{GRAPH_URL}}"]
+                        response_data["cards"] = [
+                            c for c in response_data.get("cards", [])
+                            if c.get("media_url") != "{{GRAPH_URL}}"
+                        ]
 
                 # Remove graph data from final response
                 del response_data["graph"]
@@ -402,5 +408,11 @@ def call_gemini(conversation_slice):
         logger.error("Failed to find valid JSON in response:\n" + final_text)
         raise ValueError("No valid JSON response found")
 
+
 if __name__ == "__main__":
-     ca = call_gemini([{"role": "user", "content": "what are the medical condition for the patient?"}])
+    ca = call_gemini([{
+        "role":
+        "user",
+        "content":
+        "what are the medical condition for the patient?"
+    }])
