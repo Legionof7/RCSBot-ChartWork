@@ -1,3 +1,4 @@
+# model_service.py
 import asyncio
 import json
 import logging
@@ -8,8 +9,8 @@ import base64
 from google import genai
 from google.genai import types
 from google.genai.types import (FunctionDeclaration, GenerateContentConfig,
-                                Part, Tool, LiveClientToolResponse,
-                                FunctionResponse)
+                                Part, Tool, FunctionResponse
+                                )  # Removed LiveClientToolResponse
 from typing import Tuple, Optional
 
 from fhir_data import get_patient_data
@@ -89,6 +90,7 @@ You are SlothMD, a consumer-facing medical bot. You must respond to user queries
     - The code should:
         - Import `matplotlib.pyplot` as `plt`.
         - Import `io` and `base64`.
+        - Think creatively, thoughtfully and draw a simple, visually appealing chart. It should be very clear and easy to understand. Use appropriate colors, design and appropriate chart types.
         - Create the chart (e.g., `plt.plot`, `plt.bar`, etc.).
         - Set appropriate labels and titles.
         - Save the chart to an in-memory `io.BytesIO` object.
@@ -284,26 +286,21 @@ async def handle_tool_call(session, tool_call):
             except Exception as e:
                 result = {"error": str(e)}
 
-            tool_response = LiveClientToolResponse(function_responses=[
-                FunctionResponse(name=fc.name, id=fc.id, response=result)
-            ])
-            await session.send(input=tool_response)
+            await session.send(
+                input=FunctionResponse(name=fc.name, id=fc.id, response=result)
+            )
         else:
-            tool_response = LiveClientToolResponse(function_responses=[
-                FunctionResponse(name=fc.name,
-                                 id=fc.id,
-                                 response={"error": "Unknown function call"})
-            ])
-            await session.send(input=tool_response)
+
+            await session.send(input=FunctionResponse(
+                name=fc.name,
+                id=fc.id,
+                response={"error": "Unknown function call"}))
 
 
-async def run_gemini_conversation(
-        system_prompt: str,
-        conversation_text: str) -> Tuple[str, Optional[str]]:
+async def run_gemini_conversation(system_prompt: str,
+                                  conversation_text: str) -> str:
     """
-    Open a live session with the Gemini model, feed it the system prompt + user/assistant messages,
-    handle function calls, and return the final text. The streaming ends automatically once the
-    model is done sending messages.
+    Open a live session with the Gemini model, process image immediately.
     """
     client = genai.Client(
         api_key=os.getenv('GEMINI_API_KEY'),
@@ -322,7 +319,6 @@ async def run_gemini_conversation(
     }
 
     final_text = ""
-    final_image_base64 = None  # Store the base64 image data
 
     async with client.aio.live.connect(model="gemini-2.0-flash-exp",
                                        config=config) as session:
@@ -340,7 +336,7 @@ async def run_gemini_conversation(
             if response.tool_call:
                 await handle_tool_call(session, response.tool_call)
 
-            # 3. If there's code execution info, log it AND extract image
+            # 3. Process code execution and image IMMEDIATELY
             if response.server_content and response.server_content.model_turn:
                 for part in response.server_content.model_turn.parts:
                     if part.executable_code:
@@ -350,21 +346,39 @@ async def run_gemini_conversation(
                     if part.code_execution_result:
                         output = part.code_execution_result.output
                         logger.info(f"Code execution result:\n{output}")
-                        # Extract base64 data URI
+
                         if output and output.startswith(
                                 'data:image/png;base64,'):
-                            final_image_base64 = output
+                            try:
+                                # Extract base64 data and decode
+                                image_base64 = output.split(",")[1]
+                                image_bytes = base64.b64decode(image_base64)
+
+                                # Save the image
+                                with open("debug_chart.png", "wb") as f:
+                                    f.write(image_bytes)
+
+                                if os.path.exists(
+                                        "debug_chart.png") and os.path.getsize(
+                                            "debug_chart.png") > 100:
+                                    logger.info(
+                                        "debug_chart.png created successfully."
+                                    )
+                                else:
+                                    logger.warning(
+                                        "debug_chart.png creation failed or file is too small."
+                                    )
+
+                            except Exception as e:
+                                logger.error(f"Error processing image: {e}")
 
         # Once the loop finishes, we have the full response in final_text
-    return final_text, final_image_base64  # Return both text and image
+    return final_text  # Only return the text
 
 
 def build_conversation_text(conversation_slice):
     """
-    Convert conversation_slice into a text block, e.g.:
-        User: Hello, I'd like my latest vitals
-        Assistant: Sure, do you have any date in mind?
-        ...
+    Convert conversation_slice into a text block.
     """
     convo_lines = []
     for turn in conversation_slice:
@@ -376,15 +390,7 @@ def build_conversation_text(conversation_slice):
 
 def remove_markdown_code_fences(text: str) -> str:
     """
-    Removes triple backtick code fences of the form:
-        ```json
-        { ... }
-        ```
-    or
-        ```
-        { ... }
-        ```
-    Returns the cleaned string without the fences.
+    Removes triple backtick code fences.
     """
     pattern = r"```(?:[a-zA-Z0-9]+)?\s*(.*?)\s*```"  # DOTALL will match across lines
     cleaned = re.sub(pattern, r"\1", text, flags=re.DOTALL)
@@ -393,65 +399,30 @@ def remove_markdown_code_fences(text: str) -> str:
 
 def call_gemini(conversation_slice):
     """
-    Called from main.py:
-      1) Build system prompt + conversation context
-      2) Run the async conversation with Gemini
-      3) Remove any markdown fences
-      4) Parse as JSON
-      5) Return the final JSON dict
+    Called from main.py.
     """
     system_prompt = create_context()
     conversation_text = build_conversation_text(conversation_slice)
 
-    final_text, final_image_base64 = asyncio.run(
+    final_text = asyncio.run(
         run_gemini_conversation(system_prompt, conversation_text))
 
-    # --- Parse the text response (same as before) ---
+    # --- Parse the text response ---
     json_pattern = r'```json\s*(.*?)\s*```'
     matches = re.findall(json_pattern, final_text, re.DOTALL)
     if matches:
         try:
             response_data = json.loads(matches[-1].strip())
             if isinstance(response_data, dict):
-                pass  #good to go!
+                pass  #good to go
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON: {str(e)}")
-            response_data = {
-            }  # Create an empty dictionary if JSON parsing fails
-
+            response_data = {}
     else:
-        response_data = {
-        }  # Create an empty dictionary if no matches are found.
+        response_data = {}
 
-    # --- Handle the image (NEW) ---
-    if final_image_base64:
-        # Save debug image
-        try:
-            image_bytes = base64.b64decode(final_image_base64.split(",")[1])
-            with open("debug_chart.png", "wb") as f:
-                f.write(image_bytes)
-            if os.path.exists("debug_chart.png") and os.path.getsize(
-                    "debug_chart.png") > 100:
-                print("debug_chart.png created successfully.")
-            else:
-                print("debug_chart.png creation failed or file is too small.")
-        except Exception as e:
-            print(f"Warning: Failed to save debug image - {str(e)}")
-
-        # Add the image to the response (choose ONE of the following):
-
-        # Option 1: Add to a card (RECOMMENDED):
-        if "cards" not in response_data:
-            response_data["cards"] = []
-        response_data["cards"].append({
-            "title": "Generated Chart",
-            "subtitle": "Chart created by Gemini",
-            "media_url": final_image_base64,  # Use the data URI directly
-        })
-
-    # Ensure quick_replies are in correct format... (same as before)
+    # Ensure quick_replies are in correct format
     if "quick_replies" in response_data:
-        #Rest of the code
         for qr in response_data["quick_replies"]:
             if not isinstance(qr, dict) or "title" not in qr:
                 logger.error(f"Invalid quick reply format: {qr}")
@@ -461,5 +432,8 @@ def call_gemini(conversation_slice):
 
 
 if __name__ == "__main__":
-    ca = call_gemini([{"role": "user", "content": "Show my cholesterol levels as graph"}])
+    ca = call_gemini([{
+        "role": "user",
+        "content": "Show my cholesterol levels as graph"
+    }])
     print(ca)
