@@ -11,7 +11,6 @@ from fhir_data import get_patient_data
 from graph_utils import generate_graph
 from model_service import call_gemini
 
-
 # --------------------------
 #      CONFIG & GLOBALS
 # --------------------------
@@ -22,8 +21,10 @@ app = Flask(__name__)
 app.messages = []
 app.conversation_history = {}
 
+
 # Create a memory log handler
 class MemoryLogHandler(logging.Handler):
+
     def __init__(self):
         super().__init__()
         self.logs = []
@@ -31,18 +32,25 @@ class MemoryLogHandler(logging.Handler):
     def emit(self, record):
         try:
             log_entry = {
-                'timestamp': datetime.datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
-                'level': record.levelname,
-                'message': self.format(record),
-                'exc_info': record.exc_info[1] if record.exc_info else None
+                'timestamp':
+                datetime.datetime.fromtimestamp(
+                    record.created).strftime('%Y-%m-%d %H:%M:%S'),
+                'level':
+                record.levelname,
+                'message':
+                self.format(record),
+                'exc_info':
+                record.exc_info[1] if record.exc_info else None
             }
             self.logs.append(log_entry)
         except:
             pass
 
+
 memory_handler = MemoryLogHandler()
 stream_handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 memory_handler.setFormatter(formatter)
 stream_handler.setFormatter(formatter)
 
@@ -59,14 +67,12 @@ logger.info("Logging system initialized")
 # -----------------------------
 
 api_key = "2d327443-23ea-436e-be88-2eba46e15550"  # Example
-client = Pinnacle(
-    api_key=api_key,
-    timeout=60.0
-)
+client = Pinnacle(api_key=api_key, timeout=60.0)
 
 # -----------------------------
 #        RCS FUNCTIONS
 # -----------------------------
+
 
 def save_and_upload_image(img_path: str) -> str:
     """Upload a saved image from the local filesystem to Pinnacle."""
@@ -77,6 +83,7 @@ def save_and_upload_image(img_path: str) -> str:
     except Exception as e:
         logger.error(f"Failed to upload image: {str(e)}")
         raise
+
 
 def send_rcs_message(to_number: str, response_data: dict):
     """Process and send an RCS message via Pinnacle."""
@@ -105,7 +112,8 @@ def send_rcs_message(to_number: str, response_data: dict):
     for idx, card in enumerate(cards):
         clean_card = {
             "title": card.get("title", "Information"),
-            "subtitle": card.get("description", "") or card.get("subtitle", ""),
+            "subtitle": card.get("description", "")
+            or card.get("subtitle", ""),
         }
 
         # Only add buttons if they are properly formatted
@@ -113,14 +121,16 @@ def send_rcs_message(to_number: str, response_data: dict):
         if buttons:
             valid_buttons = []
             for button in buttons:
-                if isinstance(button, dict) and "title" in button and "type" in button:
+                if isinstance(button,
+                              dict) and "title" in button and "type" in button:
                     valid_buttons.append(button)
             if valid_buttons:
                 clean_card["buttons"] = valid_buttons
 
         media_url = card.get("media_url")
         # If the card has a placeholder for the graph, replace it with the actual URL
-        if image_url and media_url and isinstance(media_url, str) and media_url.startswith("{GRAPH_URL_"):
+        if image_url and media_url and isinstance(
+                media_url, str) and media_url.startswith("{GRAPH_URL_"):
             logger.info(f"Setting media_url to image_url: {image_url}")
             clean_card["media_url"] = image_url
 
@@ -130,7 +140,7 @@ def send_rcs_message(to_number: str, response_data: dict):
     try:
         rcs_params = {
             "to": to_number,
-            "from_": "test"   # Adjust this if needed
+            "from_": "test"  # Adjust this if needed
         }
 
         if quick_replies:
@@ -149,6 +159,7 @@ def send_rcs_message(to_number: str, response_data: dict):
         logger.error(f"Failed to send RCS message: {str(e)}")
         raise
 
+
 def connect_terra_wearable(from_number: str):
     """Generate Terra widget session and send URL via RCS"""
     try:
@@ -161,29 +172,30 @@ def connect_terra_wearable(from_number: str):
             json={
                 "reference_id": from_number,
                 "lang": "en"
-            }
-        )
+            })
         url = response.json()["url"]
 
-        client.send.rcs(
-            to=from_number,
-            from_="test",
-            cards=[{
-                "title": "Connect Device",
-                "subtitle": "Click below to connect your wearable device",
-                "buttons": [{
-                    "title": "Connect Now",
-                    "type": "openUrl",
-                    "payload": url
-                }]
-            }]
-        )
+        client.send.rcs(to=from_number,
+                        from_="test",
+                        cards=[{
+                            "title":
+                            "Connect Device",
+                            "subtitle":
+                            "Click below to connect your wearable device",
+                            "buttons": [{
+                                "title": "Connect Now",
+                                "type": "openUrl",
+                                "payload": url
+                            }]
+                        }])
     except Exception as e:
         logger.error(f"Terra connection error: {str(e)}")
+
 
 # -----------------------------
 #         FLASK ROUTES
 # -----------------------------
+
 
 @app.route("/", methods=['GET', 'POST'])
 @app.route("/webhook", methods=['GET', 'POST'])
@@ -203,7 +215,8 @@ def handle_webhook():
                 user_text = parsed_data.text.strip()
             elif hasattr(parsed_data, 'postback'):
                 user_text = parsed_data.postback.strip()
-            elif hasattr(parsed_data, 'action_title') and hasattr(parsed_data, 'payload'):
+            elif hasattr(parsed_data, 'action_title') and hasattr(
+                    parsed_data, 'payload'):
                 user_text = f"{parsed_data.action_title}: {parsed_data.payload}"
                 logger.info(f"Received action: {user_text}")
 
@@ -211,7 +224,8 @@ def handle_webhook():
                     connect_terra_wearable(from_number)
                     return "Webhook received", 200
             else:
-                logger.warning(f"Unsupported message type received: {parsed_data}")
+                logger.warning(
+                    f"Unsupported message type received: {parsed_data}")
                 return "Webhook received", 200
         except Exception as e:
             logger.error(f"Failed to parse inbound message: {str(e)}")
@@ -219,14 +233,20 @@ def handle_webhook():
 
         # Store for debugging
         app.messages.append({
-            'timestamp': timestamp,
-            'data': raw_data,
-            'parsed': parsed_data.__dict__ if parsed_data else "Parse error"
+            'timestamp':
+            timestamp,
+            'data':
+            raw_data,
+            'parsed':
+            parsed_data.__dict__ if parsed_data else "Parse error"
         })
 
         # Conversation logic: store the user's message
         app.conversation_history.setdefault(from_number, [])
-        app.conversation_history[from_number].append({"role": "user", "content": user_text})
+        app.conversation_history[from_number].append({
+            "role": "user",
+            "content": user_text
+        })
 
         # We'll keep only the last 6 turns for brevity
         conversation_slice = app.conversation_history[from_number][-6:]
@@ -241,7 +261,9 @@ def handle_webhook():
             # Validate response has at least one of: text, cards, or quick_replies
             valid_keys = {"text", "cards", "quick_replies"}
             if not any(key in response_data for key in valid_keys):
-                logger.error(f"Response missing any valid content keys: {response_data}")
+                logger.error(
+                    f"Response missing any valid content keys: {response_data}"
+                )
                 return "Error: Invalid response structure", 500
 
             # If quick_replies present, validate their structure
@@ -251,11 +273,16 @@ def handle_webhook():
                         logger.error(f"Invalid quick reply format: {qr}")
                         return "Error: Invalid quick reply format", 500
 
-            logger.info(f"Received valid response from model: {json.dumps(response_data, indent=2)}")
-            send_rcs_message(from_number, response_data)
-            app.conversation_history[from_number].append(
-                {"role": "assistant", "content": json.dumps(response_data)}
+            logger.info(
+                f"Received valid response from model: {json.dumps(response_data, indent=2)}"
             )
+            # send_rcs_message(from_number, response_data)
+            app.conversation_history[from_number].append({
+                "role":
+                "assistant",
+                "content":
+                json.dumps(response_data)
+            })
         except Exception as e:
             logger.error(f"Error processing user message: {str(e)}")
             logger.error(f"Full traceback: {traceback.format_exc()}")
@@ -280,6 +307,7 @@ def handle_webhook():
             '''
         html_content += '</table>'
         return html_content
+
 
 @app.route("/logs", methods=["GET"])
 def view_logs():
@@ -307,6 +335,7 @@ def view_logs():
         '''
     html_content += '</table>'
     return html_content
+
 
 if __name__ == "__main__":
     port = int(os.getenv('PORT', 3000))
