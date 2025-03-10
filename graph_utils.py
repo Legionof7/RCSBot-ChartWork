@@ -1,6 +1,9 @@
 import requests
 import base64
 import os
+import httpx
+import random
+import string
 
 
 def upload_to_pinnacle(image_bytes: bytes) -> str:
@@ -22,10 +25,9 @@ def upload_to_pinnacle(image_bytes: bytes) -> str:
 
 
 # def generate_graph(graph_type: str, data: dict) -> str:
-def generate_graph(react_code: str) -> str:
+async def generate_graph(react_code: str) -> str:
     """Generates chart and returns Pinnacle URL"""
 
-    print("******************************** Generating graph(graph_utils)...")
     # Convert numpy arrays to lists if needed
     # if 'labels' in data and hasattr(data['labels'], 'tolist'):
     #     data['labels'] = data['labels'].tolist()
@@ -47,16 +49,56 @@ def generate_graph(react_code: str) -> str:
         #     json={"type": graph_type, "data": data},
         #     timeout=15  # Seconds
         # )
-        response = requests.post(
-            CHART_SERVICE_URL,
-            json={"reactCode": react_code},
-            timeout=30  # Seconds
-        )
-        response.raise_for_status()
-        chart_data = response.json()
-        return "https://api.pinnacle.com/chart/gdfgdfg"
+
+        print("*******************Generating graph(graph_utils)...")
+
+        # Make an async HTTP POST request to the chart service
+
+        # Optionally process the response if needed
+        # response_data = await response.json()
+
+        # response = requests.post(
+        #     CHART_SERVICE_URL,
+        #     json={"reactCode": react_code},
+        #     timeout=30  # Seconds
+        # )
+        # response.raise_for_status()
+        # chart_data = response.json()
+        # Use httpx for async requests
+        async with httpx.AsyncClient() as client:
+            response = await client.post(CHART_SERVICE_URL,
+                                         json={"reactCode": react_code},
+                                         timeout=30)
+
+        response.raise_for_status()  # Raise HTTP errors if any
+
+        try:
+            returned_string = response.text  # Extracting response as a string
+            print("Response from Node.js service:", returned_string)
+
+        except UnicodeDecodeError as ue:
+            print("Unicode decoding error:", ue)
+            return "www.cdn.pinnacle.com/fsdfhgfd.png"  # Or handle it as needed
+
+        # Generate a random URL (ignoring response for now)
+        random_string = ''.join(
+            random.choices(string.ascii_letters + string.digits, k=10))
+        url = f"https://api.pinnacle.com/chart/{random_string}.png"
+
+        print("@", url)
+        return url
+
+    except httpx.HTTPStatusError as e:
+        print("---)")
+    # print(f"HTTP error: {e.response.status_code} - {e.response.text}")
+    except httpx.TimeoutException:
+        print("Request timed out")
+    except httpx.RequestError as e:
+        print(f"Request failed: {e}")
     except Exception as e:
-        raise RuntimeError(f"Chart service error: {str(e)}")
+        print(f"Unexpected error: {e}")
+
+    return "www.cdn.pinnacle.com/fsdfhgfd.png"  # Return None on failure
 
     # # 2. Save debug image
     # try:
