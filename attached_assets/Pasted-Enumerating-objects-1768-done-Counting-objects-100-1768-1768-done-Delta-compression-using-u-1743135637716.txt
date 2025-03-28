@@ -1,0 +1,41 @@
+Enumerating objects: 1768, done.
+Counting objects: 100% (1768/1768), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (1763/1763), done.
+Writing objects: 100% (1768/1768), 905.37 KiB | 9.95 MiB/s, done.
+Total 1768 (delta 1082), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1082/1082), done.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Twilio Account String Identifier ——————————————————
+remote:        locations:
+remote:          - commit: 1f20f09d02ab237a2a8129eaaa3204b9d2b81c66
+remote:            path: main.py:13
+remote:          - commit: cfbec02b39555dc43063d0291c937d8094faef72
+remote:            path: main.py:14
+remote:          - commit: f1cc84b0d76ce1cb7bdaf5b9fdf722d46a263976
+remote:            path: main.py:14
+remote:          - commit: 017c94419bb954a2637be442d0a21e5c496e7a51
+remote:            path: main.py:14
+remote:          - commit: dc9fe965e4fe28b017f452b951da73cf5415f9e6
+remote:            path: main.py:14
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/Legionof7/RCSBot-ChartWork/security/secret-scanning/unblock-secret/2uviEiWu7EifUTIkCXtKrwNAHGS
+remote:     
+remote: 
+remote: 
+To https://github.com/Legionof7/RCSBot-ChartWork
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/Legionof7/RCSBot-ChartWork'
