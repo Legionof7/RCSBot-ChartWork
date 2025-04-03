@@ -1,13 +1,8 @@
-
 flask>=3.1.0
 rcs>=1.0.0
 requests>=2.32.0
-anthropic>=0.44.0
 matplotlib>=3.10.0
 numpy>=2.2.0
-e2b>=1.0.0
-e2b-code-interpreter>=1.0.0
 google-generativeai>=0.8.0
-sift-stack-py>=0.3.0
 python-dotenv>=1.0.0
 Pillow>=10.0.0
