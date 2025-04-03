@@ -1,0 +1,7 @@
+[flake8]
+max-line-length = 120
+extend-ignore = E203, W503, E402, E501
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist
+per-file-ignores =
+    # The system prompt contains many long lines that can't be easily split
+    model_service.py:E501
