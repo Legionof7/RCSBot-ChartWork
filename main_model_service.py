@@ -5,10 +5,6 @@ import logging
 import os
 import re
 import base64
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 from google import genai
 from google.genai import types

@@ -159,8 +159,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-#Added lines to ignore sensitive data
+# RCSBot-specific files
 .env
-__pycache__/
-*.pyc
 .DS_Store
+temp_*.png
+node_modules/
